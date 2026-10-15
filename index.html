@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mon Budget</title>
+<meta name="theme-color" content="#EDF1F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121A26" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mon Budget">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#EDF1F7; --card:#FFFFFF; --text:#1F2A3A; --muted:#647086; --line:#D7DFEA;
+  --accent:#2E6BB0; --accent-soft:#DCE8F6; --on:#FFFFFF;
+  --plus:#24855A; --plus-soft:#DDF1E6; --minus:#1F2A3A;
+  --danger:#B3402F; --danger-soft:#F6E1DC; --warn:#A86B00; --warn-soft:#F7EBCF;
+  --shadow:0 1px 2px rgba(20,40,70,.06),0 4px 14px rgba(20,40,70,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121A26; --card:#1A2433; --text:#E3EAF4; --muted:#93A1B6; --line:#2A3648;
+    --accent:#6FA8E8; --accent-soft:#213651; --on:#0C1828;
+    --plus:#5FD39A; --plus-soft:#1D3A2D; --minus:#E3EAF4;
+    --danger:#FF8A75; --danger-soft:#3A2420; --warn:#F0B54A; --warn-soft:#3A3020;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+button,input,textarea,select{font:inherit;color:inherit}
+.hidden{display:none!important}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line)}
+header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:6px}
+header.top h1{font-size:20px;margin:0;letter-spacing:-.01em}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-right:4px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--plus)}.dot.busy{background:var(--warn)}.dot.err{background:var(--danger)}
+.iconbtn{border:0;background:transparent;padding:6px;border-radius:8px;cursor:pointer;color:var(--muted);display:flex}
+.iconbtn.on{color:var(--accent)}
+.period{display:flex;align-items:center;gap:4px;margin-top:8px}
+.period .lbl{flex:1;text-align:center;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 10px;font-weight:600;cursor:pointer;text-transform:capitalize}
+.period .arr{width:44px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:20px;color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:var(--on);font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.btn.small{padding:8px 12px;font-size:14px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.hint{color:var(--muted);font-size:13px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:24px 10px}
+.plus{color:var(--plus)}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);cursor:pointer;min-width:0}
+.kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.25}
+.kpi .v{font-size:17px;font-weight:700;margin-top:3px;overflow:hidden;text-overflow:ellipsis}
+.neg{color:var(--danger)!important}
+/* catégories */
+.cat{padding:0;overflow:hidden;margin-bottom:12px}
+.cat .ch{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.cat .ch .t{font-weight:700;flex:1;min-width:0}
+.cat .ch .tot{font-weight:700}
+.cat .ch .cnt{font-size:12px;color:var(--muted);font-weight:500;margin-left:6px}
+.ln{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
+.ln:first-of-type{border-top:0}
+.ln .main{flex:1;min-width:0;cursor:pointer}
+.ln .lab{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ln .meta{color:var(--muted);font-size:12.5px;margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.ln .amt{text-align:right;cursor:pointer;font-weight:600}
+.ln .amt .eur{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ln.done .lab{color:var(--muted)}
+.addln{display:block;width:100%;border:0;border-top:1px solid var(--line);background:transparent;color:var(--accent);padding:10px 14px;text-align:left;cursor:pointer;font-size:14px}
+.chk{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--accent);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--on);padding:0;font-size:14px;font-weight:700}
+.chk.on{background:var(--accent)}
+.acc{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--text)}
+.acc i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.day{font-variant-numeric:tabular-nums}
+/* synthèse */
+.srow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
+.srow:first-child{border-top:0}
+.srow .k{color:var(--muted)}
+.srow.big .k{color:var(--text);font-weight:600}
+.srow.big .v{font-size:19px;font-weight:700}
+.srow .v{font-weight:600}
+.sh{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 2px 6px;font-weight:700}
+.sh:first-child{margin-top:0}
+table.acct{width:100%;border-collapse:collapse;font-size:14.5px}
+table.acct th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 0 6px}
+table.acct th:first-child{text-align:left}
+table.acct td{padding:8px 0;border-top:1px solid var(--line);text-align:right}
+table.acct td:first-child{text-align:left}
+.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+.bar div{height:100%;background:var(--accent);border-radius:99px}
+/* année */
+.mcard{cursor:pointer}
+.mcard .mh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.mcard .mn{font-weight:700;text-transform:capitalize}
+.mcard .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px;font-size:13px}
+.mcard .grid3 .k{color:var(--muted);font-size:11.5px}
+/* navigation */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .in{display:flex;max-width:720px;width:100%}
+nav.tabs button{flex:1;border:0;background:transparent;padding:9px 2px 7px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button svg{width:24px;height:24px}
+nav.tabs button.on{color:var(--accent)}
+.fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:7;width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--on);box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fab svg{width:28px;height:28px}
+/* fenêtres */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:640px){.backdrop{align-items:center}}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+@media (min-width:640px){.sheet{border-radius:18px}}
+.sheet h2{margin:0 0 6px;font-size:19px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.field{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.field:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+select.field{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--accent);font-weight:600;box-shadow:var(--shadow)}
+.amtrow{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.actions .spacer{flex:1}
+.chkline{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text);margin:14px 0 4px;cursor:pointer}
+.chkline input{width:22px;height:22px;accent-color:var(--accent);margin:0}
+.lock{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.lock .card{width:100%;max-width:420px}
+.lock h1{margin:0 0 4px;font-size:24px}
+.err{color:var(--danger);font-size:14px;margin-top:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom));background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;max-width:90vw}
+details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 12px;font-size:14px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.sw{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+.sw.on{border-color:var(--text)}
+.mlist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.mlist button{text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;text-transform:capitalize}
+.mlist button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.sv{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
+.sv:first-child{border-top:0}
+.sv .main{flex:1;min-width:0}
+.sv .bal{font-size:12px;color:var(--muted);text-align:right}
+.desk{display:none}
+/* ordinateur : disposition comme dans l'Excel */
+@media (min-width:1000px){
+  header.top .row, .wrap, nav.tabs .in{max-width:1180px}
+  .mgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+  .desk{display:block}
+  .mob{display:none!important}
+  .synthside{position:sticky;top:130px}
+  .period{max-width:420px;margin-left:auto;margin-right:auto}
+  .ygrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== CONFIGURATION / VERROUILLAGE ========== -->
+<section id="setupView" class="lock hidden">
+  <div class="card">
+    <h1>💰 Mon Budget</h1>
+    <div class="hint">Première connexion sur cet appareil. Tes données seront chiffrées avec ton mot de passe avant d'être envoyées sur GitHub.</div>
+    <label>Nom d'utilisateur GitHub</label>
+    <input class="field" id="sOwner" autocapitalize="off" autocorrect="off" spellcheck="false" value="FloNewCal988">
+    <label>Dépôt privé des données</label>
+    <input class="field" id="sRepo" autocapitalize="off" autocorrect="off" spellcheck="false" value="mon-budget-donnees">
+    <label>Jeton GitHub (fine-grained token)</label>
+    <input class="field" id="sToken" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="github_pat_…">
+    <label>Mot de passe de l'app</label>
+    <input class="field" id="sPw" type="password" autocomplete="new-password">
+    <div class="hint">Si le fichier de données existe déjà (autre appareil), mets le même mot de passe.</div>
+    <label>Confirmer le mot de passe</label>
+    <input class="field" id="sPw2" type="password" autocomplete="new-password">
+    <div id="setupErr" class="err"></div>
+    <label class="chkline"><input type="checkbox" id="sRemember" checked> Rester connecté sur cet appareil</label>
+    <div class="actions"><button class="btn block" id="setupBtn">Connecter</button></div>
+  </div>
+</section>
+
+<section id="lockView" class="lock hidden">
+  <div class="card">
+    <h1>🔒 Mon Budget</h1>
+    <div class="hint" id="lockWho"></div>
+    <label>Mot de passe</label>
+    <input class="field" id="lPw" type="password" autocomplete="current-password">
+    <div id="lockErr" class="err"></div>
+    <label class="chkline"><input type="checkbox" id="lRemember" checked> Rester connecté sur cet appareil</label>
+    <div class="actions"><button class="btn block" id="unlockBtn">Déverrouiller</button></div>
+    <details><summary>Réinitialiser cet appareil</summary>
+      <div class="hint">Efface la configuration locale de cet appareil (les données sur GitHub ne sont pas touchées).</div>
+      <div class="actions"><button class="btn danger" id="forgetBtn">Oublier cet appareil</button></div>
+    </details>
+  </div>
+</section>
+
+<!-- ========== APPLICATION ========== -->
+<div id="appView" class="hidden">
+  <header class="top">
+    <div class="row">
+      <h1 id="title">Mois</h1>
+      <div style="flex:1"></div>
+      <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt"></span></div>
+      <button class="iconbtn" id="gearBtn" title="Réglages" aria-label="Réglages">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+      <button class="iconbtn" id="lockNow" title="Verrouiller" aria-label="Verrouiller">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </button>
+    </div>
+    <div class="row period" id="periodBar">
+      <button class="arr" id="prevP" aria-label="Précédent">‹</button>
+      <div class="lbl" id="periodLbl"></div>
+      <button class="arr" id="nextP" aria-label="Suivant">›</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="tab-month">
+      <div id="monthBody"></div>
+    </section>
+    <section id="tab-synth" class="hidden"><div id="synthTab"></div></section>
+    <section id="tab-savings" class="hidden"><div id="savingsBody"></div></section>
+    <section id="tab-year" class="hidden"><div id="yearBody"></div></section>
+
+    <section id="tab-settings" class="hidden">
+      <div class="stack">
+        <div class="card">
+          <strong>Taux de change</strong>
+          <label>1 € = … F (XPF)</label>
+          <input class="field" id="rateIn" inputmode="decimal">
+          <div class="hint">Les montants saisis en € sont convertis avec ce taux (comme la cellule C45 de ton Excel).</div>
+        </div>
+        <div class="card">
+          <strong>Comptes / moyens de paiement</strong>
+          <div class="hint" style="margin-bottom:8px">Appuie sur un compte pour le renommer, changer sa couleur ou le supprimer.</div>
+          <div class="chips" id="accChips"></div>
+          <button class="btn ghost small" id="addAcc" style="margin-top:10px">+ Ajouter un compte</button>
+        </div>
+        <div class="card">
+          <strong>Importer mon fichier Excel</strong>
+          <div class="hint">Choisis ton classeur budget (.xlsx) : chaque onglet de mois (ex. « 06-26_JUIN ») et l'onglet Épargne sont repris. Le fichier est lu sur l'appareil, il n'est envoyé nulle part.</div>
+          <button class="btn ghost" id="xlsBtn" style="margin-top:10px">📄 Choisir le fichier Excel</button>
+          <input type="file" id="xlsFile" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+        </div>
+        <div class="card">
+          <strong>Synchronisation</strong>
+          <div class="hint" id="setInfo"></div>
+          <button class="btn ghost" id="syncNow" style="margin-top:10px">Synchroniser maintenant</button>
+        </div>
+        <div class="card">
+          <strong>Sécurité</strong>
+          <div class="hint">Données chiffrées (AES-256) sur l'appareil avant l'envoi sur GitHub. Sans « Rester connecté » : verrouillage après 10 min d'inactivité.</div>
+          <label class="chkline"><input type="checkbox" id="remToggle"> Rester connecté sur cet appareil</label>
+          <button class="btn ghost" id="chgPw" style="margin-top:8px">Changer le mot de passe</button>
+        </div>
+        <div class="card">
+          <strong>Sauvegarde</strong>
+          <div class="hint">Copie lisible de tes données (à garder en lieu sûr : elle n'est pas chiffrée).</div>
+          <div class="actions" style="margin-top:10px">
+            <button class="btn ghost" id="exportBtn">Exporter (JSON)</button>
+            <button class="btn ghost" id="importBtn">Importer un JSON</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json" class="hidden">
+        </div>
+        <div class="card">
+          <strong>Cet appareil</strong>
+          <div class="actions" style="margin-top:8px"><button class="btn danger" id="forgetBtn2">Oublier cet appareil</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab" aria-label="Ajouter une ligne"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+
+  <nav class="tabs"><div class="in">
+    <button data-tab="month" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>Mois</button>
+    <button data-tab="synth" class="synthbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Synthèse</button>
+    <button data-tab="savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9c1.5 0 2 1 2 2v3h-2l-1.5 3H15v2h-3v-2H9v2H6v-2.5C4.2 15.5 3 13.8 3 12c0-3.3 3.6-6 8-6 1.6 0 3.1.3 4.3.9L18 5v4h1z"/><circle cx="15.5" cy="11" r=".8" fill="currentColor"/></svg>Épargne</button>
+    <button data-tab="year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>Année</button>
+  </div></nav>
+</div>
+
+<div id="modalRoot"></div>
+<datalist id="labelsDL"></datalist>
+
+<script>
+"use strict";
+/* ================= CHIFFREMENT (identique à Ma Maison) ================= */
+const ITER = 310000;
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+function unb64(s){ const b=atob(s.replace(/\s/g,"")); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
+function rnd(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+const keyCache = new Map();
+async function deriveKey(pw, saltB64){
+  const id = saltB64+"\u0000"+pw; if(keyCache.has(id)) return keyCache.get(id);
+  const p = (async()=>{
+    const base = await crypto.subtle.importKey("raw", te.encode(pw), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2", salt:unb64(saltB64), iterations:ITER, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+  })();
+  keyCache.set(id, p); p.catch(()=>keyCache.delete(id)); return p;
+}
+async function encryptStr(pw, str, saltB64){
+  saltB64 = saltB64 || b64(rnd(16));
+  const key = await deriveKey(pw, saltB64), iv = rnd(12);
+  const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, te.encode(str));
+  return {v:1, alg:"AES-GCM-256/PBKDF2-SHA256", iter:ITER, salt:saltB64, iv:b64(iv), ct:b64(ct)};
+}
+async function decryptStr(pw, blob){
+  const key = await deriveKey(pw, blob.salt);
+  return td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(blob.iv)}, key, unb64(blob.ct)));
+}
+
+/* ================= STOCKAGE LOCAL (préfixe propre : même domaine que Ma Maison) ================= */
+const LS_CFG="mb_cfg", LS_CACHE="mb_cache", LS_REM="mb_rem", LS_UI="mb_ui";
+const ls = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const idb = (()=>{
+  let p=null;
+  const db = () => p ||= new Promise((res,rej)=>{ const r=indexedDB.open("mon-budget",1); r.onupgradeneeded=()=>r.result.createObjectStore("files"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  const run = (mode, fn) => db().then(d=>new Promise(res=>{ const tx=d.transaction("files",mode); const st=tx.objectStore("files"); const rq=fn(st); tx.oncomplete=()=>res(rq?.result); tx.onerror=()=>res(undefined); })).catch(()=>undefined);
+  return { get:k=>run("readonly",s=>s.get(k)), set:(k,v)=>run("readwrite",s=>s.put(v,k)), clear:()=>run("readwrite",s=>s.clear()) };
+})();
+
+/* ================= GITHUB ================= */
+const DATA_PATH = "budget.enc.json";
+const ghBase = c => `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`;
+const ghHeaders = t => ({"Authorization":"Bearer "+t, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"});
+function ghErr(r){
+  if(r.status===401) return new Error("Jeton GitHub refusé (expiré ou invalide).");
+  if(r.status===403) return new Error("Le jeton n'a pas les droits sur ce dépôt.");
+  return new Error("GitHub a répondu "+r.status+".");
+}
+async function ghGetFile(c, token, path){
+  const r = await fetch(`${ghBase(c)}/contents/${path}?t=${Date.now()}`, {headers:ghHeaders(token), cache:"no-store"});
+  if(r.status===404) return null;
+  if(!r.ok) throw ghErr(r);
+  const j = await r.json();
+  let content = j.content;
+  if(!content){
+    const r2 = await fetch(`${ghBase(c)}/git/blobs/${j.sha}`, {headers:ghHeaders(token), cache:"no-store"});
+    if(!r2.ok) throw ghErr(r2);
+    content = (await r2.json()).content;
+  }
+  return {sha:j.sha, text:td.decode(unb64(content))};
+}
+async function ghPutFile(c, token, path, text, sha, message){
+  const body = {message:message||("Mise à jour "+new Date().toISOString()), content:b64(te.encode(text))};
+  if(sha) body.sha = sha;
+  const r = await fetch(`${ghBase(c)}/contents/${path}`, {method:"PUT", headers:{...ghHeaders(token),"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  if(r.status===409 || r.status===422){ const e=new Error("conflict"); e.conflict=true; throw e; }
+  if(r.status===404) throw new Error("Le jeton n'a pas le droit d'écrire dans ce dépôt.");
+  if(!r.ok) throw ghErr(r);
+  return (await r.json()).content.sha;
+}
+
+/* ================= DONNÉES ================= */
+/* months : {id:"2026-06"} · lines : une ligne de budget · savings : mouvements d'épargne
+   accounts : comptes (Banque Pop, Espèce…) · prefs : réglages (taux €) */
+const KEYS = ["months","lines","savings","accounts","prefs"];
+const CATS = [
+  {k:"sal",  name:"Salaire",             sign:+1, col:"L"},
+  {k:"aide", name:"Aide",                sign:+1, col:"L"},
+  {k:"fix",  name:"Charges fixes",       sign:-1, col:"L"},
+  {k:"epa",  name:"Épargne",             sign:-1, col:"L"},
+  {k:"sor",  name:"Sorties / Activités", sign:-1, col:"R"},
+  {k:"exc",  name:"Exceptionnel",        sign:-1, col:"R"},
+];
+const CAT = Object.fromEntries(CATS.map(c=>[c.k,c]));
+const PALETTE = ["#2E6BB0","#24855A","#C9862A","#8E4DB8","#C2453B","#2A9BA8","#6B7A22","#B5527E","#5C6B80"];
+const DEFAULT_ACC = [["Banque Pop","#C9862A"],["BNC","#2E6BB0"],["BNC Prélèvement","#2A9BA8"],["Espèce","#24855A"],["Revolut","#8E4DB8"],["BCI","#C2453B"]];
+const DEFAULT_RATE = 120;
+
+let S = { pw:null, token:null, cfg:null, data:null, dirty:false };
+function emptyData(){ const d={v:1}; for(const k of KEYS) d[k]=[]; return d; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function merge(a, b){
+  const out = emptyData();
+  for(const k of KEYS){
+    const m = new Map();
+    for(const x of [...(a?.[k]||[]), ...(b?.[k]||[])]){
+      const cur = m.get(x.id);
+      if(!cur || (x.updatedAt||0) > (cur.updatedAt||0)) m.set(x.id, x);
+    }
+    out[k] = [...m.values()];
+  }
+  return out;
+}
+const live = arr => (arr||[]).filter(x=>!x.deleted);
+function seedDefaults(){
+  const d=S.data; let n=0;
+  for(const k of KEYS) d[k] ||= [];
+  if(!d.accounts.length){ DEFAULT_ACC.forEach(([name,color],i)=>d.accounts.push({id:"a:"+norm(name), name, color, ord:i, updatedAt:1})); n++; }
+  if(!d.prefs.find(p=>p.id==="rate")){ d.prefs.push({id:"rate", value:DEFAULT_RATE, updatedAt:1}); n++; }
+  return n;
+}
+const rate = () => Number((S.data.prefs.find(p=>p.id==="rate")||{}).value) || DEFAULT_RATE;
+const xpf = l => l.cur==="EUR" ? (Number(l.amt)||0)*rate() : (Number(l.amt)||0);
+const accounts = () => live(S.data.accounts).sort((a,b)=>(a.ord??0)-(b.ord??0)||a.name.localeCompare(b.name,"fr"));
+const accColor = name => (live(S.data.accounts).find(a=>a.name===name)||{}).color || "#8A94A6";
+const monthLines = m => live(S.data.lines).filter(l=>l.m===m).sort((a,b)=>(a.ord||0)-(b.ord||0));
+const monthExists = m => live(S.data.months).some(x=>x.id===m) || live(S.data.lines).some(l=>l.m===m);
+const allMonths = () => [...new Set([...live(S.data.months).map(x=>x.id), ...live(S.data.lines).map(l=>l.m)])].sort();
+
+/* ================= CALCULS (mêmes formules que l'Excel) ================= */
+function calc(m){
+  const L = monthLines(m);
+  const tot = Object.fromEntries(CATS.map(c=>[c.k,0]));
+  const acc = {}; let reel=0, inc=0, exp=0, nDone=0;
+  for(const l of L){
+    const v = xpf(l);
+    tot[l.cat] = (tot[l.cat]||0) + v;
+    if(v>0) inc+=v; else exp+=v;
+    const a = acc[l.acc||"—"] ||= {prev:0, reel:0};
+    a.prev += v;
+    if(l.done){ reel += v; a.reel += v; nDone++; }
+  }
+  const restant = tot.sal + tot.aide + tot.fix + tot.epa + tot.sor;   // TOTAL RESTANT MENSUEL (hors exceptionnel)
+  return { L, tot, acc, reel, inc, exp, nDone, n:L.length,
+    restant, semaine: restant/4, jour: restant/4/7,
+    restantExc: restant + tot.exc };                                  // TOTAL RESTANT MENSUEL (avec exceptionnel)
+}
+
+/* ================= SYNCHRO ================= */
+let saveTimer=null, syncing=false;
+function setSync(state, txt){ $("syncDot").className="dot "+state; $("syncTxt").textContent=txt; }
+async function cacheLocal(){ try{ ls.set(LS_CACHE, await encryptStr(S.pw, JSON.stringify(S.data), S.cfg.salt)); }catch(e){} }
+function touch(){
+  S.dirty = true; cacheLocal(); setSync("busy","À envoyer…");
+  clearTimeout(saveTimer); saveTimer = setTimeout(sync, 1200);
+}
+async function sync(){
+  if(!S.pw) return;
+  if(syncing){ clearTimeout(saveTimer); saveTimer=setTimeout(sync,1500); return; }
+  syncing = true; setSync("busy","Synchro…");
+  try{
+    for(let attempt=0; attempt<3; attempt++){
+      const remote = await ghGetFile(S.cfg, S.token, DATA_PATH);
+      let remoteData=null, salt=S.cfg.salt;
+      if(remote){
+        const blob = JSON.parse(remote.text); salt = blob.salt;
+        try{ remoteData = JSON.parse(await decryptStr(S.pw, blob)); }
+        catch(e){ throw new Error("Impossible de déchiffrer les données GitHub : mot de passe différent sur un autre appareil ?"); }
+      }
+      S.data = merge(remoteData, S.data); seedDefaults();
+      const changed = !remote || JSON.stringify(S.data) !== JSON.stringify(merge(remoteData, null));
+      if(!changed){ S.dirty=false; break; }
+      try{
+        const blob = await encryptStr(S.pw, JSON.stringify(S.data), salt);
+        await ghPutFile(S.cfg, S.token, DATA_PATH, JSON.stringify(blob), remote?.sha);
+        S.dirty=false; break;
+      }catch(e){ if(!e.conflict || attempt===2) throw e; }
+    }
+    await cacheLocal(); render();
+    setSync("ok","À jour"); S.lastSync=new Date();
+  }catch(e){
+    setSync("err", navigator.onLine===false ? "Hors ligne" : "Erreur");
+    if(navigator.onLine!==false) toast(e.message);
+  }finally{ syncing=false; }
+}
+
+/* ================= DÉMARRAGE / VERROU ================= */
+const $ = id => document.getElementById(id);
+function show(view){ for(const v of ["setupView","lockView","appView"]) $(v).classList.toggle("hidden", v!==view); }
+
+async function doSetup(){
+  const owner=$("sOwner").value.trim(), repo=$("sRepo").value.trim(), token=$("sToken").value.trim();
+  const pw=$("sPw").value, pw2=$("sPw2").value, err=$("setupErr"); err.textContent="";
+  if(!owner||!repo||!token) return err.textContent="Remplis le nom d'utilisateur, le dépôt et le jeton.";
+  if(pw.length<8) return err.textContent="Mot de passe : 8 caractères minimum.";
+  if(pw!==pw2) return err.textContent="Les deux mots de passe ne correspondent pas.";
+  $("setupBtn").disabled=true; $("setupBtn").textContent="Connexion…";
+  try{
+    const cfg = {owner, repo, salt:b64(rnd(16))};
+    const remote = await ghGetFile(cfg, token, DATA_PATH);
+    let data = emptyData();
+    if(remote){
+      try{ data = JSON.parse(await decryptStr(pw, JSON.parse(remote.text))); }
+      catch(e){ throw new Error("Données trouvées sur GitHub, mais ce mot de passe ne les ouvre pas."); }
+    }
+    cfg.tok = await encryptStr(pw, token, cfg.salt);
+    ls.set(LS_CFG, cfg);
+    if($("sRemember").checked) await rememberDevice(pw); else forgetDevice();
+    S = {pw, token, cfg, data};
+    startApp(); sync();
+  }catch(e){ err.textContent = /fetch|network/i.test(e.message) ? "Connexion à GitHub impossible." : e.message; }
+  finally{ $("setupBtn").disabled=false; $("setupBtn").textContent="Connecter"; }
+}
+async function deviceKey(create){
+  let k = await idb.get("__devkey");
+  if(!k && create){ k = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]); await idb.set("__devkey", k); }
+  return k || null;
+}
+async function rememberDevice(pw){
+  try{ const k=await deviceKey(true); if(!k) return; const iv=rnd(12);
+    const ct=await crypto.subtle.encrypt({name:"AES-GCM", iv}, k, te.encode(pw));
+    ls.set(LS_REM, {iv:b64(iv), ct:b64(ct)}); }catch(e){}
+}
+function forgetDevice(){ ls.del(LS_REM); }
+const isRemembered = () => !!ls.get(LS_REM);
+async function rememberedPassword(){
+  const r=ls.get(LS_REM); if(!r) return null;
+  try{ const k=await deviceKey(false); if(!k) return null;
+    return td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(r.iv)}, k, unb64(r.ct))); }catch(e){ return null; }
+}
+async function doUnlock(pwArg){
+  const auto = typeof pwArg==="string";
+  const pw = auto ? pwArg : $("lPw").value, err=$("lockErr"); err.textContent="";
+  const cfg = ls.get(LS_CFG);
+  $("unlockBtn").disabled=true;
+  try{
+    let token;
+    try{ token = await decryptStr(pw, cfg.tok); }catch(e){ if(auto){ forgetDevice(); throw new Error("Reconnecte-toi avec ton mot de passe."); } throw new Error("Mot de passe incorrect."); }
+    if(!auto){ if($("lRemember").checked) await rememberDevice(pw); else forgetDevice(); }
+    let data = emptyData();
+    const cache = ls.get(LS_CACHE);
+    if(cache){ try{ data = JSON.parse(await decryptStr(pw, cache)); }catch(e){} }
+    S = {pw, token, cfg, data};
+    $("lPw").value="";
+    startApp(); sync();
+  }catch(e){ err.textContent=e.message; }
+  finally{ $("unlockBtn").disabled=false; }
+}
+function lock(manual){
+  if(manual===true) forgetDevice();
+  if(S.dirty && S.pw) sync();
+  setTimeout(()=>{ S = {pw:null, token:null, cfg:ls.get(LS_CFG), data:null}; keyCache.clear(); $("modalRoot").innerHTML=""; boot(); }, S.dirty?1500:0);
+}
+function forget(){
+  if(!confirm("Effacer la configuration de cet appareil ? Tes données sur GitHub restent intactes.")) return;
+  ls.del(LS_CFG); ls.del(LS_CACHE); forgetDevice(); idb.clear(); keyCache.clear(); S={}; $("modalRoot").innerHTML=""; boot();
+}
+function boot(){
+  const cfg = ls.get(LS_CFG);
+  if(!cfg){ show("setupView"); return; }
+  $("lockWho").textContent = "Données : "+cfg.owner+"/"+cfg.repo;
+  show("lockView");
+  if(isRemembered()){
+    $("lockErr").textContent=""; $("unlockBtn").textContent="Ouverture…";
+    rememberedPassword().then(pw=>{ $("unlockBtn").textContent="Déverrouiller"; if(pw) doUnlock(pw); else { forgetDevice(); $("lPw").focus(); } });
+  } else setTimeout(()=>$("lPw").focus(), 50);
+}
+let lastAct = Date.now(), busyLong=false;
+["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev, ()=>lastAct=Date.now(), {passive:true}));
+setInterval(()=>{ if(S.pw && !busyLong && !isRemembered() && Date.now()-lastAct > 10*60*1000) lock(); }, 30000);
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState==="visible" && S.pw){ if(!busyLong && !isRemembered() && Date.now()-lastAct > 10*60*1000) lock(); else sync(); }
+});
+
+/* ================= OUTILS ================= */
+const norm = s => (s||"").toString().normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const esc = s => (s??"").toString().replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const NF0 = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0});
+const NF2 = new Intl.NumberFormat("fr-FR",{minimumFractionDigits:0, maximumFractionDigits:2});
+const fmtF = (n, sign) => { const r=Math.round(n||0); const s = r<0 ? "−" : (sign && r>0 ? "+" : ""); return s+NF0.format(Math.abs(r)).replace(/\s/g," ")+" F"; };
+const fmtE = n => (n<0?"−":"")+NF2.format(Math.abs(n)).replace(/\s/g," ")+" €";
+const fmtAmt = l => l.cur==="EUR" ? fmtE(l.amt) : fmtF(l.amt);
+const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const mLabel = m => { const [y,mm]=m.split("-").map(Number); return MOIS[mm-1]+" "+y; };
+const mShift = (m, d) => { let [y,mm]=m.split("-").map(Number); mm+=d; while(mm>12){mm-=12;y++;} while(mm<1){mm+=12;y--;} return y+"-"+String(mm).padStart(2,"0"); };
+const thisMonth = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+function toast(msg){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3200); }
+function parseNum(s){ if(typeof s==="number") return s; s=(s||"").toString().replace(/[\s  ]/g,"").replace(",","."); if(s==="") return NaN; return Number(s); }
+function modal(html, onReady){
+  const root=$("modalRoot");
+  root.innerHTML = `<div class="backdrop"><div class="sheet">${html}</div></div>`;
+  const bd = root.firstElementChild;
+  bd.addEventListener("click", e=>{ if(e.target===bd && !bd.dataset.busy) close(); });
+  function close(){ if(root.firstElementChild===bd) root.innerHTML=""; }
+  onReady(bd, close);
+  return bd;
+}
+function segBind(bd, id){
+  const el=bd.querySelector("#"+id);
+  el.addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; el.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); el.dataset.v=b.dataset.v; });
+  el.dataset.v = (el.querySelector("button.on")||{}).dataset?.v;
+  return ()=>el.dataset.v;
+}
+function accOptions(cur){
+  const names = accounts().map(a=>a.name);
+  let h = `<option value="">— Aucun —</option>` + names.map(n=>`<option${n===cur?" selected":""}>${esc(n)}</option>`).join("");
+  if(cur && !names.includes(cur)) h += `<option selected>${esc(cur)}</option>`;
+  return h + `<option value="__new">＋ Nouveau compte…</option>`;
+}
+function ensureAccount(name){
+  name=(name||"").trim(); if(!name) return "";
+  const ex = live(S.data.accounts).find(a=>norm(a.name)===norm(name)); if(ex) return ex.name;
+  S.data.accounts.push({id:uid(), name, color:PALETTE[live(S.data.accounts).length%PALETTE.length], ord:live(S.data.accounts).length, updatedAt:Date.now()});
+  return name;
+}
+const accPill = name => name ? `<span class="acc"><i style="background:${esc(accColor(name))}"></i>${esc(name)}</span>` : "";
+
+/* ================= INTERFACE ================= */
+const ui = Object.assign({tab:"month", month:null, year:null}, ls.get(LS_UI)||{});
+const TITLES = {month:"Budget du mois", synth:"Synthèse", savings:"Épargne", year:"Bilan de l'année", settings:"Réglages"};
+const saveUI = () => ls.set(LS_UI, {tab:ui.tab});
+function startApp(){
+  if(seedDefaults()) touch();
+  if(!ui.month){ const ms=allMonths(), t=thisMonth(); ui.month = ms.includes(t) ? t : (ms[ms.length-1] || t); }
+  if(!ui.year) ui.year = Number(ui.month.slice(0,4));
+  show("appView"); lastAct=Date.now(); setTab(ui.tab||"month"); setSync(S.dirty?"busy":"ok", "");
+}
+const isDesk = () => matchMedia("(min-width:1000px)").matches;
+function setTab(t){
+  if(t==="synth" && isDesk()) t="month";
+  ui.tab=t; saveUI();
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
+  $("gearBtn").classList.toggle("on", t==="settings");
+  for(const k of Object.keys(TITLES)) $("tab-"+k).classList.toggle("hidden", k!==t);
+  $("title").textContent = TITLES[t];
+  $("fab").classList.toggle("hidden", !["month","savings"].includes(t));
+  $("periodBar").classList.toggle("hidden", !["month","synth","year"].includes(t));
+  render(); scrollTo(0,0);
+}
+function render(){
+  if(!S.data) return;
+  const t = ui.tab;
+  $("periodLbl").textContent = t==="year" ? "Année "+ui.year : mLabel(ui.month);
+  document.querySelector(".synthbtn").classList.toggle("hidden", isDesk());
+  if(t==="month") renderMonth();
+  else if(t==="synth") $("synthTab").innerHTML = synthHTML(ui.month);
+  else if(t==="savings") renderSavings();
+  else if(t==="year") renderYear();
+  else if(t==="settings") renderSettings();
+  $("labelsDL").innerHTML = [...new Set(live(S.data.lines).map(l=>l.label).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")).map(x=>`<option value="${esc(x)}">`).join("");
+}
+
+/* ---------- Mois ---------- */
+function lineHTML(l){
+  const v=xpf(l);
+  const meta = [l.day?`<span class="day">le ${l.day}</span>`:"", accPill(l.acc)].filter(Boolean).join("");
+  return `<div class="ln${l.done?" done":""}">
+    <button class="chk${l.done?" on":""}" data-done="${l.id}" aria-label="${l.done?"Décocher":"Marquer comme passé"}">${l.done?"✓":""}</button>
+    <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"(sans libellé)")}</div>${meta?`<div class="meta">${meta}</div>`:""}</div>
+    <div class="amt num${v>0?" plus":""}" data-edit="${l.id}">${fmtF(v, true)}${l.cur==="EUR"?`<span class="eur">${fmtE(l.amt)}</span>`:""}</div>
+  </div>`;
+}
+function catHTML(c, C){
+  const L = C.L.filter(l=>l.cat===c.k);
+  const done = L.filter(l=>l.done).length;
+  return `<div class="card cat">
+    <div class="ch"><span class="t">${esc(c.name)}${L.length?`<span class="cnt">${done}/${L.length} ✓</span>`:""}</span><span class="tot num${C.tot[c.k]>0?" plus":""}">${fmtF(C.tot[c.k], true)}</span></div>
+    ${L.map(lineHTML).join("")}
+    <button class="addln" data-add="${c.k}">＋ Ajouter</button>
+  </div>`;
+}
+function kpisHTML(C){
+  return `<div class="kpis mob">
+    <div class="kpi" data-goto="synth"><div class="k">Restant mensuel</div><div class="v num${C.restant<0?" neg":""}">${fmtF(C.restant)}</div></div>
+    <div class="kpi" data-goto="synth"><div class="k">Avec except.</div><div class="v num${C.restantExc<0?" neg":""}">${fmtF(C.restantExc)}</div></div>
+    <div class="kpi" data-goto="synth"><div class="k">Réel (cochés)</div><div class="v num${C.reel<0?" neg":""}">${fmtF(C.reel)}</div></div>
+  </div>`;
+}
+function renderMonth(){
+  const m=ui.month;
+  if(!monthExists(m)){ $("monthBody").innerHTML = createMonthHTML(m); return; }
+  const C = calc(m);
+  $("monthBody").innerHTML = `${kpisHTML(C)}
+    <div class="mgrid">
+      <div>${CATS.filter(c=>c.col==="L").map(c=>catHTML(c,C)).join("")}</div>
+      <div>${CATS.filter(c=>c.col==="R").map(c=>catHTML(c,C)).join("")}
+        <div class="desk synthside">${synthHTML(m, C)}</div></div>
+    </div>
+    <div class="actions" style="justify-content:center"><button class="btn ghost small" id="resetDone">Tout décocher</button><button class="btn danger small" id="delMonth">Supprimer ce mois</button></div>`;
+  $("resetDone").onclick=()=>{ if(!confirm("Décocher toutes les lignes de "+mLabel(m)+" ?")) return; const now=Date.now(); for(const l of monthLines(m)) if(l.done){ l.done=false; l.updatedAt=now; } touch(); render(); };
+  $("delMonth").onclick=()=>{ if(!confirm("Supprimer tout le budget de "+mLabel(m)+" ?")) return; const now=Date.now();
+    for(const l of monthLines(m)){ l.deleted=true; l.updatedAt=now; }
+    const mo=S.data.months.find(x=>x.id===m); if(mo){ mo.deleted=true; mo.updatedAt=now; }
+    touch(); render(); toast("Mois supprimé"); };
+}
+function prevExisting(m){ return allMonths().filter(x=>x<m).pop() || allMonths().filter(x=>x>m)[0] || null; }
+function createMonthHTML(m){
+  const src = prevExisting(m);
+  return `<div class="card" style="text-align:center">
+    <div style="font-size:40px">🗓️</div>
+    <h2 style="margin:6px 0;text-transform:capitalize">${esc(mLabel(m))}</h2>
+    <div class="hint">Pas encore de budget pour ce mois.</div>
+    ${src?`<div style="text-align:left;margin-top:14px">
+      <label>Reprendre les lignes de <b style="text-transform:capitalize">${esc(mLabel(src))}</b> :</label>
+      ${CATS.map(c=>`<label class="chkline"><input type="checkbox" data-copycat="${c.k}" ${c.k!=="exc"?"checked":""}> ${esc(c.name)}</label>`).join("")}
+      <div class="hint">Les montants, jours et comptes sont repris, toutes les cases « passé » sont décochées.</div>
+    </div>
+    <div class="actions"><button class="btn block" data-create="${src}">Créer ${esc(mLabel(m))} à partir de ${esc(mLabel(src))}</button></div>`:""}
+    <div class="actions"><button class="btn ghost block" data-create="">Créer un mois vide</button></div>
+  </div>`;
+}
+function createMonth(m, src){
+  const now=Date.now();
+  const cats = new Set([...document.querySelectorAll("[data-copycat]")].filter(x=>x.checked).map(x=>x.dataset.copycat));
+  const ex = S.data.months.find(x=>x.id===m);
+  if(ex){ ex.deleted=false; ex.updatedAt=now; } else S.data.months.push({id:m, updatedAt:now});
+  if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>S.data.lines.push({...l, id:uid(), m, done:false, ord:i, updatedAt:now}));
+  touch(); render(); toast("Budget de "+mLabel(m)+" créé");
+}
+
+/* ---------- Synthèse ---------- */
+function synthHTML(m, C){
+  if(!monthExists(m)) return `<div class="empty">Pas de budget pour ${esc(mLabel(m))}.</div>`;
+  C = C || calc(m);
+  const row = (k, v, cls="") => `<div class="srow ${cls}"><span class="k">${k}</span><span class="v num${v<0?" neg":""}">${fmtF(v)}</span></div>`;
+  const accs = Object.entries(C.acc).sort((a,b)=>{ const o=n=>{ const i=accounts().findIndex(x=>x.name===n); return i<0?99:i; }; return o(a[0])-o(b[0]); });
+  const pct = C.n ? Math.round(C.nDone/C.n*100) : 0;
+  return `<div class="card">
+      <div class="sh">Reste à vivre</div>
+      ${row("Total restant mensuel", C.restant, "big")}
+      ${row("Soit par semaine", C.semaine)}
+      ${row("Soit par jour", C.jour)}
+      ${row("Total restant avec exceptionnel", C.restantExc, "big")}
+      <div class="sh">Réel</div>
+      ${row("Total réel (lignes cochées)", C.reel, "big")}
+      <div class="hint">${C.nDone} ligne${C.nDone>1?"s":""} passée${C.nDone>1?"s":""} sur ${C.n}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="sh">Par catégorie</div>
+      ${CATS.map(c=>`<div class="srow"><span class="k">${esc(c.name)}</span><span class="v num${C.tot[c.k]>0?" plus":""}">${fmtF(C.tot[c.k], true)}</span></div>`).join("")}
+      <div class="srow"><span class="k">Total rentrées</span><span class="v num plus">${fmtF(C.inc, true)}</span></div>
+      <div class="srow"><span class="k">Total sorties</span><span class="v num">${fmtF(C.exp, true)}</span></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="sh">Par compte</div>
+      <table class="acct"><thead><tr><th>Compte</th><th>Total</th><th>Réel</th></tr></thead><tbody>
+      ${accs.map(([n,a])=>`<tr><td>${n==="—"?"<span class='hint'>Sans compte</span>":accPill(n)}</td><td class="num${a.prev<0?" neg":""}">${fmtF(a.prev)}</td><td class="num">${fmtF(a.reel)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="hint">« Réel » = seulement les lignes cochées.</div>
+    </div>`;
+}
+
+/* ---------- Édition d'une ligne ---------- */
+function openLine(l, catK){
+  const isNew = !l;
+  l = l || {cat:catK||"fix", label:"", amt:"", cur:"XPF", day:null, acc:"", done:false};
+  const sign = isNew ? CAT[l.cat].sign : (Number(l.amt)<0 ? -1 : (Number(l.amt)>0 ? 1 : CAT[l.cat].sign));
+  modal(`<h2>${isNew?"Nouvelle ligne":"Modifier la ligne"}</h2>
+    <div class="hint" style="text-transform:capitalize">${esc(mLabel(isNew?ui.month:l.m))}</div>
+    <label>Catégorie</label>
+    <select class="field" id="fCat">${CATS.map(c=>`<option value="${c.k}"${c.k===l.cat?" selected":""}>${esc(c.name)}</option>`).join("")}</select>
+    <label>Motif</label>
+    <input class="field" id="fLab" value="${esc(l.label)}" list="labelsDL" autocomplete="off" placeholder="ex. Électricité">
+    <label>Montant</label>
+    <div class="amtrow"><input class="field num" id="fAmt" inputmode="decimal" value="${l.amt===""?"":esc(NF2.format(Math.abs(l.amt)).replace(/[\s ]/g," "))}" placeholder="0">
+      <div class="seg" id="fCur"><button data-v="XPF" class="${l.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${l.cur==="EUR"?"on":""}">€</button></div></div>
+    <div class="hint" id="fConv"></div>
+    <label>Sens</label>
+    <div class="seg" id="fSign"><button data-v="-1" class="${sign<0?"on":""}">Sortie</button><button data-v="1" class="${sign>0?"on":""}">Rentrée</button></div>
+    <div class="row2">
+      <div><label>Jour du mois</label><input class="field" id="fDay" inputmode="numeric" value="${l.day||""}" placeholder="--"></div>
+      <div><label>Compte</label><select class="field" id="fAcc">${accOptions(l.acc)}</select></div>
+    </div>
+    <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
+    <label class="chkline"><input type="checkbox" id="fDone" ${l.done?"checked":""}> Passé (compte dans le total réel)</label>
+    <div class="actions">${isNew?"":`<button class="btn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
+      <button class="btn ghost" id="fCancel">Annuler</button><button class="btn" id="fOk">Enregistrer</button></div>`,
+  (bd, close)=>{
+    const q = s=>bd.querySelector(s);
+    const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign");
+    const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "≈ "+fmtF(n*rate())+" (1 € = "+NF2.format(rate())+" F)" : ""; };
+    q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
+    q("#fCat").onchange=()=>{ if(isNew){ const s=CAT[q("#fCat").value].sign; q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); } };
+    q("#fAcc").onchange=()=>{ q("#fAccNew").classList.toggle("hidden", q("#fAcc").value!=="__new"); if(q("#fAcc").value==="__new") q("#fAccNew").focus(); };
+    q("#fCancel").onclick=close;
+    if(!isNew) q("#fDel").onclick=()=>{ if(!confirm("Supprimer « "+(l.label||"cette ligne")+" » ?")) return; l.deleted=true; l.updatedAt=Date.now(); touch(); close(); render(); };
+    q("#fOk").onclick=()=>{
+      const n = parseNum(q("#fAmt").value);
+      if(isNaN(n)) return toast("Montant invalide");
+      const day = parseInt(q("#fDay").value,10);
+      let acc = q("#fAcc").value; if(acc==="__new") acc = ensureAccount(q("#fAccNew").value);
+      const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
+      Object.assign(rec, {cat:q("#fCat").value, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
+        day:(day>=1&&day<=31)?day:null, acc, done:q("#fDone").checked, updatedAt:Date.now()});
+      if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
+      touch(); close(); render();
+    };
+    if(isNew) setTimeout(()=>q("#fLab").focus(), 60);
+  });
+}
+
+/* ---------- Épargne ---------- */
+const savingsList = () => live(S.data.savings).sort((a,b)=>(a.ord||0)-(b.ord||0));
+function renderSavings(){
+  const L = savingsList(); let bal=0;
+  const rows = L.map(s=>{ const v=xpf(s); bal+=v; return `<div class="sv" data-sav="${s.id}">
+      <div class="main"><div class="lab" style="font-weight:500">${esc(s.label||"(sans libellé)")}</div>
+        <div class="ln" style="padding:0;border:0"><div class="meta">${s.date?`<span>${esc(s.date)}</span>`:""}${accPill(s.acc)}</div></div></div>
+      <div style="text-align:right"><div class="num${v>0?" plus":""}" style="font-weight:600">${fmtF(v,true)}</div>${s.cur==="EUR"?`<div class="bal num">${fmtE(s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(bal)}</div></div>
+    </div>`; }).join("");
+  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); }
+  $("savingsBody").innerHTML = `<div class="card">
+      <div class="sh">Total épargne</div>
+      <div style="font-size:30px;font-weight:700" class="num${bal<0?" neg":""}">${fmtF(bal)}</div>
+      ${Object.keys(byAcc).length>1?Object.entries(byAcc).map(([n,v])=>`<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>`).join(""):""}
+    </div>
+    <div class="card" style="padding:0;margin-top:12px;overflow:hidden">${rows || `<div class="empty">Aucun mouvement. Ajoute ton épargne actuelle avec le bouton +.</div>`}</div>
+    <div class="hint" style="text-align:center">Le solde se cumule ligne après ligne, comme le « Sous total » de l'Excel.</div>`;
+}
+function openSaving(s){
+  const isNew=!s;
+  s = s || {label:"", amt:"", cur:"XPF", date:"", acc:""};
+  const sign = Number(s.amt)<0 ? -1 : 1;
+  modal(`<h2>${isNew?"Mouvement d'épargne":"Modifier le mouvement"}</h2>
+    <label>Motif</label><input class="field" id="gLab" value="${esc(s.label)}" placeholder="ex. Épargne mai, Impôt 2026…">
+    <label>Montant</label>
+    <div class="amtrow"><input class="field num" id="gAmt" inputmode="decimal" value="${s.amt===""?"":esc(NF2.format(Math.abs(s.amt)).replace(/[\s ]/g," "))}" placeholder="0">
+      <div class="seg" id="gCur"><button data-v="XPF" class="${s.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${s.cur==="EUR"?"on":""}">€</button></div></div>
+    <label>Sens</label>
+    <div class="seg" id="gSign"><button data-v="1" class="${sign>0?"on":""}">Ajout</button><button data-v="-1" class="${sign<0?"on":""}">Retrait</button></div>
+    <div class="row2">
+      <div><label>Date</label><input class="field" id="gDate" value="${esc(s.date)}" placeholder="jj/mm"></div>
+      <div><label>Compte</label><select class="field" id="gAcc">${accOptions(s.acc)}</select></div>
+    </div>
+    <input class="field hidden" id="gAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
+    <div class="actions">${isNew?"":`<button class="btn danger" id="gDel">Supprimer</button>`}<span class="spacer"></span>
+      <button class="btn ghost" id="gCancel">Annuler</button><button class="btn" id="gOk">Enregistrer</button></div>`,
+  (bd, close)=>{
+    const q = x=>bd.querySelector(x);
+    const cur=segBind(bd,"gCur"), sg=segBind(bd,"gSign");
+    q("#gAcc").onchange=()=>{ q("#gAccNew").classList.toggle("hidden", q("#gAcc").value!=="__new"); };
+    q("#gCancel").onclick=close;
+    if(!isNew) q("#gDel").onclick=()=>{ if(!confirm("Supprimer ce mouvement ?")) return; s.deleted=true; s.updatedAt=Date.now(); touch(); close(); render(); };
+    q("#gOk").onclick=()=>{
+      const n=parseNum(q("#gAmt").value); if(isNaN(n)) return toast("Montant invalide");
+      let acc=q("#gAcc").value; if(acc==="__new") acc=ensureAccount(q("#gAccNew").value);
+      const rec = isNew ? {id:uid(), ord:Date.now()} : s;
+      Object.assign(rec, {label:q("#gLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(), date:q("#gDate").value.trim(), acc, updatedAt:Date.now()});
+      if(isNew) S.data.savings.push(rec);
+      touch(); close(); render();
+    };
+    if(isNew) setTimeout(()=>q("#gLab").focus(), 60);
+  });
+}
+
+/* ---------- Année ---------- */
+function renderYear(){
+  const y=String(ui.year);
+  const ms = allMonths().filter(m=>m.startsWith(y+"-"));
+  if(!ms.length){ $("yearBody").innerHTML=`<div class="empty">Aucun budget en ${esc(y)}.</div>`; return; }
+  const Cs = ms.map(m=>[m, calc(m)]);
+  const sum = k => Cs.reduce((s,[,C])=>s+C[k],0);
+  const maxAbs = Math.max(1, ...Cs.map(([,C])=>Math.abs(C.restant)));
+  $("yearBody").innerHTML = `<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="kpi"><div class="k">Rentrées</div><div class="v num plus">${fmtF(sum("inc"))}</div></div>
+      <div class="kpi"><div class="k">Sorties</div><div class="v num">${fmtF(sum("exp"))}</div></div>
+      <div class="kpi"><div class="k">Restant (avec except.)</div><div class="v num${sum("restantExc")<0?" neg":""}">${fmtF(sum("restantExc"))}</div></div>
+    </div>
+    <div class="stack ygrid">${Cs.map(([m,C])=>`<div class="card mcard" data-month="${m}">
+      <div class="mh"><span class="mn">${esc(MOIS[Number(m.slice(5))-1])}</span><span class="num${C.restant<0?" neg":""}" style="font-weight:700">${fmtF(C.restant)}</span></div>
+      <div class="bar"><div style="width:${Math.round(Math.abs(C.restant)/maxAbs*100)}%;${C.restant<0?"background:var(--danger)":""}"></div></div>
+      <div class="grid3">
+        <div><div class="k">Rentrées</div><div class="num plus">${fmtF(C.inc)}</div></div>
+        <div><div class="k">Sorties</div><div class="num">${fmtF(C.exp)}</div></div>
+        <div><div class="k">Avec except.</div><div class="num${C.restantExc<0?" neg":""}">${fmtF(C.restantExc)}</div></div>
+      </div></div>`).join("")}</div>
+    <div class="hint" style="text-align:center">Le grand chiffre = total restant mensuel (hors exceptionnel). Appuie sur un mois pour l'ouvrir.</div>`;
+}
+
+/* ---------- Réglages ---------- */
+function renderSettings(){
+  $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
+  $("accChips").innerHTML = accounts().map(a=>`<button class="chip" data-accedit="${a.id}"><i style="background:${esc(a.color)}"></i>${esc(a.name)}</button>`).join("");
+  $("remToggle").checked = isRemembered();
+  $("setInfo").textContent = `Dépôt : ${S.cfg.owner}/${S.cfg.repo} · ${allMonths().length} mois · ${live(S.data.lines).length} lignes`+(S.lastSync?` · dernière synchro ${S.lastSync.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`:"");
+}
+function openAccount(a){
+  const isNew=!a; a = a || {name:"", color:PALETTE[live(S.data.accounts).length%PALETTE.length]};
+  let color=a.color;
+  modal(`<h2>${isNew?"Nouveau compte":"Compte"}</h2>
+    <label>Nom</label><input class="field" id="aName" value="${esc(a.name)}" placeholder="ex. Banque Pop">
+    <label>Couleur</label><div class="swatches">${PALETTE.map(c=>`<button class="sw${c===color?" on":""}" data-c="${c}" style="background:${c}" aria-label="Couleur"></button>`).join("")}</div>
+    ${isNew?"":`<div class="hint">Renommer met à jour toutes les lignes qui utilisent ce compte.</div>`}
+    <div class="actions">${isNew?"":`<button class="btn danger" id="aDel">Supprimer</button>`}<span class="spacer"></span>
+      <button class="btn ghost" id="aCancel">Annuler</button><button class="btn" id="aOk">Enregistrer</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    bd.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{ color=b.dataset.c; bd.querySelectorAll(".sw").forEach(x=>x.classList.toggle("on", x===b)); });
+    q("#aCancel").onclick=close;
+    if(!isNew) q("#aDel").onclick=()=>{ if(!confirm("Supprimer le compte « "+a.name+" » ? Les lignes gardent leur montant mais n'auront plus de compte.")) return;
+      const now=Date.now(); a.deleted=true; a.updatedAt=now;
+      for(const x of [...S.data.lines, ...S.data.savings]) if(x.acc===a.name){ x.acc=""; x.updatedAt=now; }
+      touch(); close(); render(); };
+    q("#aOk").onclick=()=>{
+      const name=q("#aName").value.trim(); if(!name) return toast("Donne un nom");
+      if(live(S.data.accounts).some(x=>x!==a && norm(x.name)===norm(name))) return toast("Ce compte existe déjà");
+      const now=Date.now();
+      if(isNew) S.data.accounts.push({id:uid(), name, color, ord:live(S.data.accounts).length, updatedAt:now});
+      else { if(a.name!==name) for(const x of [...S.data.lines, ...S.data.savings]) if(x.acc===a.name){ x.acc=name; x.updatedAt=now; }
+        Object.assign(a,{name, color, updatedAt:now}); }
+      touch(); close(); render();
+    };
+  });
+}
+function changePassword(){
+  modal(`<h2>Changer le mot de passe</h2>
+    <div class="hint">Tes autres appareils devront ensuite être reconnectés avec le nouveau mot de passe (« Oublier cet appareil » puis reconnexion).</div>
+    <label>Mot de passe actuel</label><input class="field" id="cOld" type="password">
+    <label>Nouveau mot de passe</label><input class="field" id="cNew" type="password" autocomplete="new-password">
+    <label>Confirmer</label><input class="field" id="cNew2" type="password" autocomplete="new-password">
+    <div class="err" id="cErr"></div>
+    <div class="actions"><span class="spacer"></span><button class="btn ghost" id="cCancel">Annuler</button><button class="btn" id="cOk">Changer</button></div>`,
+  (bd, close)=>{
+    bd.querySelector("#cCancel").onclick=close;
+    bd.querySelector("#cOk").onclick=async()=>{
+      const o=bd.querySelector("#cOld").value, n=bd.querySelector("#cNew").value, n2=bd.querySelector("#cNew2").value, err=bd.querySelector("#cErr");
+      if(o!==S.pw) return err.textContent="Mot de passe actuel incorrect.";
+      if(n.length<8) return err.textContent="8 caractères minimum.";
+      if(n!==n2) return err.textContent="Les mots de passe ne correspondent pas.";
+      bd.querySelector("#cOk").disabled=true; bd.dataset.busy="1"; busyLong=true;
+      try{
+        await sync();
+        const salt=b64(rnd(16));
+        const remote = await ghGetFile(S.cfg, S.token, DATA_PATH);
+        await ghPutFile(S.cfg, S.token, DATA_PATH, JSON.stringify(await encryptStr(n, JSON.stringify(S.data), salt)), remote?.sha, "Changement de mot de passe");
+        S.cfg.salt=salt; S.cfg.tok=await encryptStr(n, S.token, salt); ls.set(LS_CFG, S.cfg);
+        S.pw=n; await cacheLocal(); if(isRemembered()) await rememberDevice(n);
+        close(); toast("Mot de passe changé ✓");
+      }catch(e){ err.textContent=e.message; bd.querySelector("#cOk").disabled=false; }
+      finally{ delete bd.dataset.busy; busyLong=false; }
+    };
+  });
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(S.data,null,2)], {type:"application/json"});
+  const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download = "mon-budget-sauvegarde-"+new Date().toISOString().slice(0,10)+".json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function importData(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{ const d = JSON.parse(r.result); if(!Array.isArray(d.lines)) throw 0;
+      S.data = merge(S.data, d); seedDefaults(); touch(); render(); toast("Import fusionné ✓"); }
+    catch(e){ toast("Fichier non reconnu."); }
+  };
+  r.readAsText(file);
+}
+
+/* ================= IMPORT EXCEL ================= */
+/* Petit lecteur .xlsx intégré (aucune bibliothèque externe, rien n'est envoyé) :
+   un .xlsx est un zip de fichiers XML ; on lit les valeurs (y compris les résultats de formules) et les fusions. */
+const XL = {
+  decode_col(s){ let n=0; for(const ch of s.toUpperCase()) n=n*26+ch.charCodeAt(0)-64; return n-1; },
+  decode_cell(a){ const m=a.match(/^([A-Z]+)(\d+)$/i); return {c:XL.decode_col(m[1]), r:Number(m[2])-1}; },
+  async unzip(buf){
+    const u=new Uint8Array(buf), dv=new DataView(u.buffer, u.byteOffset, u.byteLength), files={};
+    let e=u.length-22; while(e>=0 && dv.getUint32(e,true)!==0x06054b50) e--;
+    if(e<0) throw new Error("ce n'est pas un fichier .xlsx");
+    let p=dv.getUint32(e+16,true); const n=dv.getUint16(e+10,true);
+    for(let i=0;i<n;i++){
+      const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), off=dv.getUint32(p+42,true);
+      const name=td.decode(u.subarray(p+46,p+46+nl));
+      files[name]={method, csize, off};
+      p+=46+nl+xl+cl;
+    }
+    return async name=>{
+      const f=files[name]; if(!f) return null;
+      const start=f.off+30+dv.getUint16(f.off+26,true)+dv.getUint16(f.off+28,true);
+      const data=u.subarray(start,start+f.csize);
+      if(f.method===0) return td.decode(data);
+      const ds=new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return await new Response(ds).text();
+    };
+  },
+  async read(buf){
+    const get=await XL.unzip(buf), dp=new DOMParser();
+    const xml=async n=>{ const t=await get(n); return t ? dp.parseFromString(t,"application/xml") : null; };
+    const byTag=(d,t)=>[...d.getElementsByTagName(t)];
+    const wbx=await xml("xl/workbook.xml"); if(!wbx) throw new Error("classeur introuvable dans le fichier");
+    const rels={}; const rx=await xml("xl/_rels/workbook.xml.rels");
+    if(rx) for(const r of byTag(rx,"Relationship")) rels[r.getAttribute("Id")]=r.getAttribute("Target");
+    const ss=[]; const sx=await xml("xl/sharedStrings.xml");
+    if(sx) for(const si of byTag(sx,"si")) ss.push(byTag(si,"t").map(t=>t.textContent).join(""));
+    const wb={SheetNames:[], Sheets:{}};
+    for(const s of byTag(wbx,"sheet")){
+      const name=s.getAttribute("name"), rid=s.getAttribute("r:id")||s.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
+      let target=rels[rid]||""; target=target.startsWith("/")?target.slice(1):"xl/"+target.replace(/^\.\//,"");
+      const d=await xml(target); if(!d) continue;
+      const ws={"!merges":[]};
+      for(const c of byTag(d,"c")){
+        const a=c.getAttribute("r"), t=c.getAttribute("t"); const vEl=byTag(c,"v")[0];
+        let v;
+        if(t==="s") v=vEl?ss[Number(vEl.textContent)]:undefined;
+        else if(t==="inlineStr") v=byTag(c,"t").map(x=>x.textContent).join("");
+        else if(t==="str"||t==="e") v=vEl?vEl.textContent:undefined;
+        else if(t==="b") v=vEl?vEl.textContent==="1":undefined;
+        else if(vEl && vEl.textContent!=="") v=Number(vEl.textContent);
+        if(v!==undefined) ws[a]={v};
+      }
+      for(const m of byTag(d,"mergeCell")){ const [s1,s2]=m.getAttribute("ref").split(":"); ws["!merges"].push({s:XL.decode_cell(s1), e:XL.decode_cell(s2||s1)}); }
+      wb.SheetNames.push(name); wb.Sheets[name]=ws;
+    }
+    return wb;
+  },
+  serialToDate(n){ return new Date(Math.round((n-25569)*86400000)); }
+};
+function catFromLabel(s){ const n=norm(s); if(n.includes("salaire")) return "sal"; if(n.includes("aide")) return "aide"; if(n.includes("charge")) return "fix"; if(n.includes("epargne")) return "epa"; if(n.includes("sortie")||n.includes("activ")) return "sor"; if(n.includes("exception")) return "exc"; return null; }
+function parseWorkbook(XLSX, wb){
+  const out = {months:[], savings:[], rate:null, accounts:new Set()};
+  const cellV = (ws, a) => { const c=ws[a]; return c ? c.v : undefined; };
+  const isNum = v => typeof v==="number" && isFinite(v);
+  const dayOf = v => { if(isNum(v)) return v>=1&&v<=31?Math.round(v):null; const m=String(v||"").match(/^\s*(\d{1,2})/); const d=m?Number(m[1]):null; return d>=1&&d<=31?d:null; };
+  for(const name of wb.SheetNames){
+    const ws = wb.Sheets[name]; if(!ws) continue;
+    if(norm(name).includes("epargne")){
+      for(let r=4; r<=300; r++){
+        const label = cellV(ws,"G"+r), x=cellV(ws,"D"+r), e=cellV(ws,"E"+r), acc=cellV(ws,"H"+r), dt=cellV(ws,"F"+r);
+        if(typeof x==="string") continue;               // « Sous total »
+        let amt=null, cur="XPF"; if(isNum(x)) amt=x; else if(isNum(e)){ amt=e; cur="EUR"; }
+        if(!label && !amt) continue;
+        if(typeof label==="string" && /^montant/i.test(label)) continue;
+        if(acc) out.accounts.add(String(acc).trim());
+        out.savings.push({label:String(label||"").trim(), amt:amt||0, cur, date:(isNum(dt) && dt>20000) ? XLSX.serialToDate(dt).toLocaleDateString("fr-FR",{timeZone:"UTC"}) : String(dt??"").replace(/\/--$/,"").trim(), acc:acc?String(acc).trim():""});
+      }
+      continue;
+    }
+    let m = null;
+    const mm = name.match(/^\s*(\d{1,2})[-_ .](\d{2,4})/);
+    if(mm){ const y=mm[2].length===2?2000+Number(mm[2]):Number(mm[2]); m = y+"-"+String(Number(mm[1])).padStart(2,"0"); }
+    else { const d=cellV(ws,"C3"); if(isNum(d) && d>20000){ const dd=XLSX.serialToDate(d); m = dd.getUTCFullYear()+"-"+String(dd.getUTCMonth()+1).padStart(2,"0"); } }
+    if(!m || !/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) continue;
+    const rt = cellV(ws,"C45"); if(isNum(rt) && rt>50 && rt<200) out.rate = rt;
+    const merges = ws["!merges"]||[];
+    const lines = [];
+    // deux blocs : à gauche (C = catégorie, E/F/G/H/I/J), à droite (M = catégorie, O/P/Q/R/S/T)
+    for(const [cc, cx, ce, cd, cl, ca, ck] of [["C","E","F","G","H","I","J"],["M","O","P","Q","R","S","T"]]){
+      const ci = XLSX.decode_col(cc);
+      const heads = [];
+      for(let r=3; r<=60; r++){ const v=cellV(ws, cc+r); if(typeof v==="string" && catFromLabel(v)) heads.push({r, cat:catFromLabel(v)}); }
+      heads.forEach((h,i)=>{
+        const mg = merges.find(g=>g.s.c===ci && g.s.r===h.r-1);
+        const end = mg ? mg.e.r+1 : (heads[i+1] ? heads[i+1].r-1 : Math.min(h.r+25, 44));
+        for(let r=h.r+1; r<=end; r++){
+          const label=cellV(ws,cl+r), x=cellV(ws,cx+r), e=cellV(ws,ce+r);
+          let amt=null, cur="XPF"; if(isNum(x)) amt=x; else if(isNum(e)){ amt=e; cur="EUR"; }
+          if(!label && !amt) continue;
+          const acc=cellV(ws,ca+r); if(acc) out.accounts.add(String(acc).trim());
+          lines.push({cat:h.cat, label:String(label||"").trim(), amt:amt||0, cur, day:dayOf(cellV(ws,cd+r)), acc:acc?String(acc).trim():"", done:/^\s*x\s*$/i.test(String(cellV(ws,ck+r)||""))});
+        }
+      });
+    }
+    if(lines.length) out.months.push({m, sheet:name, lines});
+  }
+  return out;
+}
+async function importExcel(file){
+  let res;
+  try{
+    if(!/\.xlsx$|\.xlsm$/i.test(file.name)) throw new Error("enregistre-le d'abord au format .xlsx");
+    toast("Lecture du fichier…");
+    const wb = await XL.read(await file.arrayBuffer());
+    res = parseWorkbook(XL, wb);
+  }catch(e){ return toast("Fichier illisible : "+(e.message||e)); }
+  if(!res.months.length && !res.savings.length) return toast("Aucun onglet de mois ni d'épargne reconnu.");
+  const clash = res.months.filter(x=>monthExists(x.m));
+  modal(`<h2>Importer l'Excel</h2>
+    <div class="hint">Voici ce qui a été trouvé dans « ${esc(file.name)} » :</div>
+    <div style="margin-top:10px">${res.months.map(x=>`<div class="srow"><span class="k" style="text-transform:capitalize">${esc(mLabel(x.m))} <span class="hint">(${esc(x.sheet)})</span></span><span class="v">${x.lines.length} lignes${monthExists(x.m)?" · <span class='neg'>déjà présent</span>":""}</span></div>`).join("")}
+    ${res.savings.length?`<div class="srow"><span class="k">Épargne</span><span class="v">${res.savings.length} mouvements</span></div>`:""}
+    ${res.rate?`<div class="srow"><span class="k">Taux € → F</span><span class="v">${NF2.format(res.rate)}</span></div>`:""}</div>
+    ${clash.length?`<label class="chkline"><input type="checkbox" id="xRep" checked> Remplacer les mois déjà présents</label>`:""}
+    ${res.savings.length && live(S.data.savings).length?`<label class="chkline"><input type="checkbox" id="xRepS" checked> Remplacer l'épargne déjà saisie</label>`:""}
+    <div class="actions"><span class="spacer"></span><button class="btn ghost" id="xCancel">Annuler</button><button class="btn" id="xOk">Importer</button></div>`,
+  (bd, close)=>{
+    bd.querySelector("#xCancel").onclick=close;
+    bd.querySelector("#xOk").onclick=()=>{
+      const now=Date.now(); const rep=bd.querySelector("#xRep")?.checked, repS=bd.querySelector("#xRepS")?.checked;
+      for(const a of res.accounts) ensureAccount(a);
+      if(res.rate){ const p=S.data.prefs.find(p=>p.id==="rate"); p.value=res.rate; p.updatedAt=now; }
+      let nm=0;
+      for(const x of res.months){
+        if(monthExists(x.m)){ if(!rep) continue; for(const l of monthLines(x.m)){ l.deleted=true; l.updatedAt=now; } }
+        const mo=S.data.months.find(z=>z.id===x.m); if(mo){ mo.deleted=false; mo.updatedAt=now; } else S.data.months.push({id:x.m, updatedAt:now});
+        x.lines.forEach((l,i)=>S.data.lines.push({...l, id:uid(), m:x.m, ord:i, updatedAt:now})); nm++;
+      }
+      if(res.savings.length){
+        if(live(S.data.savings).length && repS) for(const s of live(S.data.savings)){ s.deleted=true; s.updatedAt=now; }
+        const base = (repS||!live(S.data.savings).length) ? 0 : Math.max(0,...live(S.data.savings).map(s=>s.ord||0))+1;
+        res.savings.forEach((s,i)=>S.data.savings.push({...s, id:uid(), ord:base+i, updatedAt:now}));
+      }
+      if(res.months.length) ui.month = res.months[res.months.length-1].m;
+      touch(); close(); setTab("month"); toast(`Import terminé : ${nm} mois`+(res.savings.length?` + épargne`:"")+" ✓");
+    };
+  });
+}
+
+/* ================= LIAISONS ================= */
+$("setupBtn").onclick=doSetup;
+$("sPw2").addEventListener("keydown", e=>{ if(e.key==="Enter") doSetup(); });
+$("unlockBtn").onclick=()=>doUnlock();
+$("lPw").addEventListener("keydown", e=>{ if(e.key==="Enter") doUnlock(); });
+$("forgetBtn").onclick=forget; $("forgetBtn2").onclick=forget;
+$("lockNow").onclick=()=>lock(true);
+$("gearBtn").onclick=()=>setTab(ui.tab==="settings"?"month":"settings");
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else if(monthExists(ui.month)) openLine(null, "fix"); else toast("Crée d'abord le budget du mois"); };
+$("prevP").onclick=()=>{ if(ui.tab==="year") ui.year--; else ui.month=mShift(ui.month,-1); render(); };
+$("nextP").onclick=()=>{ if(ui.tab==="year") ui.year++; else ui.month=mShift(ui.month,1); render(); };
+$("periodLbl").onclick=()=>{
+  if(ui.tab==="year") return;
+  const ms = allMonths(); const t=thisMonth();
+  modal(`<h2>Choisir un mois</h2>
+    <div class="mlist">${(ms.includes(t)?"":`<button data-pick="${t}">${esc(mLabel(t))}<span class="hint">ce mois-ci · à créer</span></button>`)+ms.slice().reverse().map(m=>`<button data-pick="${m}" class="${m===ui.month?"on":""}">${esc(mLabel(m))}<span class="hint">${monthLines(m).length} lignes</span></button>`).join("")}</div>
+    <label>Ou un autre mois</label><input class="field" type="month" id="pickM" value="${ui.month}">
+    <div class="actions"><span class="spacer"></span><button class="btn" id="pickOk">Ouvrir</button></div>`,
+  (bd, close)=>{
+    bd.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ ui.month=b.dataset.pick; close(); render(); });
+    bd.querySelector("#pickOk").onclick=()=>{ const v=bd.querySelector("#pickM").value; if(/^\d{4}-\d{2}$/.test(v)){ ui.month=v; close(); render(); } };
+  });
+};
+$("rateIn").onchange=()=>{ const n=parseNum($("rateIn").value); if(!(n>0)) return toast("Taux invalide"); const p=S.data.prefs.find(p=>p.id==="rate"); p.value=n; p.updatedAt=Date.now(); touch(); toast("Taux enregistré : 1 € = "+NF2.format(n)+" F"); };
+$("addAcc").onclick=()=>openAccount(null);
+$("xlsBtn").onclick=()=>$("xlsFile").click();
+$("xlsFile").onchange=e=>{ if(e.target.files[0]) importExcel(e.target.files[0]); e.target.value=""; };
+$("syncNow").onclick=sync;
+$("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.pw); toast("Cet appareil restera connecté"); } else { forgetDevice(); toast("Le mot de passe sera demandé à chaque ouverture"); } };
+$("chgPw").onclick=changePassword;
+$("exportBtn").onclick=exportData;
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
+document.addEventListener("click", e=>{
+  const t=e.target; let el;
+  if(!S.data) return;
+  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch(); render(); } return; }
+  if(el=t.closest("[data-edit]")){ const l=S.data.lines.find(x=>x.id===el.dataset.edit); if(l) openLine(l); return; }
+  if(el=t.closest("[data-add]")) return openLine(null, el.dataset.add);
+  if(el=t.closest("[data-create]")) return createMonth(ui.month, el.dataset.create||null);
+  if(el=t.closest("[data-goto]")) return setTab(el.dataset.goto);
+  if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
+  if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
+  if(el=t.closest("[data-accedit]")){ const a=S.data.accounts.find(x=>x.id===el.dataset.accedit); if(a) openAccount(a); return; }
+});
+matchMedia("(min-width:1000px)").addEventListener("change", ()=>{ if(S.data){ if(ui.tab==="synth" && isDesk()) setTab("month"); else render(); } });
+addEventListener("online", ()=>{ if(S.pw) sync(); });
+
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).then(reg=>{
+    reg.update().catch(()=>{});
+    document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") reg.update().catch(()=>{}); });
+  }).catch(()=>{});
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{ if(!reloaded && !S.dirty && !busyLong){ reloaded=true; location.reload(); } });
+}
+boot();
+</script>
+</body>
+</html>
