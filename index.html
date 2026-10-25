@@ -537,7 +537,7 @@ const CATS = [
 ];
 const CAT = Object.fromEntries(CATS.map(c=>[c.k,c]));
 const PALETTE = ["#2E6BB0","#24855A","#C9862A","#8E4DB8","#C2453B","#2A9BA8","#6B7A22","#B5527E","#5C6B80"];
-const DEFAULT_ACC = [["Banque Pop","#C9862A"],["BNC","#2E6BB0"],["BNC Prélèvement","#2A9BA8"],["Espèce","#24855A"],["Revolut","#8E4DB8"],["BCI","#C2453B"]];
+const DEFAULT_ACC = [["Banque Pop","#C9862A"],["BNC","#2E6BB0"],["Espèce","#24855A"],["Revolut","#8E4DB8"],["BCI","#C2453B"]];
 const DEFAULT_RATE = 120;
 
 let S = { pw:null, token:null, cfg:null, data:null, dirty:false };
@@ -560,6 +560,12 @@ function seedDefaults(){
   const d=S.data; let n=0;
   for(const k of KEYS) d[k] ||= [];
   if(!d.accounts.length){ DEFAULT_ACC.forEach(([name,color],i)=>d.accounts.push({id:"a:"+norm(name), name, color, ord:i, updatedAt:1})); n++; }
+  if(!d.prefs.find(p=>p.id==="mig:modes")){ d.prefs.push({id:"mig:modes", value:1, updatedAt:3}); n++;
+    const now=Date.now(), merged=new Set();
+    for(const x of [...d.lines, ...(d.spends||[]), ...(d.savings||[])]){ if(!x.acc) continue; const sp=splitAcc(x.acc);
+      if(sp.mode && sp.acc){ merged.add(x.acc); x.acc=sp.acc; if(!x.mode) x.mode=sp.mode; x.updatedAt=now; } }
+    for(const a of d.accounts){ const sp=splitAcc(a.name); if(sp.mode && !a.deleted){ a.deleted=true; a.updatedAt=now; if(!d.accounts.some(b=>!b.deleted && norm(b.name)===norm(sp.acc))) d.accounts.push({id:uid(), name:sp.acc, color:a.color, ord:a.ord, updatedAt:now}); } }
+    for(const p of d.prefs) if(p.id.startsWith("card:") && merged.has(p.value)){ p.value=splitAcc(p.value).acc; p.updatedAt=now; } }
   if(!d.prefs.find(p=>p.id==="payday")){ d.prefs.push({id:"payday", value:27, updatedAt:2}); n++;
     // les mois déjà saisis gardent leurs dates actuelles (du 1er au dernier jour)
     for(const mid of new Set([...live(d.months).map(x=>x.id), ...live(d.lines).map(l=>l.m)])){ const r=d.months.find(x=>x.id===mid);
@@ -791,11 +797,17 @@ function accOptions(cur){
   return h + `<option value="__new">＋ Nouveau compte…</option>`;
 }
 function ensureAccount(name){
-  name=(name||"").trim(); if(!name) return "";
+  name=splitAcc(name).acc; if(!name) return "";
   const ex = live(S.data.accounts).find(a=>norm(a.name)===norm(name)); if(ex) return ex.name;
   S.data.accounts.push({id:uid(), name, color:PALETTE[live(S.data.accounts).length%PALETTE.length], ord:live(S.data.accounts).length, updatedAt:Date.now()});
   return name;
 }
+const MODES = [["prelevement","Prélèvement"],["carte","Carte"],["virement","Virement"]];
+const modeLabel = k => (MODES.find(x=>x[0]===k)||[,""])[1];
+/* « BNC Prélèvement » = compte BNC, mode prélèvement */
+function splitAcc(name){ const m=String(name||"").trim().match(/^(.+?)\s*[-–]?\s*(pr[ée]l[èe]vements?|carte|cb|virements?)$/i);
+  if(!m) return {acc:String(name||"").trim(), mode:""};
+  const k=norm(m[2]); return {acc:m[1].trim(), mode:k.startsWith("prel")?"prelevement":k.startsWith("vir")?"virement":"carte"}; }
 const accPill = name => name ? `<span class="acc"><i style="background:${esc(accColor(name))}"></i>${esc(name)}</span>` : "";
 
 /* ================= INTERFACE ================= */
@@ -958,7 +970,7 @@ function lineHTML(l){
   let env="";
   if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
     env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div><span class="${over?"neg":""}">${over?"dépassé de "+fmtF(v-t).replace("−",""):"reste "+fmtF(t-v).replace("−","")}</span></div>`; }
-  const meta = [dayInfo(l), accPill(l.acc), sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
+  const meta = [dayInfo(l), accPill(l.acc), l.mode?`<span>${esc(modeLabel(l.mode).toLowerCase())}</span>`:"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
   return `<div class="ln${l.done?" done":""}">
     <button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>
     <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"Sans motif")}</div>${meta?`<div class="meta">${meta}</div>`:""}${env}</div>
@@ -1068,13 +1080,15 @@ function openLine(l, catK){
       <div><label for="fAcc">Compte</label><select class="field" id="fAcc">${accOptions(l.acc)}</select></div>
     </div>
     <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
+    <label>Mode de paiement</label>
+    <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     ${isNew?"":spendsHTML(l)}
     <label class="switch"><span>Déjà passé</span><input type="checkbox" id="fDone" ${l.done?"checked":""}></label>
     <div class="actions">${isNew?"":`<button class="linkbtn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
       <button class="linkbtn" id="fCancel">Annuler</button><button class="btn" id="fOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
   (bd, close)=>{
     const q = s=>bd.querySelector(s);
-    const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign");
+    const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign"), md = segBind(bd,"fMode");
     const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
     const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
     q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
@@ -1100,7 +1114,7 @@ function openLine(l, catK){
       let acc = q("#fAcc").value; if(acc==="__new") acc = ensureAccount(q("#fAccNew").value);
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
-        day:(day>=1&&day<=31)?day:null, acc, done:q("#fDone").checked, updatedAt:Date.now()});
+        day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
       touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
     };
@@ -1181,7 +1195,7 @@ function openInbox(){
   const lines = monthLines(m).filter(l=>xpf(l)<0);
   const ruleLine = rule && rule.value.type==="line" ? lines.find(l=>norm(l.label)===norm(rule.value.label) && l.cat===rule.value.cat) : null;
   // en premier : la ligne de la dernière fois, puis les enveloppes déjà utilisées, puis les lignes pas encore passées hors prélèvements
-  const order = l => l===ruleLine ? 0 : lineSpends(l.id).length ? 1 : (!l.done && !/prelevement/.test(norm(l.acc))) ? 2 : 3;
+  const order = l => l===ruleLine ? 0 : lineSpends(l.id).length ? 1 : (!l.done && l.mode!=="prelevement" && !/prelevement/.test(norm(l.acc))) ? 2 : 3;
   const sorted = lines.slice().sort((a,b)=>order(a)-order(b));
   const lineBtn = l => { const left = xpf(l) - spentOf(l.id); return `<button class="pick${l===ruleLine?" sugg":""}" data-pickline="${l.id}" style="--cc:${cc(l.cat)}"><i></i><span class="pl">${esc(l.label||"Sans motif")}</span><span class="pr num${left>0?" neg":""}">${left<=0?"reste "+fmtF(-left):"dépassé "+fmtF(left)}</span></button>`; };
   modal(`<div class="paycard">
@@ -1220,7 +1234,7 @@ function openInbox(){
       } else {
         const cat=bc.dataset.pickcat, d=new Date(p.at);
         if(!S.data.months.find(x=>x.id===m && !x.deleted)) S.data.months.push({id:m, updatedAt:now});
-        const ln={id:uid(), m, cat, label:p.merchant, amt:a.amt, cur:a.cur, day:isNaN(d)?null:d.getDate(), acc, done:true, ord:now, src:p.id, updatedAt:now};
+        const ln={id:uid(), m, cat, label:p.merchant, amt:a.amt, cur:a.cur, day:isNaN(d)?null:d.getDate(), acc, mode:"carte", done:true, ord:now, src:p.id, updatedAt:now};
         S.data.lines.push(ln); setPref("rule:"+norm(p.merchant), {type:"new", cat});
         touch(); render(); next(`Ajouté en ${CAT[cat].name}`, ()=>{ ln.deleted=true; ln.updatedAt=Date.now(); p.deleted=false; p.updatedAt=Date.now(); });
       }
@@ -1502,8 +1516,8 @@ function parseWorkbook(XLSX, wb){
         let amt=null, cur="XPF"; if(isNum(x)) amt=x; else if(isNum(e)){ amt=e; cur="EUR"; }
         if(!label && !amt) continue;
         if(typeof label==="string" && /^montant/i.test(label)) continue;
-        if(acc) out.accounts.add(String(acc).trim());
-        out.savings.push({label:String(label||"").trim(), amt:amt||0, cur, date:(isNum(dt) && dt>20000) ? XLSX.serialToDate(dt).toLocaleDateString("fr-FR",{timeZone:"UTC"}) : String(dt??"").replace(/\/--$/,"").trim(), acc:acc?String(acc).trim():""});
+        const spa=splitAcc(acc); if(spa.acc) out.accounts.add(spa.acc);
+        out.savings.push({label:String(label||"").trim(), amt:amt||0, cur, date:(isNum(dt) && dt>20000) ? XLSX.serialToDate(dt).toLocaleDateString("fr-FR",{timeZone:"UTC"}) : String(dt??"").replace(/\/--$/,"").trim(), acc:spa.acc, mode:spa.mode});
       }
       continue;
     }
@@ -1527,8 +1541,8 @@ function parseWorkbook(XLSX, wb){
           const label=cellV(ws,cl+r), x=cellV(ws,cx+r), e=cellV(ws,ce+r);
           let amt=null, cur="XPF"; if(isNum(x)) amt=x; else if(isNum(e)){ amt=e; cur="EUR"; }
           if(!label && !amt) continue;
-          const acc=cellV(ws,ca+r); if(acc) out.accounts.add(String(acc).trim());
-          lines.push({cat:h.cat, label:String(label||"").trim(), amt:amt||0, cur, day:dayOf(cellV(ws,cd+r)), acc:acc?String(acc).trim():"", done:/^\s*x\s*$/i.test(String(cellV(ws,ck+r)||""))});
+          const sp=splitAcc(cellV(ws,ca+r)); if(sp.acc) out.accounts.add(sp.acc);
+          lines.push({cat:h.cat, label:String(label||"").trim(), amt:amt||0, cur, day:dayOf(cellV(ws,cd+r)), acc:sp.acc, mode:sp.mode, done:/^\s*x\s*$/i.test(String(cellV(ws,ck+r)||""))});
         }
       });
     }
