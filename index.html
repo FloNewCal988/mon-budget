@@ -21,7 +21,7 @@
   --paper:#EEF1F6; --surface:#FFFFFF; --ink:#14213D; --muted:#66708A; --rule:#DDE2EA;
   --accent:#2443B5; --accent-soft:#E2E7FA; --on:#FFFFFF; --link:#2443B5; --seg-on:#FFFFFF;
   --pos:#17805A; --neg:#C2362B; --warn:#B26A00; --warn-soft:#FBEFD9;
-  --c-sal:#17805A; --c-aide:#5BAE87; --c-fix:#3C5A9E; --c-epa:#0F93A3; --c-sor:#E0921F; --c-exc:#9A4FC9; --c-free:#C9D3E3;
+  --c-sal:#17805A; --c-aide:#5BAE87; --c-fix:#3C5A9E; --c-epa:#0F93A3; --c-sor:#E0921F; --c-exc:#9A4FC9; --c-free:#C9D3E3; --c-vir:#7A8699;
   --lift:0 1px 0 rgba(20,33,61,.04),0 6px 20px -8px rgba(20,33,61,.18);
   --display:"Bricolage Grotesque",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --text:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
@@ -31,7 +31,7 @@
     --paper:#070B14; --surface:#18213A; --ink:#F4F7FD; --muted:#AAB5CC; --rule:#2E3B58;
     --accent:#5B8CFF; --accent-soft:#1F3366; --on:#FFFFFF; --link:#8FB0FF; --seg-on:#3B4C75;
     --pos:#4BE0A0; --neg:#FF8A7A; --warn:#FFC24D; --warn-soft:#3D3015;
-    --c-sal:#4BE0A0; --c-aide:#9BE6C3; --c-fix:#7EA2FF; --c-epa:#2FD6E6; --c-sor:#FFB84D; --c-exc:#D394FF; --c-free:#4A5A80;
+    --c-sal:#4BE0A0; --c-aide:#9BE6C3; --c-fix:#7EA2FF; --c-epa:#2FD6E6; --c-sor:#FFB84D; --c-exc:#D394FF; --c-free:#4A5A80; --c-vir:#A3AEC4;
     --lift:inset 0 0 0 1px rgba(255,255,255,.09);
   }
 }
@@ -351,6 +351,9 @@ nav.tabs button{position:relative}
 .envhint b{color:var(--ink)}
 .amtbox .unit{font:700 22px var(--display);color:var(--muted);padding-right:10px}
 .chip.on{background:var(--accent);color:var(--on);box-shadow:none}
+
+.ln .meta .vir{display:inline-flex;align-items:center;gap:6px}
+.ln .meta .arrow{color:var(--muted);font-weight:700}
 </style>
 </head>
 <body>
@@ -584,6 +587,7 @@ const CATS = [
   {k:"epa",  name:"Épargne",             sign:-1, col:"L"},
   {k:"sor",  name:"Sorties / Activités", sign:-1, col:"R"},
   {k:"exc",  name:"Exceptionnel",        sign:-1, col:"R"},
+  {k:"vir",  name:"Virements entre comptes", sign:0, col:"R"},
 ];
 const CAT = Object.fromEntries(CATS.map(c=>[c.k,c]));
 const PALETTE = ["#2E6BB0","#24855A","#C9862A","#8E4DB8","#C2453B","#2A9BA8","#6B7A22","#B5527E","#5C6B80"];
@@ -616,6 +620,13 @@ function seedDefaults(){
       if(sp.mode && sp.acc){ merged.add(x.acc); x.acc=sp.acc; if(!x.mode) x.mode=sp.mode; x.updatedAt=now; } }
     for(const a of d.accounts){ const sp=splitAcc(a.name); if(sp.mode && !a.deleted){ a.deleted=true; a.updatedAt=now; if(!d.accounts.some(b=>!b.deleted && norm(b.name)===norm(sp.acc))) d.accounts.push({id:uid(), name:sp.acc, color:a.color, ord:a.ord, updatedAt:now}); } }
     for(const p of d.prefs) if(p.id.startsWith("card:") && merged.has(p.value)){ p.value=splitAcc(p.value).acc; p.updatedAt=now; } }
+  if(!d.prefs.find(p=>p.id==="mig:vir")){ d.prefs.push({id:"mig:vir", value:1, updatedAt:4}); n++;
+    const names=live(d.accounts).map(a=>a.name), now=Date.now();
+    const find = txt => names.find(nm=>norm(txt).includes(norm(nm))) || (/bpop|banque ?pop/i.test(norm(txt)) ? names.find(nm=>/pop/i.test(nm)) : null);
+    for(const l of live(d.lines)) if(["sal","aide"].includes(l.cat) && Number(l.amt)>0 && /^vir(ement)?\b/i.test(norm(l.label))){
+      const parts=norm(l.label).split(/\bvers\b/); const to = l.acc || (parts[1] && find(parts[1])) || ""; let from = parts[0] && find(parts[0].replace(/^vir(ement)?/,""));
+      if(!from || from===to) from = names.find(nm=>nm==="BNC" && nm!==to) || "";
+      Object.assign(l, {cat:"vir", acc:from, to, amt:-Math.abs(Number(l.amt)), updatedAt:now}); } }
   if(!d.prefs.find(p=>p.id==="payday")){ d.prefs.push({id:"payday", value:27, updatedAt:2}); n++;
     // les mois déjà saisis gardent leurs dates actuelles (du 1er au dernier jour)
     for(const mid of new Set([...live(d.months).map(x=>x.id), ...live(d.lines).map(l=>l.m)])){ const r=d.months.find(x=>x.id===mid);
@@ -639,6 +650,9 @@ function calc(m){
   const acc = {}; let reel=0, inc=0, exp=0, nDone=0;
   const spent = {}; for(const sp of live(S.data.spends)) if(sp.m===m) spent[sp.lineId]=(spent[sp.lineId]||0)+xpf(sp);
   for(const l of L){
+    if(l.cat==="vir"){ const amt=Math.abs(xpf(l)); tot.vir+=amt;
+      const a=acc[l.acc||"—"] ||= {prev:0, reel:0}, b=acc[l.to||"—"] ||= {prev:0, reel:0};
+      a.prev-=amt; b.prev+=amt; if(l.done){ a.reel-=amt; b.reel+=amt; nDone++; } continue; }
     const plan = xpf(l), sp = spent[l.id];
     const v = sp!=null && plan<0 ? Math.min(plan, sp) : plan;        // dépassement d'une ligne prévue = compté
     tot[l.cat] = (tot[l.cat]||0) + v;
@@ -970,7 +984,7 @@ function filterHTML(){
 }
 function catsPanel(C){
   return `<div class="panel"><h3>Par catégorie</h3>
-    ${CATS.map(c=>`<div class="srow"><span class="k"><i style="background:${cc(c.k)}"></i>${esc(c.name)}</span><span class="v num${C.tot[c.k]>0?" pos":""}">${fmtF(C.tot[c.k], true)}</span></div>`).join("")}
+    ${CATS.filter(c=>c.k!=="vir").map(c=>`<div class="srow"><span class="k"><i style="background:${cc(c.k)}"></i>${esc(c.name)}</span><span class="v num${C.tot[c.k]>0?" pos":""}">${fmtF(C.tot[c.k], true)}</span></div>`).join("")}
     <div class="srow total"><span class="k">Rentrées</span><span class="v num pos">${fmtF(C.inc, true)}</span></div>
     <div class="srow total"><span class="k">Sorties</span><span class="v num">${fmtF(C.exp, true)}</span></div>
   </div>`;
@@ -1034,7 +1048,16 @@ function envGauge(l){
   return {pct, over, left:Math.abs(v-t), html:`<div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>`,
     text: over ? `<b class="neg">dépassé de ${ab(v-t)}</b>` : `<b>reste ${ab(t-v)}</b>`, spent:ab(t), plan:ab(v)};
 }
+function virLineHTML(l){
+  const meta=[dayInfo(l), `<span class="vir">${accPill(l.acc)||"?"}<span class="arrow">→</span>${accPill(l.to)||"?"}</span>`].filter(Boolean).join("");
+  return `<div class="ln${l.done?" done":""}">
+    <button class="chk${l.done?" on":""}" style="--cc:${cc("vir")}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Virement")} : ${l.done?"fait":"à faire"}">${CHECK}</button>
+    <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"Virement")}</div><div class="meta">${meta}</div></div>
+    <div class="amt num" data-edit="${l.id}" style="color:var(--muted)">${fmtF(Math.abs(xpf(l)))}${l.cur==="EUR"?`<span class="eur">${fmtE(Math.abs(l.amt))}</span>`:""}</div>
+  </div>`;
+}
 function lineHTML(l){
+  if(l.cat==="vir") return virLineHTML(l);
   const v=xpf(l), sp=lineSpends(l.id), envL = v<0 && isEnv(l);
   let env="";
   if(envL){ const g=envGauge(l); env=`<div class="env">${g.html}${g.spent} dépensés sur ${g.plan}, ${g.text}</div>`; }
@@ -1050,7 +1073,7 @@ function lineHTML(l){
   </div>`;
 }
 function envCardsHTML(m){
-  const L = monthLines(m).filter(l=>xpf(l)<0 && isEnv(l));
+  const L = monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l));
   if(!L.length) return anyEnv() ? "" : `<button class="envhint" data-goset="1"><span class="envtag">${ENV_ICON}</span><span><b>Suis tes enveloppes ici</b><br>Choisis Repas midi, Courses, Essence… pour ajouter une dépense en deux touchers.</span></button>`;
   return `<div class="envsec"><div class="gh" style="cursor:default"><span class="envtag">${ENV_ICON}</span><span class="t">Mes enveloppes</span></div>
     <div class="envgrid">${L.map(l=>{ const g=envGauge(l); return `<button class="envc${g.over?" over":""}" data-qadd="${l.id}" style="--cc:${cc(l.cat)}">
@@ -1101,11 +1124,11 @@ function groupHTML(c, C){
   if(ui.filter==="todo" && !L.length && !all.length) return "";
   const closed = !!ui.closed[c.k];
   return `<div class="group${closed?" closed":""}">
-    <div class="gh" data-toggle="${c.k}" role="button" aria-expanded="${!closed}"><span class="sw" style="background:${cc(c.k)}"></span><span class="t">${esc(c.name)}</span>${all.length?`<span class="cnt">${done}/${all.length}</span>`:""}<span class="tot num${C.tot[c.k]>0?" pos":""}">${fmtF(C.tot[c.k], true)}</span><span class="chev"></span></div>
+    <div class="gh" data-toggle="${c.k}" role="button" aria-expanded="${!closed}"><span class="sw" style="background:${cc(c.k)}"></span><span class="t">${esc(c.name)}</span>${all.length?`<span class="cnt">${done}/${all.length}</span>`:""}<span class="tot num${c.k!=="vir"&&C.tot[c.k]>0?" pos":""}"${c.k==="vir"?' style="color:var(--muted)"':""}>${c.k==="vir"?fmtF(C.tot[c.k]):fmtF(C.tot[c.k], true)}</span><span class="chev"></span></div>
     <div class="list">
       ${L.map(lineHTML).join("")}
       ${ui.filter==="todo" && all.length && !L.length ? `<div class="allpassed">Tout est passé.</div>` : ""}
-      <button class="addln" data-add="${c.k}"><span>+</span>Ajouter ${c.sign>0?"une rentrée":"une sortie"}</button>
+      <button class="addln" data-add="${c.k}"><span>+</span>Ajouter ${c.sign>0?"une rentrée":c.sign<0?"une sortie":"un virement"}</button>
     </div>
   </div>`;
 }
@@ -1184,14 +1207,15 @@ function openLine(l, catK){
   let cat = l.cat;
   const sign = isNew ? CAT[cat].sign : (Number(l.amt)<0 ? -1 : (Number(l.amt)>0 ? 1 : CAT[cat].sign));
   modal(`<h2>${isNew?"Nouvelle ligne":"Modifier la ligne"}</h2><div class="sub">${esc(mLabel(isNew?ui.month:l.m))}</div>
-    ${!isNew && xpf(l)<0 ? `<div class="spbox"><label for="sAmt" style="margin-top:0">Ajouter une dépense sur cette ligne</label>
+    ${!isNew && l.cat!=="vir" && xpf(l)<0 ? `<div class="spbox"><label for="sAmt" style="margin-top:0">Ajouter une dépense sur cette ligne</label>
       <div class="spadd"><input class="field" id="sAmt" inputmode="decimal" placeholder="Montant F" autocomplete="off"><input class="field" id="sLab" placeholder="Où ? (facultatif)" autocomplete="off"><button class="btn" id="sAdd">Déduire</button></div>
       <div class="hint">Pour un paiement en espèces ou par carte sans Apple Pay. Il se déduit des ${fmtF(Math.abs(xpf(l)))} prévus, sans changer ton reste à vivre.</div></div>` : ""}
-    <section class="sec"><div class="sh">${!isNew && xpf(l)<0 ? "Montant prévu" : "Montant"}</div>
+    <section class="sec"><div class="sh">${!isNew && l.cat!=="vir" && xpf(l)<0 ? "Montant prévu" : "Montant"}</div>
     <div class="amtbox" style="margin-top:0"><input id="fAmt" inputmode="decimal" value="${esc(fmtInput(l.amt))}" placeholder="0" aria-label="Montant" autocomplete="off">
       <div class="seg" id="fCur"><button data-v="XPF" class="${l.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${l.cur==="EUR"?"on":""}">€</button></div></div>
     <div class="conv" id="fConv"></div>
-    <div class="seg" id="fSign" style="margin-top:8px"><button data-v="-1" class="${sign<0?"on":""}">Sortie</button><button data-v="1" class="${sign>0?"on":""}">Rentrée</button></div>
+    <div class="hint" id="fVirHint" style="${cat==="vir"?"":"display:none"}">Argent déplacé d'un de tes comptes vers un autre : ça ne change pas ton reste à vivre.</div>
+    <div class="seg" id="fSign" style="margin-top:8px;${cat==="vir"?"display:none":""}"><button data-v="-1" class="${sign<0?"on":""}">Sortie</button><button data-v="1" class="${sign>0?"on":""}">Rentrée</button></div>
     </section>
     <section class="sec"><div class="sh">Description</div>
     <label for="fLab">Motif</label>
@@ -1202,9 +1226,10 @@ function openLine(l, catK){
     <section class="sec"><div class="sh">Paiement</div>
     <div class="row2">
       <div><label for="fDay">Jour du mois</label><input class="field" id="fDay" inputmode="numeric" value="${l.day||""}" placeholder="—"></div>
-      <div><label for="fAcc">Compte</label><select class="field" id="fAcc">${accOptions(l.acc)}</select></div>
+      <div><label for="fAcc" id="fAccLab">${cat==="vir"?"Depuis le compte":"Compte"}</label><select class="field" id="fAcc">${accOptions(l.acc || (cat==="vir" ? (accounts().find(a=>a.name==="BNC")||{}).name||"" : ""))}</select></div>
     </div>
     <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
+    <div id="fToRow" style="${cat==="vir"?"":"display:none"}"><label for="fTo">Vers le compte</label><select class="field" id="fTo">${accOptions(l.to||"").replace(/<option value="__new">.*?<\/option>/,"")}</select></div>
     <label>Mode de paiement</label>
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     </section>
@@ -1221,8 +1246,9 @@ function openLine(l, catK){
     const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
     const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
     q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
+    const virUI=()=>{ const v=cat==="vir"; q("#fToRow").style.display=v?"":"none"; q("#fSign").style.display=v?"none":""; q("#fVirHint").style.display=v?"":"none"; q("#fAccLab").textContent=v?"Depuis le compte":"Compte"; };
     q("#fCat").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; cat=b.dataset.v;
-      q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); if(isNew) setSign(CAT[cat].sign); });
+      q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); if(isNew && CAT[cat].sign) setSign(CAT[cat].sign); virUI(); });
     q("#fLab").addEventListener("change", ()=>{ // reprend les infos de la dernière ligne au même motif
       if(!isNew || q("#fAmt").value.trim()) return;
       const prev = live(S.data.lines).filter(x=>norm(x.label)===norm(q("#fLab").value)).sort((a,b)=>(b.m+b.ord).localeCompare(a.m+a.ord))[0];
@@ -1247,8 +1273,10 @@ function openLine(l, catK){
       if(isNaN(n)){ q("#fAmt").focus(); return toast("Indique un montant"); }
       const day = parseInt(q("#fDay").value,10);
       let acc = q("#fAcc").value; if(acc==="__new") acc = ensureAccount(q("#fAccNew").value);
+      if(cat==="vir" && (!acc || !q("#fTo").value || acc===q("#fTo").value)) return toast("Choisis deux comptes différents pour le virement");
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
-      Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
+      rec.to = cat==="vir" ? q("#fTo").value : undefined;
+      Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
@@ -1332,11 +1360,11 @@ function pendingBanner(){
 function openInbox(mSel, showAll){
   const P = pendingList(); if(!P.length){ toast("Aucun paiement à classer"); return; }
   const p = P[0], m0 = monthOfIso(p.at), v = (p.amt==null || isNaN(p.amt)) ? NaN : xpf(p), rule = norm(p.merchant)==="paiement" ? null : ruleOf(p.merchant);
-  const hasLines = x => monthLines(x).some(l=>xpf(l)<0);
+  const hasLines = x => monthLines(x).some(l=>l.cat!=="vir" && xpf(l)<0);
   // mois proposé : celui du paiement, sinon le plus proche qui a un budget (utile juste avant ou après la paie)
   const m = mSel || (hasLines(m0) ? m0 : [mShift(m0,1), mShift(m0,-1)].find(hasLines) || m0);
   const choices = [mShift(m0,-1), m0, mShift(m0,1)].filter(x=>x===m0 || x===m || hasLines(x));
-  const allLines = monthLines(m).filter(l=>xpf(l)<0);
+  const allLines = monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0);
   const envMode = anyEnv() && !showAll && allLines.some(isEnv);
   const lines = envMode ? allLines.filter(isEnv) : allLines;
   const ruleLine = rule && rule.value.type==="line" ? lines.find(l=>norm(l.label)===norm(rule.value.label) && l.cat===rule.value.cat) : null;
@@ -1520,7 +1548,7 @@ function renderYear(){
 /* ---------- Réglages ---------- */
 function renderSettings(){
   $("payIn").value = payday();
-  { const seen=new Map(); for(const l of live(S.data.lines).filter(l=>xpf(l)<0 && l.label).sort((a,b)=>b.m.localeCompare(a.m))) if(!seen.has(norm(l.label))) seen.set(norm(l.label), l);
+  { const seen=new Map(); for(const l of live(S.data.lines).filter(l=>l.cat!=="vir" && xpf(l)<0 && l.label).sort((a,b)=>b.m.localeCompare(a.m))) if(!seen.has(norm(l.label))) seen.set(norm(l.label), l);
     const L=[...seen.values()].sort((a,b)=>(isEnv(b)-isEnv(a)) || a.label.localeCompare(b.label,"fr"));
     $("envChips").innerHTML = L.length ? L.map(l=>`<button class="tog${isEnv(l)?" on":""}" style="--cc:${cc(l.cat)}" data-envtog="${esc(l.label)}" aria-pressed="${isEnv(l)}"><i></i>${esc(l.label)}</button>`).join("") : `<span class="hint">Aucune ligne de sortie pour l'instant.</span>`; }
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
