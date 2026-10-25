@@ -31,7 +31,7 @@
     --paper:#070B14; --surface:#18213A; --ink:#F4F7FD; --muted:#AAB5CC; --rule:#2E3B58;
     --accent:#5B8CFF; --accent-soft:#1F3366; --on:#FFFFFF; --link:#8FB0FF; --seg-on:#3B4C75;
     --pos:#4BE0A0; --neg:#FF8A7A; --warn:#FFC24D; --warn-soft:#3D3015;
-    --c-sal:#4BE0A0; --c-aide:#9BE6C3; --c-fix:#7EA2FF; --c-epa:#2FD6E6; --c-sor:#FFB84D; --c-exc:#D394FF; --c-free:#4A5A80; --c-vir:#A3AEC4;
+    --c-sal:#4BE0A0; --c-aide:#9BE6C3; --c-fix:#6B8CF0; --c-epa:#12A7A0; --c-sor:#BF8028; --c-exc:#B272E6; --c-free:#4A5A80; --c-vir:#A3AEC4;
     --lift:inset 0 0 0 1px rgba(255,255,255,.09);
   }
 }
@@ -383,6 +383,49 @@ nav.tabs button{position:relative}
 .srow.sub .k::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rule);margin-right:4px}
 .srow.sub .v{font-weight:500}
 .srow.sub:last-of-type{padding-bottom:9px}
+
+/* indicateurs */
+.indfilters{display:flex;flex-direction:column;gap:10px}
+.indfilters .seg{max-width:340px}
+.kgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media (min-width:1000px){.kgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kt{background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--lift);min-width:0}
+.kt .kk{font-size:13px;color:var(--muted)}
+.kt .kv{font:800 22px/1.2 var(--display);letter-spacing:-.02em;margin-top:2px;overflow:hidden;text-overflow:ellipsis}
+.kt .ks{font-size:12px;color:var(--muted);margin-top:2px}
+.ich svg{display:block;overflow:visible;touch-action:pan-y}
+.ich .ilab{font:12px var(--text);fill:var(--muted)}
+.ich .ival{font:600 12px var(--text);fill:var(--ink)}
+.ich .ibar{cursor:pointer}
+.ich .ibar.hov .m{filter:brightness(1.15)}
+.ilegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin:-2px 0 8px}
+.ilegend i.dash{height:0;border-top:2px dashed var(--muted);border-radius:0;vertical-align:3px;width:14px;background:none!important}
+.ilegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.share{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;border:0;background:transparent;padding:8px 6px;border-radius:10px;cursor:pointer;text-align:left;color:var(--ink)}
+.share.on{background:var(--accent-soft)}
+.share .sl{display:flex;align-items:center;gap:8px;font-size:14.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share .sl i{flex:none;width:10px;height:10px;border-radius:3px}
+.share .sb{height:10px;border-radius:5px;background:var(--rule);overflow:hidden}
+.share .sb span{display:block;height:100%;border-radius:5px}
+.share .sv2{font-weight:600;font-size:14px;text-align:right}
+.share .sv2 small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.sdet{margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--paper)}
+.sdet .sh2{font-weight:700;font-size:14px;margin-bottom:4px}
+.erow{padding:9px 0;border-top:1px solid var(--rule)}
+.erow:first-child{border-top:0}
+.erow .et{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;margin-bottom:6px}
+.erow .et small{color:var(--muted);font-weight:400}
+.erow .etrack{height:10px;border-radius:5px;background:var(--rule);overflow:hidden;min-width:30%}
+.erow .etrack div{height:100%;border-radius:5px}
+.itab th, .itab td{padding-left:10px;white-space:nowrap}
+.itip{position:fixed;z-index:40;background:var(--surface);color:var(--ink);border-radius:12px;padding:8px 12px;box-shadow:0 10px 30px -8px rgba(0,0,0,.45),0 0 0 1px var(--rule);pointer-events:none;font-size:13px;min-width:150px;max-width:260px}
+.itip .itt{font-weight:700;margin-bottom:4px;text-transform:capitalize}
+.itip .itr{display:flex;align-items:center;gap:8px;padding:1px 0}
+.itip .itr i{flex:none;width:12px;height:3px;border-radius:2px}
+.itip .itr b{font-variant-numeric:tabular-nums;font-weight:600}
+.itip .itr span{color:var(--muted)}
+.itip .itr.strong b{font-size:15px}
+nav.tabs button{font-size:10.5px}
 </style>
 </head>
 <body>
@@ -449,6 +492,7 @@ nav.tabs button{position:relative}
     <section id="tab-synth" class="hidden"><div id="synthTab"></div></section>
     <section id="tab-savings" class="hidden"><div id="savingsBody"></div></section>
     <section id="tab-year" class="hidden"><div id="yearBody"></div></section>
+    <section id="tab-indic" class="hidden"><div id="indicBody"></div></section>
 
     <section id="tab-settings" class="hidden">
       <div class="stack">
@@ -526,6 +570,7 @@ nav.tabs button{position:relative}
     <button data-tab="synth" class="synthbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Synthèse</button>
     <button data-tab="savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9c1.5 0 2 1 2 2v3h-2l-1.5 3H15v2h-3v-2H9v2H6v-2.5C4.2 15.5 3 13.8 3 12c0-3.3 3.6-6 8-6 1.6 0 3.1.3 4.3.9L18 5v4h1z"/><circle cx="15.5" cy="11" r=".8" fill="currentColor"/></svg>Épargne</button>
     <button data-tab="year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></svg>Année</button>
+    <button data-tab="indic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Indicateurs</button>
   </div></nav>
 </div>
 <div id="modalRoot"></div>
@@ -931,8 +976,8 @@ const accPill = name => name ? `<span class="acc"><i style="background:${esc(acc
 /* ================= INTERFACE ================= */
 const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}, accView:"BNC"}, ls.get(LS_UI)||{});
 ui.month = null; ui.year = null;
-const TITLES = {savings:"Épargne", settings:"Réglages"};
-const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||""});
+const TITLES = {savings:"Épargne", settings:"Réglages", indic:"Indicateurs"};
+const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||"", indN:ui.indN||6});
 /* comptes utilisés dans un mois (pour le sélecteur au-dessus du reste à vivre) */
 function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc && !isSavAcc(l.acc)) set.add(l.acc); if(l.cat==="vir" && l.to && !isSavAcc(l.to)) set.add(l.to); }
   const order=n=>{ const i=accounts().findIndex(a=>a.name===n); return i<0?99:i; }; return [...set].sort((a,b)=>order(a)-order(b)); }
@@ -960,7 +1005,8 @@ function setTab(t){
   ui.tab=t; saveUI();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
   $("gearBtn").classList.toggle("on", t==="settings");
-  for(const k of ["month","synth","savings","year","settings"]) $("tab-"+k).classList.toggle("hidden", k!==t);
+  for(const k of ["month","synth","savings","year","indic","settings"]) $("tab-"+k).classList.toggle("hidden", k!==t);
+  if(typeof hideTip==="function") hideTip();
   render(); scrollTo(0,0);
 }
 function renderHeader(){
@@ -984,6 +1030,7 @@ function render(){
   else if(t==="synth") renderSynthTab();
   else if(t==="savings") renderSavings();
   else if(t==="year") renderYear();
+  else if(t==="indic") renderIndic();
   else if(t==="settings") renderSettings();
   $("labelsDL").innerHTML = [...new Set(live(S.data.lines).map(l=>l.label).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")).map(x=>`<option value="${esc(x)}">`).join("");
 }
@@ -1864,6 +1911,153 @@ function renderYear(){
     <div class="hint" style="text-align:center">Touche un mois pour l'ouvrir. « Reste » est hors exceptionnel, comme dans ton Excel.</div>`;
 }
 
+/* ================= INDICATEURS ================= */
+const IND_CATS = ["fix","epa","sor","exc"];
+function indMonths(){
+  const n = ui.indN || 6, end = ui.month || thisMonth();
+  const out=[]; for(let i=n-1;i>=0;i--){ const m=mShift(end,-i); if(monthExists(m) && monthLines(m).length) out.push(m); }
+  return out;
+}
+const kF = v => { const a=Math.abs(v), s=v<0?"−":""; return a>=1e6 ? s+NF2.format(Math.round(a/1e5)/10)+" M" : a>=1000 ? s+NF0.format(Math.round(a/1000))+" k" : s+NF0.format(Math.round(a)); };
+const mShort = m => capF(MOIS_C[Number(m.slice(5))-1]).replace(".","");
+/* infobulle commune (texte inséré avec textContent) */
+function indTip(){ let t=document.getElementById("indTip"); if(!t){ t=document.createElement("div"); t.id="indTip"; t.className="itip hidden"; t.setAttribute("role","status"); document.body.appendChild(t); } return t; }
+function showTip(evt, title, rows){
+  const t=indTip(); t.textContent=""; const h=document.createElement("div"); h.className="itt"; h.textContent=title; t.appendChild(h);
+  for(const [lab, val, color, strong] of rows){ const r=document.createElement("div"); r.className="itr"+(strong?" strong":"");
+    const k=document.createElement("i"); if(color){ k.style.background=color; } else k.style.visibility="hidden";
+    const v=document.createElement("b"); v.textContent=val; const l=document.createElement("span"); l.textContent=lab; r.append(k,v,l); t.appendChild(r); }
+  t.classList.remove("hidden");
+  const p = evt.touches ? evt.touches[0] : evt, w=t.offsetWidth, hgt=t.offsetHeight;
+  let x=p.clientX - w/2, y=p.clientY - hgt - 16; x=Math.max(8, Math.min(innerWidth-w-8, x)); if(y<70) y=p.clientY+18;
+  t.style.left=x+"px"; t.style.top=y+"px";
+}
+const hideTip = () => indTip().classList.add("hidden");
+function indAccSel(){
+  const set=new Set(); for(const m of indMonths()) for(const a of monthAccounts(m)) set.add(a);
+  const L=[...set]; if(L.length<2) return "";
+  const A = L.includes(ui.accView) ? ui.accView : "";
+  return `<div class="accsel" style="margin-bottom:0">${[["","Tous les comptes"], ...L.map(a=>[a,a])].map(([v,t])=>`<button data-indacc="${esc(v)}" class="${v===A?"on":""}">${v?`<i style="background:${esc(accColor(v))}"></i>`:""}${esc(t)}</button>`).join("")}</div>`;
+}
+function renderIndic(){
+  const ms=indMonths(), body=$("indicBody");
+  const allAcc=new Set(); for(const m of ms) for(const a of monthAccounts(m)) allAcc.add(a);
+  const A = allAcc.has(ui.accView) ? ui.accView : "";
+  const filters = `<div class="indfilters"><div class="seg" id="indN">${[3,6,12].map(n=>`<button data-indn="${n}" class="${(ui.indN||6)===n?"on":""}">${n} mois</button>`).join("")}</div>${indAccSel()}</div>`;
+  if(!ms.length){ body.innerHTML = filters + `<div class="empty">Pas encore de budget sur cette période. Les indicateurs apparaîtront dès qu'un mois aura des lignes.</div>`; return; }
+  const D = ms.map(m=>({m, C:calc(m, A||undefined)}));
+  const n=D.length, sum=f=>D.reduce((t,d)=>t+f(d),0);
+  const inc=sum(d=>d.C.inc), out=-sum(d=>d.C.exp), epa=-sum(d=>d.C.tot.epa), rest=sum(d=>d.C.restant);
+  const rate = inc>0 ? epa/inc*100 : 0;
+  // enveloppes
+  const env={}; for(const {m} of D) for(const l of monthLines(m)) if(l.cat!=="vir" && xpf(l)<0 && isEnv(l) && (!A || l.acc===A)){ const e=env[norm(l.label)] ||= {label:l.label, cat:l.cat, plan:0, spent:0}; e.plan+=-xpf(l); e.spent+=-spentOf(l.id); }
+  const E=Object.values(env).sort((a,b)=>b.plan-a.plan), ePlan=E.reduce((t,e)=>t+e.plan,0), eSpent=E.reduce((t,e)=>t+e.spent,0);
+  const per = ms.length>1 ? `sur ${n} mois (${esc(mLabel(ms[0]))} → ${esc(mLabel(ms[n-1]))})` : `en ${esc(mLabel(ms[0]))}`;
+  body.innerHTML = filters + `
+    <div class="hint" style="margin:8px 2px 12px">${A?`Compte ${esc(A)}, `:""}${per}. Touche un graphique pour voir le détail.</div>
+    <div class="kgrid">
+      <div class="kt"><div class="kk">Reste à vivre moyen</div><div class="kv num${rest<0?" neg":""}">${fmtF(rest/n)}</div><div class="ks">par mois</div></div>
+      <div class="kt"><div class="kk">Taux d'épargne</div><div class="kv num">${NF0.format(rate)} %</div><div class="ks">${fmtF(epa)} sur ${fmtF(inc)} de rentrées</div></div>
+      <div class="kt"><div class="kk">Sorties moyennes</div><div class="kv num">${fmtF(out/n)}</div><div class="ks">par mois</div></div>
+      <div class="kt"><div class="kk">Enveloppes</div><div class="kv num${eSpent>ePlan?" neg":""}">${ePlan?NF0.format(eSpent/ePlan*100)+" %":"—"}</div><div class="ks">${ePlan?`${fmtF(eSpent)} dépensés sur ${fmtF(ePlan)}`:"aucune enveloppe"}</div></div>
+    </div>
+    <div class="panel"><h3>Reste à vivre par mois</h3>${n>1?`<div class="ilegend"><span><i style="background:var(--accent)"></i>Reste à vivre</span><span><i class="dash"></i>Moyenne : ${esc(fmtF(rest/n))}</span></div>`:""}<div class="ich" id="chRest"></div></div>
+    <div class="panel"><h3>Où va l'argent chaque mois</h3><div class="ilegend">${IND_CATS.map(k=>`<span><i style="background:${cc(k)}"></i>${esc(CAT[k].name)}</span>`).join("")}</div><div class="ich" id="chStack"></div></div>
+    <div class="panel"><h3>Répartition des sorties</h3><div class="hint" style="margin:0 0 8px">Touche une catégorie pour voir ses principales lignes.</div><div id="chShare"></div><div id="shareDetail"></div></div>
+    <div class="panel"><h3>Enveloppes</h3>${E.length?`<div id="chEnv"></div>`:`<div class="hint" style="margin:0">Marque tes enveloppes (Repas midi, Courses…) dans Réglages pour suivre ici ce que tu dépenses par rapport au prévu.</div>`}</div>
+    <div class="panel"><h3>Évolution de l'épargne</h3><div class="ich" id="chSav"></div></div>
+    <details class="panel"><summary>Voir les chiffres en tableau</summary>
+      <div style="overflow-x:auto;margin-top:10px"><table class="acct itab"><thead><tr><th>Mois</th><th>Rentrées</th><th>Sorties</th><th>Épargne</th><th>Reste</th></tr></thead><tbody>
+      ${D.map(d=>`<tr><td style="text-transform:capitalize">${esc(monthName(d.m))}</td><td class="num">${fmtF(d.C.inc)}</td><td class="num">${fmtF(-d.C.exp)}</td><td class="num">${fmtF(-d.C.tot.epa)}</td><td class="num${d.C.restant<0?" neg":""}">${fmtF(d.C.restant)}</td></tr>`).join("")}
+      </tbody></table></div></details>`;
+  drawRest(D); drawStack(D); drawShare(D, A); if(E.length) drawEnv(E); drawSav();
+}
+const W_ = el => Math.max(280, Math.round(el.clientWidth || 320));
+/* 1. reste à vivre par mois : barres, moyenne en pointillé */
+function drawRest(D){
+  const el=$("chRest"), W=W_(el), H=190, L=8, R=8, T=22, B=24, n=D.length;
+  const vals=D.map(d=>d.C.restant), max=Math.max(1,...vals), min=Math.min(0,...vals), span=(max-min)||1;
+  const y=v=>T+(H-T-B)*(1-(v-min)/span), z=y(0), bw=Math.min(46, (W-L-R)/n*0.62), gx=i=>L+(W-L-R)/n*(i+.5);
+  const avg=vals.reduce((a,b)=>a+b,0)/n;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Reste à vivre par mois">
+    <line x1="${L}" x2="${W-R}" y1="${z}" y2="${z}" stroke="var(--rule)" stroke-width="1.5"/>
+    ${n>1?`<line x1="${L}" x2="${W-R}" y1="${y(avg)}" y2="${y(avg)}" stroke="var(--muted)" stroke-dasharray="4 4"/>`:""}
+    ${D.map((d,i)=>{ const v=vals[i], y1=Math.min(y(v),z), h=Math.max(2,Math.abs(y(v)-z));
+      return `<g class="ibar" data-i="${i}"><rect x="${gx(i)-bw/2-6}" y="${T}" width="${bw+12}" height="${H-T-B}" fill="transparent"/>
+        <rect class="m" x="${gx(i)-bw/2}" y="${y1}" width="${bw}" height="${h}" rx="4" fill="${v<0?"var(--neg)":"var(--accent)"}"/>
+        ${n<=6?`<text x="${gx(i)}" y="${v<0?y1+h+13:y1-6}" text-anchor="middle" class="ival">${esc(kF(v))}</text>`:""}
+        <text x="${gx(i)}" y="${H-6}" text-anchor="middle" class="ilab">${esc(mShort(d.m))}</text></g>`; }).join("")}
+  </svg>`;
+  bindBars(el, i=>{ const C=D[i].C; return [capF(mLabel(D[i].m)), [["Reste à vivre", fmtF(C.restant), C.restant<0?"var(--neg)":"var(--accent)", true],["Rentrées", fmtF(C.inc)],["Sorties", fmtF(-C.exp)],["Avec l'exceptionnel", fmtF(C.restantExc)]]]; });
+}
+/* 2. sorties empilées par catégorie */
+function drawStack(D){
+  const el=$("chStack"), W=W_(el), H=210, L=8, R=8, T=10, B=24, n=D.length;
+  const tot=D.map(d=>IND_CATS.reduce((t,k)=>t+Math.max(0,-d.C.tot[k]),0)), max=Math.max(1,...tot);
+  const y=v=>(H-T-B)*v/max, bw=Math.min(46,(W-L-R)/n*0.62), gx=i=>L+(W-L-R)/n*(i+.5), base=H-B;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Sorties par catégorie et par mois">
+    <line x1="${L}" x2="${W-R}" y1="${base}" y2="${base}" stroke="var(--rule)" stroke-width="1.5"/>
+    ${D.map((d,i)=>{ let acc=0; const segs=IND_CATS.map(k=>{ const v=Math.max(0,-d.C.tot[k]); if(!v) return ""; const h=y(v), top=base-acc-h; acc+=h;
+        return `<rect class="m" x="${gx(i)-bw/2}" y="${top+1}" width="${bw}" height="${Math.max(1,h-2)}" rx="3" fill="${cc(k)}"/>`; }).join("");
+      return `<g class="ibar" data-i="${i}"><rect x="${gx(i)-bw/2-6}" y="${T}" width="${bw+12}" height="${H-T-B}" fill="transparent"/>${segs}
+        ${n<=6?`<text x="${gx(i)}" y="${base-acc-6}" text-anchor="middle" class="ival">${esc(kF(tot[i]))}</text>`:""}
+        <text x="${gx(i)}" y="${H-6}" text-anchor="middle" class="ilab">${esc(mShort(d.m))}</text></g>`; }).join("")}
+  </svg>`;
+  bindBars(el, i=>{ const C=D[i].C; return [capF(mLabel(D[i].m)), [["Total des sorties", fmtF(tot[i]), null, true], ...IND_CATS.map(k=>[CAT[k].name, fmtF(Math.max(0,-C.tot[k])), cc(k)])]]; });
+}
+/* 3. répartition sur la période (barres horizontales) + détail */
+function drawShare(D, A){
+  const el=$("chShare"), totals=IND_CATS.map(k=>[k, D.reduce((t,d)=>t+Math.max(0,-d.C.tot[k]),0)]).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const all=totals.reduce((t,[,v])=>t+v,0)||1, max=Math.max(1,...totals.map(([,v])=>v));
+  el.innerHTML = totals.map(([k,v])=>`<button class="share${ui.indCat===k?" on":""}" data-sharecat="${k}">
+      <span class="sl"><i style="background:${cc(k)}"></i>${esc(CAT[k].name)}</span>
+      <span class="sb"><span style="width:${(v/max*100).toFixed(1)}%;background:${cc(k)}"></span></span>
+      <span class="sv2 num">${fmtF(v)}<small>${NF0.format(v/all*100)} %</small></span></button>`).join("") || `<div class="hint">Aucune sortie sur la période.</div>`;
+  const k=ui.indCat; const det=$("shareDetail");
+  if(!k || !totals.some(([kk])=>kk===k)){ det.innerHTML=""; return; }
+  const by={}; for(const {m} of D) for(const l of monthLines(m)) if(l.cat===k && (!A || l.acc===A)){ const v=-Math.min(xpf(l), spentOf(l.id)); const e=by[norm(l.label)] ||= {label:l.label, v:0, n:0}; e.v+=v; e.n++; }
+  const L=Object.values(by).sort((a,b)=>b.v-a.v).slice(0,8);
+  det.innerHTML = `<div class="sdet"><div class="sh2">${esc(CAT[k].name)} : principales lignes</div>${L.map(e=>`<div class="srow"><span class="k">${esc(e.label||"Sans motif")}${e.n>1?` <span class="hint" style="margin:0">(${e.n} mois)</span>`:""}</span><span class="v num">${fmtF(e.v)}</span></div>`).join("")}</div>`;
+}
+/* 4. enveloppes : prévu (piste) / dépensé (remplissage) */
+function drawEnv(E){
+  const max=Math.max(1,...E.map(e=>Math.max(e.plan,e.spent)));
+  $("chEnv").innerHTML = E.map(e=>{ const over=e.spent>e.plan;
+    return `<div class="erow" tabindex="0" data-env="${esc(e.label)}"><div class="et"><span>${esc(e.label)}</span><span class="num${over?" neg":""}">${fmtF(e.spent)} <small>sur ${fmtF(e.plan)}</small></span></div>
+      <div class="etrack" style="width:${(e.plan/max*100).toFixed(1)}%"><div style="width:${Math.min(100,e.spent/(e.plan||1)*100).toFixed(1)}%;background:${over?"var(--neg)":cc(e.cat)}"></div></div>
+      <div class="hint" style="margin:3px 0 0">${over?`<span class="neg">dépassé de ${fmtF(e.spent-e.plan)}</span>`:`reste ${fmtF(e.plan-e.spent)}`}</div></div>`; }).join("");
+}
+/* 5. épargne cumulée (ligne en escalier, réticule au toucher) */
+function drawSav(){
+  const el=$("chSav"); const pts=[]; let bal=0;
+  for(const s of savingsList()){ bal+=xpf(s); pts.push({v:bal, lab:s.label||"Mouvement", d:s.date||""}); }
+  for(const x of budgetSavings().filter(x=>x.l.done)){ bal+=x.v; pts.push({v:bal, lab:x.l.label, d:fmtD(x.d)}); }
+  if(pts.length<2){ el.innerHTML=`<div class="hint" style="margin:0">Pas encore assez de mouvements d'épargne.</div>`; return; }
+  const W=W_(el), H=170, L=8, R=8, T=14, B=14, n=pts.length, min=Math.min(0,...pts.map(p=>p.v)), max=Math.max(1,...pts.map(p=>p.v)), span=(max-min)||1;
+  const x=i=>L+(W-L-R)*i/(n-1), y=v=>T+(H-T-B)*(1-(v-min)/span);
+  let d=`M${x(0)},${y(pts[0].v)}`; pts.forEach((p,i)=>{ if(i) d+=`H${x(i)}V${y(p.v)}`; });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Évolution de l'épargne">
+    ${min<0?`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--rule)" stroke-dasharray="4 4"/>`:""}
+    <path d="${d}V${y(Math.max(min,0))}H${x(0)}Z" fill="color-mix(in srgb, var(--c-epa) 16%, transparent)"/>
+    <path d="${d}" fill="none" stroke="var(--c-epa)" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${x(n-1)}" cy="${y(pts[n-1].v)}" r="4" fill="var(--c-epa)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${x(n-1)}" y="${y(pts[n-1].v)-9}" text-anchor="end" class="ival">${esc(kF(pts[n-1].v))}</text>
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-width="1" style="display:none"/>
+    <rect class="hit" x="0" y="0" width="${W}" height="${H}" fill="transparent"/></svg>`;
+  const svg=el.querySelector("svg"), xh=svg.querySelector(".xh");
+  const move=e=>{ const r=svg.getBoundingClientRect(), p=e.touches?e.touches[0]:e, px=(p.clientX-r.left)*W/r.width;
+    const i=Math.max(0,Math.min(n-1,Math.round((px-L)/((W-L-R)/(n-1))))); xh.setAttribute("x1",x(i)); xh.setAttribute("x2",x(i)); xh.style.display="";
+    showTip(e, pts[i].lab, [["Solde", fmtF(pts[i].v), "var(--c-epa)", true], ...(pts[i].d?[["Date", pts[i].d]]:[])]); };
+  svg.addEventListener("pointermove", move); svg.addEventListener("pointerdown", move);
+  svg.addEventListener("pointerleave", ()=>{ xh.style.display="none"; hideTip(); });
+}
+function bindBars(el, info){
+  el.querySelectorAll(".ibar").forEach(g=>{ const i=Number(g.dataset.i);
+    const on=e=>{ el.querySelectorAll(".ibar").forEach(x=>x.classList.toggle("hov", x===g)); const [t,rows]=info(i); showTip(e,t,rows); };
+    g.addEventListener("pointerenter", on); g.addEventListener("pointerdown", on); g.addEventListener("pointermove", on);
+    g.addEventListener("pointerleave", ()=>{ g.classList.remove("hov"); hideTip(); }); });
+}
+
 /* ---------- Réglages ---------- */
 function renderSettings(){
   $("payIn").value = payday();
@@ -2141,6 +2335,10 @@ $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]
 document.addEventListener("click", e=>{
   const t=e.target; let el;
   if(!S.data) return;
+  if(el=t.closest("[data-indn]")){ ui.indN=Number(el.dataset.indn); saveUI(); render(); return; }
+  if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
+  if(el=t.closest("[data-sharecat]")){ ui.indCat = ui.indCat===el.dataset.sharecat ? "" : el.dataset.sharecat; render(); return; }
+  if(!t.closest(".ich")) { if(typeof hideTip==="function") hideTip(); }
   if(el=t.closest("[data-accview]")){ ui.accView=el.dataset.accview; saveUI(); lastAnim=null; render(); return; }
   if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
   if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
