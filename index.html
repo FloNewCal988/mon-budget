@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Budget</title>
 <meta name="theme-color" content="#EEF1F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E1525" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#070B14" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
 <style>
 :root{
   --paper:#EEF1F6; --surface:#FFFFFF; --ink:#14213D; --muted:#66708A; --rule:#DDE2EA;
-  --accent:#2443B5; --accent-soft:#E2E7FA; --on:#FFFFFF;
+  --accent:#2443B5; --accent-soft:#E2E7FA; --on:#FFFFFF; --link:#2443B5; --seg-on:#FFFFFF;
   --pos:#17805A; --neg:#C2362B; --warn:#B26A00; --warn-soft:#FBEFD9;
   --c-sal:#17805A; --c-aide:#5BAE87; --c-fix:#3C5A9E; --c-epa:#0F93A3; --c-sor:#E0921F; --c-exc:#9A4FC9; --c-free:#C9D3E3;
   --lift:0 1px 0 rgba(20,33,61,.04),0 6px 20px -8px rgba(20,33,61,.18);
@@ -28,11 +28,11 @@
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --paper:#0E1525; --surface:#172034; --ink:#E7ECF6; --muted:#909CB5; --rule:#263149;
-    --accent:#8299F2; --accent-soft:#222E52; --on:#0B1430;
-    --pos:#5FD3A0; --neg:#FF8C7E; --warn:#F2B552; --warn-soft:#3A2F1C;
-    --c-sal:#5FD3A0; --c-aide:#8FD9B5; --c-fix:#7F9BE0; --c-epa:#3FC3D1; --c-sor:#F2B552; --c-exc:#C58CEB; --c-free:#33405C;
-    --lift:none;
+    --paper:#070B14; --surface:#18213A; --ink:#F4F7FD; --muted:#AAB5CC; --rule:#2E3B58;
+    --accent:#5B8CFF; --accent-soft:#1F3366; --on:#FFFFFF; --link:#8FB0FF; --seg-on:#3B4C75;
+    --pos:#4BE0A0; --neg:#FF8A7A; --warn:#FFC24D; --warn-soft:#3D3015;
+    --c-sal:#4BE0A0; --c-aide:#9BE6C3; --c-fix:#7EA2FF; --c-epa:#2FD6E6; --c-sor:#FFB84D; --c-exc:#D394FF; --c-free:#4A5A80;
+    --lift:inset 0 0 0 1px rgba(255,255,255,.09);
   }
 }
 *{box-sizing:border-box}
@@ -53,13 +53,13 @@ header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;ga
 .ptitle h1{font:700 26px/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ptitle h1 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .ptitle h1 button::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);margin-left:2px}
-.arr{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--accent);font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.arr{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--link);font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .arr:active{background:var(--accent-soft)}
 .sync{display:flex;align-items:center;margin:0 4px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 .dot.ok{background:var(--pos)}.dot.busy{background:var(--warn)}.dot.err{background:var(--neg)}
 .iconbtn{border:0;background:transparent;padding:7px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex}
-.iconbtn.on{color:var(--accent)}
+.iconbtn.on{color:var(--link)}
 .iconbtn:active{background:var(--accent-soft)}
 
 /* ---------- reste à vivre (élément central) ---------- */
@@ -87,13 +87,13 @@ header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;ga
 
 /* ---------- avancement + filtre ---------- */
 .progress{display:flex;align-items:center;gap:12px;margin:0 2px 12px}
-.progress .meter{flex:1;height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.progress .meter{flex:1;height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
 .progress .meter div{height:100%;background:var(--accent);border-radius:3px;transition:width .35s}
 .progress .t{font-size:13.5px;color:var(--muted);white-space:nowrap}
 .progress .t b{color:var(--ink)}
-.seg{display:flex;background:var(--rule);border-radius:11px;padding:2px;gap:2px}
+.seg{display:flex;background:color-mix(in srgb,var(--rule) 80%,var(--paper));border-radius:11px;padding:2px;gap:2px}
 .seg button{flex:1;border:0;background:transparent;padding:7px 10px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
-.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(20,33,61,.12)}
+.seg button.on{background:var(--seg-on);color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(20,33,61,.18)}
 .filterbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}
 .filterbar .seg{flex:1;max-width:280px}
 
@@ -124,13 +124,13 @@ header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;ga
 .chk.on{background:var(--cc,var(--accent));animation:pop .28s ease-out}
 .chk.on svg{opacity:1}
 @keyframes pop{40%{transform:scale(1.18)}}
-.addln{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--rule);background:transparent;color:var(--accent);padding:11px 14px;text-align:left;cursor:pointer;font-size:15px;font-weight:500}
+.addln{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--rule);background:transparent;color:var(--link);padding:11px 14px;text-align:left;cursor:pointer;font-size:15px;font-weight:500}
 .addln span{width:26px;text-align:center;font-size:20px;line-height:1}
 .allpassed{padding:13px 14px;color:var(--muted);font-size:14px}
 .acc{display:inline-flex;align-items:center;gap:5px}
 .acc i{width:7px;height:7px;border-radius:50%;display:inline-block}
 .mfoot{display:flex;justify-content:center;margin-top:8px}
-.linkbtn{border:0;background:transparent;color:var(--accent);font-size:15px;font-weight:500;padding:10px 12px;border-radius:10px;cursor:pointer}
+.linkbtn{border:0;background:transparent;color:var(--link);font-size:15px;font-weight:500;padding:10px 12px;border-radius:10px;cursor:pointer}
 .linkbtn.danger{color:var(--neg)}
 
 /* ---------- blocs génériques ---------- */
@@ -151,7 +151,7 @@ table.acct td:first-child{text-align:left}
 .empty{color:var(--muted);text-align:center;padding:28px 12px}
 .btn{border:0;border-radius:13px;padding:13px 18px;background:var(--accent);color:var(--on);font-weight:600;cursor:pointer;font-size:16px}
 .btn:active{filter:brightness(.92)}
-.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:var(--accent-soft);color:var(--link)}
 .btn.danger{background:transparent;color:var(--neg);box-shadow:inset 0 0 0 1px var(--rule)}
 .btn.small{padding:8px 13px;font-size:14px;border-radius:10px}
 .btn.block{width:100%}
@@ -192,7 +192,7 @@ nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(i
 nav.tabs .in{display:flex;max-width:720px;width:100%}
 nav.tabs button{flex:1;border:0;background:transparent;padding:9px 2px 7px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:500}
 nav.tabs button svg{width:24px;height:24px}
-nav.tabs button.on{color:var(--accent)}
+nav.tabs button.on{color:var(--link)}
 .fab{position:fixed;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:7;height:54px;padding:0 20px 0 16px;border-radius:27px;border:0;background:var(--accent);color:var(--on);box-shadow:0 10px 24px -8px color-mix(in srgb,var(--accent) 70%,transparent);cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600;font-size:15.5px}
 .fab svg{width:22px;height:22px}
 .fab:active{transform:scale(.97)}
@@ -241,7 +241,7 @@ select.field{appearance:none;-webkit-appearance:none;background-image:linear-gra
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(158px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:11px 8px 11px 16px;border-radius:14px;font-size:14.5px;z-index:30;max-width:92vw;display:flex;align-items:center;gap:6px;animation:fade .2s;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
 .toast:not(:has(button)){padding-right:16px}
 .toast button{border:0;background:transparent;color:var(--c-free);font-weight:700;padding:4px 10px;cursor:pointer;font-size:14.5px}
-@media (prefers-color-scheme: dark){.toast button{color:var(--accent-soft)}}
+@media (prefers-color-scheme: dark){.toast button{color:var(--accent)}}
 details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);border-radius:99px;padding:8px 13px;font-size:14px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
@@ -905,7 +905,7 @@ function groupHTML(c, C){
 }
 function renderMonth(){
   const m=ui.month;
-  if(!monthExists(m)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
+  if(!monthExists(m) || (!monthLines(m).length && prevExisting(m) && !(live(S.data.months).find(x=>x.id===m)||{}).blank)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
   const C = calc(m);
   $("monthBody").innerHTML = pendingBanner() + `
     <div class="topgrid">
@@ -935,7 +935,7 @@ function monthOptions(m){
       toast("Budget de "+monthName(m)+" supprimé", {label:"Annuler", fn:()=>{ const t=Date.now(); ls_.forEach(l=>{ l.deleted=false; l.updatedAt=t; }); if(mo){ mo.deleted=false; mo.updatedAt=t; } touch(); render(); }}); };
   });
 }
-function prevExisting(m){ return allMonths().filter(x=>x<m).pop() || allMonths().filter(x=>x>m)[0] || null; }
+function prevExisting(m){ const ms=allMonths().filter(x=>x!==m && monthLines(x).length); return ms.filter(x=>x<m).pop() || ms.filter(x=>x>m)[0] || null; }
 function createMonthHTML(m){
   const src = prevExisting(m);
   return `<div class="panel newmonth">
@@ -952,7 +952,7 @@ function createMonth(m, src){
   const now=Date.now();
   const cats = new Set([...document.querySelectorAll("[data-copycat].on")].map(x=>x.dataset.copycat));
   const ex = S.data.months.find(x=>x.id===m);
-  if(ex){ ex.deleted=false; ex.updatedAt=now; } else S.data.months.push({id:m, updatedAt:now});
+  if(ex){ ex.deleted=false; ex.blank=!src; ex.updatedAt=now; } else S.data.months.push({id:m, blank:!src, updatedAt:now});
   if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>S.data.lines.push({...l, id:uid(), m, done:false, ord:i, updatedAt:now}));
   touch(); render(); toast("Budget de "+monthName(m)+" créé");
 }
