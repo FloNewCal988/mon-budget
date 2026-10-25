@@ -360,6 +360,23 @@ nav.tabs button{position:relative}
 .accsel button{flex:none;border:0;border-radius:99px;padding:7px 13px;font-size:14px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--muted);box-shadow:var(--lift);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .accsel button i{width:8px;height:8px;border-radius:50%}
 .accsel button.on{background:var(--ink);color:var(--paper);font-weight:700}
+/* projets */
+.projsec{margin-bottom:20px}
+.projgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+@media (min-width:640px){.projgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.proj{background:var(--surface);border-radius:18px;padding:14px;box-shadow:var(--lift);cursor:pointer}
+.proj .ph{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.proj .pn{font:700 17px/1.2 var(--display)}
+.proj .pdue{font-size:12.5px;color:var(--warn);font-weight:600}
+.proj .pv{font:800 26px/1.15 var(--display);letter-spacing:-.02em;margin:6px 0 8px}
+.proj .pv small{font:500 14px var(--text);color:var(--muted);margin-left:4px;letter-spacing:0}
+.proj .ps{font-size:13px;color:var(--muted);margin-top:6px}
+.proj .pa{font-size:14px;margin-top:8px;line-height:1.4}
+.proj .pa.late{color:var(--warn)} .proj .pa.ok{color:var(--pos)}
+.proj .pbtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.proj.paid{opacity:.7}
+.simres{margin-top:12px;font-size:15px;line-height:1.45;background:var(--surface);border-radius:12px;padding:10px 12px}
+.simres:empty{display:none}
 </style>
 </head>
 <body>
@@ -585,7 +602,7 @@ async function ghPutFile(c, token, path, text, sha, message){
 /* ================= DONNÉES ================= */
 /* months : {id:"2026-06"} · lines : une ligne de budget · savings : mouvements d'épargne
    accounts : comptes (Banque Pop, Espèce…) · prefs : réglages (taux €) */
-const KEYS = ["months","lines","savings","accounts","prefs","pending","spends"];
+const KEYS = ["months","lines","savings","accounts","prefs","pending","spends","projects"];
 const CATS = [
   {k:"sal",  name:"Salaire",             sign:+1, col:"L"},
   {k:"aide", name:"Aide",                sign:+1, col:"L"},
@@ -609,7 +626,7 @@ function merge(a, b){
     const m = new Map();
     for(const x of [...(a?.[k]||[]), ...(b?.[k]||[])]){
       const cur = m.get(x.id);
-      if(!cur || (x.updatedAt||0) > (cur.updatedAt||0)) m.set(x.id, x);
+      if(!cur || (x.updatedAt||0) >= (cur.updatedAt||0)) m.set(x.id, x);   // à égalité, la version locale (2e argument) l'emporte
     }
     out[k] = [...m.values()];
   }
@@ -1257,6 +1274,7 @@ function openLine(l, catK){
     </div>
     <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
     <div id="fToRow" style="${cat==="vir"||cat==="epa"?"":"display:none"}"><label for="fTo" id="fToLab">Vers le compte</label><select class="field" id="fTo"></select><div class="hint" id="fToHint"></div></div>
+    <div id="fProjRow" style="${cat==="epa"?"":"display:none"}"><label for="fProj">Pour le projet (facultatif)</label><select class="field" id="fProj"></select></div>
     <label>Mode de paiement</label>
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     </section>
@@ -1277,7 +1295,8 @@ function openLine(l, catK){
       if(cat==="epa"){ const L=savAccounts(); q("#fTo").innerHTML=`<option value="">— Aucun —</option>`+L.map(n=>`<option${n===cur?" selected":""}>${esc(n)}</option>`).join("");
         q("#fToLab").textContent="Vers le compte d'épargne (facultatif)"; q("#fToHint").textContent = L.length ? "Une fois la ligne cochée, le montant s'ajoute à l'onglet Épargne." : "Marque un compte comme « Compte d'épargne » dans Réglages pour le choisir ici."; }
       else { q("#fTo").innerHTML=accOptions(cur).replace(/<option value="__new">.*?<\/option>/,""); q("#fToLab").textContent="Vers le compte"; q("#fToHint").textContent=""; } };
-    const virUI=()=>{ const v=cat==="vir"; q("#fToRow").style.display=(v||cat==="epa")?"":"none"; toOpts(); q("#fSign").style.display=v?"none":""; q("#fVirHint").style.display=v?"":"none"; q("#fAccLab").textContent=v?"Depuis le compte":"Compte"; };
+    const projOpts=()=>{ const cur=q("#fProj").value||l.proj||""; q("#fProj").innerHTML=`<option value="">— Aucun —</option>`+projectsList().filter(x=>!x.paid||x.id===cur).map(x=>`<option value="${x.id}"${x.id===cur?" selected":""}>${esc(x.name)}</option>`).join(""); };
+    const virUI=()=>{ const v=cat==="vir"; q("#fToRow").style.display=(v||cat==="epa")?"":"none"; q("#fProjRow").style.display=cat==="epa"?"":"none"; toOpts(); projOpts(); q("#fSign").style.display=v?"none":""; q("#fVirHint").style.display=v?"":"none"; q("#fAccLab").textContent=v?"Depuis le compte":"Compte"; };
     q("#fCat").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; cat=b.dataset.v;
       q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); if(isNew && CAT[cat].sign) setSign(CAT[cat].sign); virUI(); });
     virUI();
@@ -1308,6 +1327,7 @@ function openLine(l, catK){
       if(cat==="vir" && (!acc || !q("#fTo").value || acc===q("#fTo").value)) return toast("Choisis deux comptes différents pour le virement");
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
       rec.to = (cat==="vir" || cat==="epa") ? (q("#fTo").value || undefined) : undefined;
+      rec.proj = cat==="epa" ? (q("#fProj").value || undefined) : undefined;
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
@@ -1483,11 +1503,176 @@ function balanceChart(points){
     <path d="${d}" fill="none" stroke="var(--c-epa)" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
   </svg>`;
 }
+/* ================= PROJETS D'ÉPARGNE =================
+   Un projet = un gros achat à préparer (Impôts, Meubles…), avec ou sans date limite.
+   On y met de côté quand on veut : un versement libre, ou une ligne « Projet : … » de la catégorie Épargne du budget. */
+const projectsList = () => live(S.data.projects).sort((a,b)=>(!!a.paid - !!b.paid) || ((a.due||"9999")).localeCompare(b.due||"9999") || (a.ord||0)-(b.ord||0));
+const projById = id => live(S.data.projects).find(p=>p.id===id);
+function projSaved(p){
+  let t=0;
+  for(const s of live(S.data.savings)) if(s.proj===p.id && s.kind!=="achat") t+=xpf(s);
+  for(const l of live(S.data.lines)) if(l.proj===p.id && l.done) t+=Math.abs(xpf(l));
+  return t;
+}
+const monthIdx = d => d.getFullYear()*12 + d.getMonth();
+const idxLabel = i => MOIS[i%12]+" "+Math.floor(i/12);
+const roundUp = (n, step=500) => Math.ceil(n/step)*step;
+const budgetMonth = () => (ui.month && monthExists(ui.month)) ? ui.month : thisMonth();
+const fmtDY = d => fmtD(d, {day:"numeric", month:"long", year:"numeric"});
+function projPlanned(p){ // montant prévu ce mois-ci dans le budget pour ce projet
+  return monthLines(budgetMonth()).filter(l=>l.proj===p.id).reduce((t,l)=>t+Math.abs(xpf(l)),0);
+}
+function projPace(p){
+  const planned=projPlanned(p); if(planned>0) return planned;
+  const items=[...live(S.data.savings).filter(s=>s.proj===p.id && s.kind!=="achat").map(s=>({v:xpf(s), at:new Date(s.at||Date.now())})),
+    ...live(S.data.lines).filter(l=>l.proj===p.id && l.done).map(l=>({v:Math.abs(xpf(l)), at:lineDate(l)||monthStart(l.m)}))];
+  if(!items.length) return 0;
+  const first=Math.min(...items.map(x=>monthIdx(x.at))), n=monthIdx(new Date())-first+1;
+  if(n<2) return 0;                                    // pas assez d'historique pour estimer un rythme
+  return items.reduce((t,x)=>t+x.v,0)/n;
+}
+function projStatus(p){
+  const saved=projSaved(p), left=Math.max(0, p.target-saved), pct=p.target? Math.min(100, saved/p.target*100) : 0;
+  let advice="", tone="";
+  if(p.paid) advice = `Payé le ${fmtD(new Date(p.paidAt||Date.now()))}`;
+  else if(left<=0) { advice = "Tout est de côté : tu peux faire l'achat."; tone="ok"; }
+  else if(p.due){
+    const [y,m,d]=p.due.split("-").map(Number), due=new Date(y,m-1,d), months=monthIdx(due)-monthIdx(new Date());
+    if(due < dayStart(new Date())){ advice = `Date dépassée : il manque ${fmtF(left)}.`; tone="late"; }
+    else if(months<=0){ advice = `À réunir ce mois-ci : ${fmtF(left)}.`; tone="late"; }
+    else { const per=roundUp(left/months); advice = `Mets <b>${fmtF(per)} par mois</b> pendant ${months} mois pour être prêt le ${fmtDY(due)}.`;
+      const planned=projPlanned(p); if(planned && planned<per) { advice += ` Ce mois-ci, ${fmtF(planned)} sont prévus.`; tone="late"; } }
+  } else {
+    const pace=projPace(p);
+    advice = pace>0 ? (()=>{ const n=Math.ceil(left/pace); return `À ${fmtF(roundUp(pace,100))} par mois, prêt vers <b>${idxLabel(monthIdx(new Date())+n)}</b>.`; })()
+                    : "Pas de date limite : utilise le simulateur pour voir quand tu seras prêt.";
+  }
+  return {saved, left, pct, advice, tone};
+}
+function projectsHTML(){
+  const P=projectsList(), open=P.filter(p=>!p.paid), done=P.filter(p=>p.paid);
+  const totLeft=open.reduce((t,p)=>t+projStatus(p).left,0);
+  const card = p => { const st=projStatus(p);
+    return `<div class="proj${p.paid?" paid":""}" data-proj="${p.id}">
+      <div class="ph"><span class="pn">${esc(p.name)}</span>${p.due&&!p.paid?`<span class="pdue">avant le ${esc(fmtDY(new Date(p.due+"T12:00")))}</span>`:""}</div>
+      <div class="pv num">${p.paid?fmtF(p.target):st.left>0?fmtF(st.left):"Prêt"}<small>${p.paid?"payés":st.left>0?" à mettre de côté":""}</small></div>
+      <div class="envbar"><div style="width:${st.pct.toFixed(1)}%;background:${p.paid?"var(--muted)":"var(--c-epa)"}"></div></div>
+      <div class="ps">${fmtF(st.saved)} de côté sur ${fmtF(p.target)}</div>
+      <div class="pa ${st.tone}">${st.advice}</div>
+      ${p.paid?"":`<div class="pbtns"><button class="btn small" data-contrib="${p.id}">+ Mettre de côté</button><button class="btn ghost small" data-projsim="${p.id}">Simuler</button></div>`}
+    </div>`; };
+  return `<div class="projsec">
+    <div class="gh" style="cursor:default"><span class="t">Mes projets</span>${open.length?`<span class="cnt">${fmtF(totLeft)} à réunir</span>`:""}<button class="linkbtn" id="newProj" style="margin-left:auto;padding:4px 6px">+ Projet</button></div>
+    ${open.length?`<div class="projgrid">${open.map(card).join("")}</div>`:`<button class="envhint" id="newProj2"><span class="envtag">${ENV_ICON}</span><span><b>Prépare tes gros achats</b><br>Impôts, meubles, voyage… Fixe un montant et, si besoin, une date : l'app te dit combien mettre de côté chaque mois.</span></button>`}
+    ${done.length?`<details style="margin-top:10px"><summary>Projets payés (${done.length})</summary><div class="projgrid" style="margin-top:10px">${done.map(card).join("")}</div></details>`:""}
+  </div>`;
+}
+/* fiche projet + simulateur */
+function openProject(p, simFocus){
+  const isNew=!p; p = p || {name:"", target:"", due:""};
+  const st = isNew ? null : projStatus(p);
+  const history = isNew ? [] : [...live(S.data.savings).filter(s=>s.proj===p.id).map(s=>({lab:s.label, v:xpf(s), d:new Date(s.at||Date.now()), id:s.id, kind:"sav"})),
+    ...live(S.data.lines).filter(l=>l.proj===p.id).map(l=>({lab:l.label+(l.done?"":" (prévu)"), v:l.done?Math.abs(xpf(l)):0, planned:!l.done?Math.abs(xpf(l)):0, d:lineDate(l)||monthStart(l.m), id:l.id, kind:"line", m:l.m}))].sort((a,b)=>a.d-b.d);
+  modal(`<h2>${isNew?"Nouveau projet":esc(p.name)}</h2>${isNew?"":`<div class="sub" style="text-transform:none">${fmtF(st.saved)} de côté sur ${fmtF(p.target)}</div>`}
+    <section class="sec"><div class="sh">Projet</div>
+      <label for="pName">Nom</label><input class="field" id="pName" value="${esc(p.name)}" placeholder="Par exemple : Impôts 2026" autocomplete="off">
+      <label for="pTarget">Montant total</label>
+      <div class="amtbox" style="margin-top:0"><input id="pTarget" inputmode="decimal" value="${esc(fmtInput(p.target))}" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <label for="pDue">Date limite (facultatif)</label><input class="field" type="date" id="pDue" value="${esc(p.due||"")}">
+      <div class="hint">Par exemple la date de paiement des impôts. Sans date, tu avances à ton rythme.</div>
+    </section>
+    <section class="sec" id="simSec"><div class="sh">Simulateur</div>
+      <div class="seg" id="simMode"><button data-v="date" class="on">J'ai une date</button><button data-v="amt">J'ai un montant par mois</button></div>
+      <div id="simDate" style="margin-top:10px"><label for="sDate" style="margin-top:0">Être prêt le</label><input class="field" type="date" id="sDate"></div>
+      <div id="simAmt" style="margin-top:10px;display:none"><label for="sAmt2" style="margin-top:0">Je mets de côté chaque mois</label>
+        <div class="amtbox" style="margin-top:0"><input id="sAmt2" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div></div>
+      <div class="simres" id="simRes"></div>
+      <button class="btn ghost block" id="simPlan" style="margin-top:10px;display:none"></button>
+    </section>
+    ${history.length?`<section class="sec"><div class="sh">Versements</div><div class="spends">${history.map(h=>`<div class="sp"><div class="main"><div>${esc(h.lab||"Versement")}</div><div class="hint" style="margin:0">${esc(fmtD(h.d))}</div></div><span class="num">${h.planned?`<span style="opacity:.6">${fmtF(h.planned)}</span>`:fmtF(h.v,true)}</span></div>`).join("")}</div></section>`:""}
+    ${isNew?"":`<section class="sec"><div class="sh">Achat</div>${p.paid?`<div class="hint" style="margin-top:0">Payé le ${esc(fmtDY(new Date(p.paidAt||Date.now())))}.</div>`:`<button class="btn ghost block" id="pPaid">J'ai payé l'achat</button><div class="hint">Le montant sort de ton épargne et le projet passe dans « Projets payés ».</div>`}
+      <button class="linkbtn danger" id="pDel" style="padding-left:0;margin-top:8px">Supprimer le projet</button></section>`}
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="pCancel">Annuler</button><button class="btn" id="pOk">${isNew?"Créer":"Enregistrer"}</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x); const mode=segBind(bd,"simMode");
+    if(p.due) q("#sDate").value=p.due;
+    let planAmt=0;
+    const sim=()=>{
+      const target=parseNum(q("#pTarget").value)||0, saved=isNew?0:projStatus(p).saved, left=Math.max(0,target-saved), now=monthIdx(new Date());
+      const m=mode(); q("#simDate").style.display=m==="date"?"":"none"; q("#simAmt").style.display=m==="amt"?"":"none";
+      let html="", plan=0;
+      if(!target){ html="Indique le montant total du projet."; }
+      else if(left<=0){ html="Tout est déjà de côté."; }
+      else if(m==="date"){
+        const v=q("#sDate").value || q("#pDue").value;
+        if(!v) html="Choisis une date pour savoir combien mettre de côté chaque mois.";
+        else { const [y,mm,d]=v.split("-").map(Number), due=new Date(y,mm-1,d), n=monthIdx(due)-now;
+          if(n<=0) html=`Il faut réunir <b>${fmtF(left)}</b> ce mois-ci.`;
+          else { plan=roundUp(left/n); html=`Mets <b>${fmtF(plan)} par mois</b> pendant ${n} mois (jusqu'au ${esc(fmtDY(due))}).`; } }
+      } else {
+        const a=parseNum(q("#sAmt2").value);
+        if(!(a>0)) html="Indique combien tu peux mettre de côté chaque mois.";
+        else { const n=Math.ceil(left/a); plan=a; html=`À ${fmtF(a)} par mois, tu seras prêt en <b>${esc(idxLabel(now+n))}</b> (${n} mois).`;
+          const v=q("#pDue").value; if(v){ const [y,mm]=v.split("-").map(Number); if(now+n > y*12+mm-1) html+=` <span class="neg">C'est après ta date limite.</span>`; } }
+      }
+      q("#simRes").innerHTML=html; planAmt=plan;
+      const b=q("#simPlan"); b.style.display = plan>0 ? "" : "none";
+      b.textContent = `Prévoir ${fmtF(plan)} dans mon budget de ${monthName(budgetMonth())}`;
+    };
+    ["pTarget","pDue","sDate","sAmt2"].forEach(id=>q("#"+id).addEventListener("input", sim)); q("#simMode").addEventListener("click", ()=>setTimeout(sim));
+    sim(); if(simFocus) setTimeout(()=>q("#simSec").scrollIntoView({block:"start", behavior:"smooth"}), 120);
+    const save=()=>{ const name=q("#pName").value.trim(), target=parseNum(q("#pTarget").value);
+      if(!name){ q("#pName").focus(); toast("Donne un nom au projet"); return null; }
+      if(!(target>0)){ q("#pTarget").focus(); toast("Indique le montant total"); return null; }
+      const now=Date.now(); if(isNew){ p={id:uid(), ord:now}; S.data.projects.push(p); }
+      Object.assign(p,{name, target, due:q("#pDue").value||"", updatedAt:now}); return p; };
+    q("#pCancel").onclick=close;
+    q("#pOk").onclick=()=>{ if(!save()) return; touch(); close(); render(); toast(isNew?"Projet créé":"Projet enregistré"); };
+    q("#simPlan").onclick=()=>{ if(!save()) return; const m=budgetMonth(), now=Date.now();
+      if(!monthExists(m)) S.data.months.push({id:m, updatedAt:now});
+      let l=monthLines(m).find(x=>x.proj===p.id);
+      if(l) Object.assign(l,{amt:-planAmt, cur:"XPF", updatedAt:now});
+      else S.data.lines.push(l={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-planAmt, cur:"XPF", day:null, acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:false, ord:now, updatedAt:now});
+      touch(); close(); render(); toast(`${fmtF(planAmt)} prévus en ${monthName(m)} (catégorie Épargne)`); };
+    if(!isNew) q("#pDel").onclick=()=>{ if(!confirm("Supprimer le projet « "+p.name+" » ? Les versements restent dans ton épargne.")) return;
+      const now=Date.now(); p.deleted=true; p.updatedAt=now; for(const x of [...S.data.lines, ...S.data.savings]) if(x.proj===p.id){ delete x.proj; x.updatedAt=now; } touch(); close(); render(); };
+    if(q("#pPaid")) q("#pPaid").onclick=()=>{ const st=projStatus(p);
+      if(!confirm(`Noter l'achat « ${p.name} » comme payé ? ${fmtF(p.target)} sortent de ton épargne${st.left>0?` (il manquait ${fmtF(st.left)})`:""}.`)) return;
+      const now=Date.now(); S.data.savings.push({id:uid(), label:"Achat : "+p.name, amt:-p.target, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, kind:"achat", ord:now, updatedAt:now});
+      Object.assign(p,{paid:true, paidAt:new Date().toISOString(), updatedAt:now}); touch(); close(); render(); toast("Achat noté : "+p.name); };
+  });
+}
+/* versement libre sur un projet */
+function openContrib(p){
+  const st=projStatus(p), m=budgetMonth();
+  modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">Reste ${fmtF(st.left)} à mettre de côté</div>
+    <section class="sec"><div class="sh">Je mets de côté</div>
+      <div class="amtbox" style="margin-top:0"><input id="cAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <div class="conv" id="cAfter"></div>
+      <label class="switch"><span>Prendre sur mon budget de ${esc(monthName(m))}<br><span class="hint" style="margin:0">Compté comme de l'épargne : ton reste à vivre baisse d'autant.</span></span><input type="checkbox" id="cBudget" checked></label>
+    </section>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="cCancel">Annuler</button><button class="btn" id="cOk">Mettre de côté</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    q("#cAmt").oninput=()=>{ const n=parseNum(q("#cAmt").value); q("#cAfter").textContent = n>0 ? (st.left-n>0 ? `Il restera ${fmtF(st.left-n)} à mettre de côté.` : "Le projet sera prêt.") : ""; };
+    q("#cCancel").onclick=close;
+    const ok=()=>{ const n=parseNum(q("#cAmt").value); if(!(n>0)){ q("#cAmt").focus(); return toast("Indique le montant"); }
+      const now=Date.now(); let rec;
+      if(q("#cBudget").checked){ if(!monthExists(m)) S.data.months.push({id:m, updatedAt:now});
+        S.data.lines.push(rec={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-n, cur:"XPF", day:new Date().getDate(), acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:true, ord:now, updatedAt:now}); }
+      else S.data.savings.push(rec={id:uid(), label:"Pour : "+p.name, amt:n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, ord:now, updatedAt:now});
+      touch(); close(); render();
+      toast(`${fmtF(n)} mis de côté pour « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
+    q("#cOk").onclick=ok; q("#cAmt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } });
+    setTimeout(()=>q("#cAmt").focus(), 80);
+  });
+}
+
 function budgetSavings(){
   const out=[];
   for(const l of live(S.data.lines)){
     let v=0, acc="";
-    if((l.cat==="epa"||l.cat==="vir") && isSavAcc(l.to) && !isSavAcc(l.acc)){ v=Math.abs(xpf(l)); acc=l.to; }
+    if((l.cat==="epa"||l.cat==="vir") && (isSavAcc(l.to) || (l.cat==="epa" && l.proj)) && !isSavAcc(l.acc)){ v=Math.abs(xpf(l)); acc=l.to||""; }
     else if(l.cat==="vir" && isSavAcc(l.acc) && !isSavAcc(l.to)){ v=-Math.abs(xpf(l)); acc=l.acc; }
     else continue;
     out.push({l, v, acc, d:lineDate(l)||monthStart(l.m)});
@@ -1513,10 +1698,11 @@ function renderSavings(){
     <div class="hero">
       <div class="lead">Épargne disponible</div>
       <div class="big${bal<0?" neg":""}">${fmtF(bal).replace(/ F$/,"")}<small>F</small></div>
+      ${(()=>{ const res=projectsList().filter(x=>!x.paid).reduce((t,x)=>t+Math.max(0,projSaved(x)),0); return res>0?`<div class="pace">dont <b class="num">${fmtF(res)}</b> réservés pour tes projets, <b class="num${bal-res<0?" neg":""}">${fmtF(bal-res)}</b> libres</div>`:""; })()}
       ${balanceChart(pts)}
       ${Object.keys(byAcc).length>1?Object.entries(byAcc).map(([n,v])=>`<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>`).join(""):""}
     </div></div>
-    <div><div class="gh" style="cursor:default"><span class="t">Mouvements saisis</span></div>
+    <div>${projectsHTML()}<div class="gh" style="cursor:default"><span class="t">Mouvements saisis</span></div>
     <div class="list">${rows || `<div class="empty">Aucun mouvement saisi. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
     ${autoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">Depuis le budget</span><span class="cnt">virements cochés</span></div><div class="list">${autoRows}</div>`:""}
     ${todoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">À venir</span></div><div class="list">${todoRows}</div>`:""}
@@ -1532,6 +1718,7 @@ function openSaving(s){
       <div class="seg" id="gCur"><button data-v="XPF" class="${s.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${s.cur==="EUR"?"on":""}">€</button></div></div>
     <div class="seg" id="gSign" style="margin-top:12px"><button data-v="1" class="${sign>0?"on":""}">Je mets de côté</button><button data-v="-1" class="${sign<0?"on":""}">Je retire</button></div>
     </section>
+    ${!isNew && Number(s.amt)<0 && !s.proj ? `<div class="spbox" style="margin-top:12px"><label style="margin-top:0">Pas encore payé ?</label><div class="hint" style="margin-top:2px">Si c'est un achat à venir (impôts, meubles…), transforme-le en projet : il ne sera plus retiré de ton épargne, et tu pourras mettre de côté à ton rythme.</div><button class="btn small" id="gProj" style="margin-top:10px">En faire un projet</button></div>` : ""}
     <section class="sec"><div class="sh">Détails</div>
     <label for="gLab">Motif</label><input class="field" id="gLab" value="${esc(s.label)}" placeholder="Par exemple : Épargne de mai">
     <div class="row2">
@@ -1548,6 +1735,9 @@ function openSaving(s){
     q("#gAcc").onchange=()=>{ q("#gAccNew").classList.toggle("hidden", q("#gAcc").value!=="__new"); };
     q("#gCancel").onclick=close;
     if(!isNew) q("#gDel").onclick=()=>{ close(); removeWithUndo(s, "Mouvement supprimé"); };
+    if(q("#gProj")) q("#gProj").onclick=()=>{ const now=Date.now(), pr={id:uid(), name:s.label||"Projet", target:Math.abs(xpf(s)), due:"", ord:now, updatedAt:now};
+      S.data.projects.push(pr); s.deleted=true; s.updatedAt=now; touch(); close(); render();
+      toast(`« ${pr.name} » est maintenant un projet`, {label:"Annuler", fn:()=>{ pr.deleted=true; s.deleted=false; const t=Date.now(); pr.updatedAt=t; s.updatedAt=t; touch(); render(); }}); };
     q("#gOk").onclick=()=>{
       const n=parseNum(q("#gAmt").value); if(isNaN(n)){ q("#gAmt").focus(); return toast("Indique un montant"); }
       let acc=q("#gAcc").value; if(acc==="__new") acc=ensureAccount(q("#gAccNew").value);
@@ -1889,6 +2079,10 @@ document.addEventListener("click", e=>{
   if(t.closest("#openInbox")) return openInbox();
   if(el=t.closest("[data-period]")) return openPeriod(el.dataset.period);
   if(el=t.closest("[data-envtog]")){ const lab=el.dataset.envtog, on=!el.classList.contains("on"); setEnv(lab, on); touch(); render(); toast(on?`« ${lab} » est une enveloppe`:`« ${lab} » n'est plus une enveloppe`); return; }
+  if(el=t.closest("[data-contrib]")){ const pr=projById(el.dataset.contrib); if(pr) openContrib(pr); return; }
+  if(el=t.closest("[data-projsim]")){ const pr=projById(el.dataset.projsim); if(pr) openProject(pr, true); return; }
+  if(t.closest("#newProj, #newProj2")) return openProject(null);
+  if(el=t.closest("[data-proj]")){ const pr=projById(el.dataset.proj); if(pr) openProject(pr); return; }
   if(el=t.closest("[data-gomonth]")){ const l=S.data.lines.find(x=>x.id===el.dataset.line); ui.month=el.dataset.gomonth; setTab("month"); if(l) setTimeout(()=>openLine(l), 60); return; }
   if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
   if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
