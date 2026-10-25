@@ -326,6 +326,31 @@ nav.tabs button{position:relative}
 
 .periodbtn{display:block;border:0;background:transparent;padding:0;margin:0 0 2px;color:var(--link);font-size:13.5px;cursor:pointer;text-align:left}
 .paystart{max-width:280px;margin:14px auto 0;text-align:left}
+
+/* enveloppes */
+.envtag{display:inline-flex;width:18px;height:18px;margin-right:6px;vertical-align:-3px;color:var(--link)}
+.envtag svg{width:18px;height:18px}
+.qadd{flex:none;width:28px;height:28px;border-radius:50%;border:0;background:var(--cc);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;box-shadow:0 2px 6px -2px var(--cc)}
+.qadd svg{width:16px;height:16px}
+.qadd:active{transform:scale(.92)}
+.ln.isenv .lab{font-weight:600}
+.envsec{margin:4px 0 18px}
+.envsec .gh .envtag{margin-right:0}
+.envgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:1000px){.envgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.envc{position:relative;display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:0;cursor:pointer;background:var(--surface);color:var(--ink);border-radius:16px;padding:12px 12px 10px;box-shadow:var(--lift);min-width:0}
+.envc .en{font-weight:600;font-size:14.5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
+.envc .ev{font:800 22px/1.15 var(--display);letter-spacing:-.02em;margin-top:4px}
+.envc.over .ev{color:var(--neg)}
+.envc .es{font-size:12px;color:var(--muted);margin-bottom:8px}
+.envc .envbar{width:100%;margin-bottom:10px}
+.envc .eplus{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#fff;background:var(--cc);border-radius:99px;padding:5px 10px 5px 7px}
+.envc .eplus svg{width:13px;height:13px}
+.envc:active{transform:scale(.98)}
+.envhint{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:1px dashed var(--rule);background:transparent;color:var(--muted);border-radius:16px;padding:12px 14px;margin:4px 0 16px;cursor:pointer;font-size:14px;line-height:1.4}
+.envhint b{color:var(--ink)}
+.amtbox .unit{font:700 22px var(--display);color:var(--muted);padding-right:10px}
+.chip.on{background:var(--accent);color:var(--on);box-shadow:none}
 </style>
 </head>
 <body>
@@ -1003,18 +1028,71 @@ function dayInfo(l){
   }
   return `<span>${lab}</span>`;
 }
+const ENV_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>`;
+function envGauge(l){
+  const v=xpf(l), t=spentOf(l.id), pct=v? Math.min(100, t/v*100) : 0, over=t<v, ab=n=>fmtF(Math.abs(n));
+  return {pct, over, left:Math.abs(v-t), html:`<div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>`,
+    text: over ? `<b class="neg">dépassé de ${ab(v-t)}</b>` : `<b>reste ${ab(t-v)}</b>`, spent:ab(t), plan:ab(v)};
+}
 function lineHTML(l){
-  const v=xpf(l), sp=lineSpends(l.id);
+  const v=xpf(l), sp=lineSpends(l.id), envL = v<0 && isEnv(l);
   let env="";
-  if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
+  if(envL){ const g=envGauge(l); env=`<div class="env">${g.html}${g.spent} dépensés sur ${g.plan}, ${g.text}</div>`; }
+  else if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
     const ab = n => fmtF(Math.abs(n));
     env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>${ab(t)} dépensés sur ${ab(v)}, ${over?`<b class="neg">dépassé de ${ab(v-t)}</b>`:`<b>reste ${ab(t-v)}</b>`}</div>`; }
   const meta = [dayInfo(l), accPill(l.acc), l.mode?`<span>${esc(modeLabel(l.mode).toLowerCase())}</span>`:"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
-  return `<div class="ln${l.done?" done":""}">
-    <button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>
-    <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"Sans motif")}</div>${meta?`<div class="meta">${meta}</div>`:""}${env}</div>
+  return `<div class="ln${l.done?" done":""}${envL?" isenv":""}">
+    ${envL ? `<button class="qadd" style="--cc:${cc(l.cat)}" data-qadd="${l.id}" aria-label="Ajouter une dépense sur ${esc(l.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>`
+      : `<button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>`}
+    <div class="main" data-edit="${l.id}"><div class="lab">${envL?`<span class="envtag" title="Enveloppe">${ENV_ICON}</span>`:""}${esc(l.label||"Sans motif")}</div>${meta?`<div class="meta">${meta}</div>`:""}${env}</div>
     <div class="amt num${v>0?" pos":""}" data-edit="${l.id}">${fmtF(v, true)}${l.cur==="EUR"?`<span class="eur">${fmtE(l.amt)}</span>`:""}</div>
   </div>`;
+}
+function envCardsHTML(m){
+  const L = monthLines(m).filter(l=>xpf(l)<0 && isEnv(l));
+  if(!L.length) return anyEnv() ? "" : `<button class="envhint" data-goset="1"><span class="envtag">${ENV_ICON}</span><span><b>Suis tes enveloppes ici</b><br>Choisis Repas midi, Courses, Essence… pour ajouter une dépense en deux touchers.</span></button>`;
+  return `<div class="envsec"><div class="gh" style="cursor:default"><span class="envtag">${ENV_ICON}</span><span class="t">Mes enveloppes</span></div>
+    <div class="envgrid">${L.map(l=>{ const g=envGauge(l); return `<button class="envc${g.over?" over":""}" data-qadd="${l.id}" style="--cc:${cc(l.cat)}">
+      <span class="en">${esc(l.label)}</span>
+      <span class="ev num">${g.over?"−"+fmtF(g.left):fmtF(g.left)}</span>
+      <span class="es">${g.over?"de dépassement":"restants sur "+g.plan}</span>
+      ${g.html}
+      <span class="eplus" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg> Dépense</span>
+    </button>`; }).join("")}</div></div>`;
+}
+/* saisie rapide d'une dépense sur une enveloppe */
+function quickSpend(l){
+  const g=envGauge(l);
+  const recent=[...new Set(live(S.data.spends).filter(s=>{ const ln=S.data.lines.find(x=>x.id===s.lineId); return ln && norm(ln.label)===norm(l.label); })
+    .sort((a,b)=>(b.at||"").localeCompare(a.at||"")).map(s=>s.merchant).filter(x=>x && x!=="Dépense"))].slice(0,6);
+  modal(`<h2>${esc(l.label)}</h2><div class="sub" style="text-transform:none">${g.over?`Dépassé de ${fmtF(g.left)}`:`Reste ${fmtF(g.left)} sur ${g.plan}`}</div>
+    <section class="sec"><div class="sh">Montant dépensé</div>
+      <div class="amtbox" style="margin-top:0"><input id="qAmt" inputmode="decimal" placeholder="0" aria-label="Montant" autocomplete="off"><span class="unit">F</span></div>
+      <div class="conv" id="qAfter"></div>
+    </section>
+    <section class="sec"><div class="sh">Où ?</div>
+      ${recent.length?`<div class="chips" id="qRecent" style="margin-bottom:10px">${recent.map(r=>`<button class="chip" data-v="${esc(r)}">${esc(r)}</button>`).join("")}</div>`:""}
+      <input class="field" id="qLab" placeholder="Facultatif : restaurant, magasin…" autocomplete="off">
+    </section>
+    <div class="actions sticky"><button class="linkbtn" id="qDetail">Voir la ligne</button><span class="spacer"></span><button class="linkbtn" id="qCancel">Annuler</button><button class="btn" id="qOk">Déduire</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    const after=()=>{ const n=parseNum(q("#qAmt").value); if(!(n>0)){ q("#qAfter").textContent=""; return; }
+      const left=(xpf(l)-spentOf(l.id)) - (-n); q("#qAfter").innerHTML = left<=0 ? `Il restera ${fmtF(-left)}` : `<span class="neg">Dépassement de ${fmtF(left)}</span>`; };
+    q("#qAmt").oninput=after;
+    if(q("#qRecent")) q("#qRecent").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; q("#qLab").value=b.dataset.v; q("#qRecent").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); });
+    q("#qCancel").onclick=close;
+    q("#qDetail").onclick=()=>{ close(); setTimeout(()=>openLine(l), 50); };
+    const ok=()=>{ const n=parseNum(q("#qAmt").value); if(!(n>0)){ q("#qAmt").focus(); return toast("Indique le montant dépensé"); }
+      const sp={id:uid(), lineId:l.id, m:l.m, amt:-Math.abs(n), cur:"XPF", merchant:q("#qLab").value.trim()||"Dépense", at:new Date().toISOString(), acc:l.acc, src:"manuel", updatedAt:Date.now()};
+      S.data.spends.push(sp); touch(); close(); render();
+      const left=xpf(l)-spentOf(l.id);
+      toast(`${fmtF(n)} sur « ${l.label} », ${left<=0?"reste "+fmtF(-left):"dépassé de "+fmtF(left)}`, {label:"Annuler", fn:()=>{ sp.deleted=true; sp.updatedAt=Date.now(); touch(); render(); }}); };
+    q("#qOk").onclick=ok;
+    [q("#qAmt"), q("#qLab")].forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } }));
+    setTimeout(()=>q("#qAmt").focus(), 80);
+  });
 }
 function groupHTML(c, C){
   const all = C.L.filter(l=>l.cat===c.k);
@@ -1037,7 +1115,7 @@ function renderMonth(){
   const C = calc(m);
   $("monthBody").innerHTML = pendingBanner() + `
     <div class="topgrid">
-      <div>${heroHTML(m, C)}${progressHTML(C)}${filterHTML()}</div>
+      <div>${heroHTML(m, C)}${progressHTML(C)}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}</div>
     </div>
     <div class="mgrid">
@@ -1714,6 +1792,8 @@ $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]
 document.addEventListener("click", e=>{
   const t=e.target; let el;
   if(!S.data) return;
+  if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
+  if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
   if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch();
       if(ui.filter==="todo" && l.done){ el.classList.add("on"); setTimeout(render, 380); } else render(); } return; }
   if(el=t.closest("[data-edit]")){ const l=S.data.lines.find(x=>x.id===el.dataset.edit); if(l) openLine(l); return; }
