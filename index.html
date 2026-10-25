@@ -1589,7 +1589,8 @@ function openProject(p, simFocus){
       <div class="simres" id="simRes"></div>
       <button class="btn ghost block" id="simPlan" style="margin-top:10px;display:none"></button>
     </section>
-    ${history.length?`<section class="sec"><div class="sh">Versements</div><div class="spends">${history.map(h=>`<div class="sp"><div class="main"><div>${esc(h.lab||"Versement")}</div><div class="hint" style="margin:0">${esc(fmtD(h.d))}</div></div><span class="num">${h.planned?`<span style="opacity:.6">${fmtF(h.planned)}</span>`:fmtF(h.v,true)}</span></div>`).join("")}</div></section>`:""}
+    ${history.length?`<section class="sec"><div class="sh">Versements</div><div class="spends">${history.map(h=>`<div class="sp"><div class="main"><div>${esc(h.lab||"Versement")}</div><div class="hint" style="margin:0">${esc(fmtD(h.d))}</div></div><span class="num">${h.planned?`<span style="opacity:.6">${fmtF(h.planned)}</span>`:fmtF(h.v,true)}</span><button class="linkbtn danger" data-delv="${h.kind}:${h.id}" aria-label="Retirer ce versement">Retirer</button></div>`).join("")}</div>
+      <div class="hint">« Retirer » supprime le versement${history.some(h=>h.kind==="line")?" (et la ligne « Projet » correspondante dans le budget du mois)":""}.</div></section>`:""}
     ${isNew?"":`<section class="sec"><div class="sh">Achat</div>${p.paid?`<div class="hint" style="margin-top:0">Payé le ${esc(fmtDY(new Date(p.paidAt||Date.now())))}.</div>`:`<button class="btn ghost block" id="pPaid">J'ai payé l'achat</button><div class="hint">Le montant sort de ton épargne et le projet passe dans « Projets payés ».</div>`}
       <button class="linkbtn danger" id="pDel" style="padding-left:0;margin-top:8px">Supprimer le projet</button></section>`}
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="pCancel">Annuler</button><button class="btn" id="pOk">${isNew?"Créer":"Enregistrer"}</button></div>`,
@@ -1627,6 +1628,12 @@ function openProject(p, simFocus){
       const now=Date.now(); if(isNew){ p={id:uid(), ord:now}; S.data.projects.push(p); }
       Object.assign(p,{name, target, due:q("#pDue").value||"", updatedAt:now}); return p; };
     q("#pCancel").onclick=close;
+    bd.querySelectorAll("[data-delv]").forEach(b=>b.onclick=()=>{ const [kind,id]=b.dataset.delv.split(":");
+      const rec = kind==="sav" ? S.data.savings.find(x=>x.id===id) : S.data.lines.find(x=>x.id===id); if(!rec) return;
+      const label = kind==="sav" ? (rec.label||"Versement") : rec.label;
+      rec.deleted=true; rec.updatedAt=Date.now(); touch(); close(); render();
+      toast(`Versement retiré (${fmtF(Math.abs(xpf(rec)))})`, {label:"Annuler", fn:()=>{ rec.deleted=false; rec.updatedAt=Date.now(); touch(); render(); }});
+      setTimeout(()=>openProject(p), 60); });
     q("#pOk").onclick=()=>{ if(!save()) return; touch(); close(); render(); toast(isNew?"Projet créé":"Projet enregistré"); };
     q("#simPlan").onclick=()=>{ if(!save()) return; const m=budgetMonth(), now=Date.now();
       if(!monthExists(m)) S.data.months.push({id:m, updatedAt:now});
@@ -1659,7 +1666,7 @@ function openContrib(p){
     const ok=()=>{ const n=parseNum(q("#cAmt").value); if(!(n>0)){ q("#cAmt").focus(); return toast("Indique le montant"); }
       const now=Date.now(); let rec;
       if(q("#cBudget").checked){ if(!monthExists(m)) S.data.months.push({id:m, updatedAt:now});
-        S.data.lines.push(rec={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-n, cur:"XPF", day:new Date().getDate(), acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:true, ord:now, updatedAt:now}); }
+        S.data.lines.push(rec={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-n, cur:"XPF", day:(()=>{ const t=dayStart(new Date()); return t>=monthStart(m) && t<=monthEnd(m) ? t.getDate() : null; })(), acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:true, ord:now, updatedAt:now}); }
       else S.data.savings.push(rec={id:uid(), label:"Pour : "+p.name, amt:n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, ord:now, updatedAt:now});
       touch(); close(); render();
       toast(`${fmtF(n)} mis de côté pour « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
