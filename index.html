@@ -354,6 +354,12 @@ nav.tabs button{position:relative}
 
 .ln .meta .vir{display:inline-flex;align-items:center;gap:6px}
 .ln .meta .arrow{color:var(--muted);font-weight:700}
+
+.accsel{display:flex;gap:6px;overflow-x:auto;margin:0 -16px 10px;padding:2px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.accsel::-webkit-scrollbar{display:none}
+.accsel button{flex:none;border:0;border-radius:99px;padding:7px 13px;font-size:14px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--muted);box-shadow:var(--lift);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.accsel button i{width:8px;height:8px;border-radius:50%}
+.accsel button.on{background:var(--ink);color:var(--paper);font-weight:700}
 </style>
 </head>
 <body>
@@ -644,12 +650,16 @@ const monthExists = m => live(S.data.months).some(x=>x.id===m) || live(S.data.li
 const allMonths = () => [...new Set([...live(S.data.months).map(x=>x.id), ...live(S.data.lines).map(l=>l.m)])].sort();
 
 /* ================= CALCULS (mêmes formules que l'Excel) ================= */
-function calc(m){
-  const L = monthLines(m);
+function calc(m, A){
+  const L0 = monthLines(m);
+  // A = un compte : on ne garde que ses lignes, et les virements qui entrent ou sortent de ce compte
+  const L = A ? L0.filter(l=> l.cat==="vir" ? (l.acc===A || l.to===A) : l.acc===A) : L0;
   const tot = Object.fromEntries(CATS.map(c=>[c.k,0]));
   const acc = {}; let reel=0, inc=0, exp=0, nDone=0;
   const spent = {}; for(const sp of live(S.data.spends)) if(sp.m===m) spent[sp.lineId]=(spent[sp.lineId]||0)+xpf(sp);
   for(const l of L){
+    if(l.cat==="vir" && A){ const val=(l.to===A?1:-1)*Math.abs(xpf(l)); tot.vir+=val; if(val>0) inc+=val; else exp+=val;
+      const a=acc[A] ||= {prev:0, reel:0}; a.prev+=val; if(l.done){ reel+=val; a.reel+=val; nDone++; } continue; }
     if(l.cat==="vir"){ const amt=Math.abs(xpf(l)); tot.vir+=amt;
       const a=acc[l.acc||"—"] ||= {prev:0, reel:0}, b=acc[l.to||"—"] ||= {prev:0, reel:0};
       a.prev-=amt; b.prev+=amt; if(l.done){ a.reel-=amt; b.reel+=amt; nDone++; } continue; }
@@ -662,7 +672,7 @@ function calc(m){
     if(l.done){ reel += v; a.reel += v; nDone++; }
     else if(sp!=null){ reel += sp; a.reel += sp; }                   // déjà dépensé sur une ligne pas encore cochée
   }
-  const restant = tot.sal + tot.aide + tot.fix + tot.epa + tot.sor;   // TOTAL RESTANT MENSUEL (hors exceptionnel)
+  const restant = tot.sal + tot.aide + tot.fix + tot.epa + tot.sor + (A ? tot.vir : 0);   // TOTAL RESTANT MENSUEL (hors exceptionnel)
   return { L, tot, acc, reel, inc, exp, nDone, n:L.length,
     restant, semaine: restant/4, jour: restant/4/7,
     restantExc: restant + tot.exc };                                  // TOTAL RESTANT MENSUEL (avec exceptionnel)
@@ -888,10 +898,18 @@ function splitAcc(name){ const m=String(name||"").trim().match(/^(.+?)\s*[-–]?
 const accPill = name => name ? `<span class="acc"><i style="background:${esc(accColor(name))}"></i>${esc(name)}</span>` : "";
 
 /* ================= INTERFACE ================= */
-const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}}, ls.get(LS_UI)||{});
+const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}, accView:"BNC"}, ls.get(LS_UI)||{});
 ui.month = null; ui.year = null;
 const TITLES = {savings:"Épargne", settings:"Réglages"};
-const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed});
+const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||""});
+/* comptes utilisés dans un mois (pour le sélecteur au-dessus du reste à vivre) */
+function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc) set.add(l.acc); if(l.cat==="vir" && l.to) set.add(l.to); }
+  const order=n=>{ const i=accounts().findIndex(a=>a.name===n); return i<0?99:i; }; return [...set].sort((a,b)=>order(a)-order(b)); }
+const viewAcc = m => monthAccounts(m).includes(ui.accView) ? ui.accView : "";
+function accSelHTML(m){
+  const L=monthAccounts(m); if(L.length<2) return ""; const A=viewAcc(m);
+  return `<div class="accsel" role="tablist" aria-label="Compte">${[["","Tous les comptes"], ...L.map(a=>[a,a])].map(([v,t])=>`<button data-accview="${esc(v)}" class="${v===A?"on":""}" role="tab" aria-selected="${v===A}">${v?`<i style="background:${esc(accColor(v))}"></i>`:""}${esc(t)}</button>`).join("")}</div>`;
+}
 const cc = k => `var(--c-${k})`;
 const CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 const MOIS_C = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
@@ -953,8 +971,8 @@ function removeWithUndo(rec, msg){
 /* ---------- Reste à vivre ---------- */
 let lastAnim=null; // la barre se dessine une seule fois par mois affiché
 const animOnce = m => { if(lastAnim===m) return false; lastAnim=m; return true; };
-function heroHTML(m, C){
-  const spend = [["fix",-C.tot.fix],["epa",-C.tot.epa],["sor",-C.tot.sor],["exc",-C.tot.exc]].map(([k,v])=>[k,Math.max(0,v)]);
+function heroHTML(m, C, A){
+  const spend = [["fix",-C.tot.fix],["epa",-C.tot.epa],["sor",-C.tot.sor],["exc",-C.tot.exc], ...(A?[["vir",-C.tot.vir]]:[])].map(([k,v])=>[k,Math.max(0,v)]);
   const out = spend.reduce((s,[,v])=>s+v,0);
   const free = Math.max(0, C.restantExc);
   const base = Math.max(C.inc, out, 1);
@@ -963,7 +981,7 @@ function heroHTML(m, C){
   const legend = spend.filter(([,v])=>v>0).map(([k,v])=>`<div><i style="background:${cc(k)}"></i><span class="n">${esc(CAT[k].name)}</span><span class="v num">${fmtF(v)}</span></div>`).join("")
     + `<div><i class="free"></i><span class="n">Libre</span><span class="v num">${fmtF(free)}</span></div>`;
   return `<div class="hero">
-    <div class="lead">Reste à vivre en ${esc(monthName(m))}</div>
+    <div class="lead">Reste à vivre en ${esc(monthName(m))}${A?` sur <b style="color:var(--ink)">${esc(A)}</b>`:""}</div>
     ${periodLine(m)}
     <div class="big${C.restant<0?" neg":""}">${fmtF(C.restant).replace(/ F$/,"")}<small>F</small></div>
     <div class="pace">soit <b class="num">${fmtF(C.semaine)}</b> par semaine et <b class="num">${fmtF(C.jour)}</b> par jour</div>
@@ -1138,7 +1156,7 @@ function renderMonth(){
   const C = calc(m);
   $("monthBody").innerHTML = pendingBanner() + `
     <div class="topgrid">
-      <div>${heroHTML(m, C)}${progressHTML(C)}${envCardsHTML(m)}${filterHTML()}</div>
+      <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}</div>
     </div>
     <div class="mgrid">
@@ -1195,7 +1213,8 @@ function createMonth(m, src){
 function synthHTML(m, C){
   if(!monthExists(m)) return `<div class="empty">Pas de budget pour ${esc(mLabel(m))}.</div>`;
   C = C || calc(m);
-  return heroHTML(m, C) + progressHTML(C) + `<div style="height:10px"></div>` + catsPanel(C) + accountsPanel(C);
+  const A=viewAcc(m), CA=A?calc(m,A):C;
+  return accSelHTML(m) + heroHTML(m, CA, A) + progressHTML(CA) + `<div style="height:10px"></div>` + catsPanel(C) + accountsPanel(C);
 }
 function renderSynthTab(){ $("synthTab").innerHTML = synthHTML(ui.month); }
 
@@ -1820,6 +1839,7 @@ $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]
 document.addEventListener("click", e=>{
   const t=e.target; let el;
   if(!S.data) return;
+  if(el=t.closest("[data-accview]")){ ui.accView=el.dataset.accview; saveUI(); lastAnim=null; render(); return; }
   if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
   if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
   if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch();
