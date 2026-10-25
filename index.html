@@ -375,6 +375,7 @@ nav.tabs button{position:relative}
 .proj .pa.late{color:var(--warn)} .proj .pa.ok{color:var(--pos)}
 .proj .pbtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .proj.paid{opacity:.7}
+.proj .ptag{font-size:12px;font-weight:600;color:var(--c-epa);background:color-mix(in srgb,var(--c-epa) 16%,transparent);border-radius:99px;padding:2px 8px}
 .simres{margin-top:12px;font-size:15px;line-height:1.45;background:var(--surface);border-radius:12px;padding:10px 12px}
 .simres:empty{display:none}
 </style>
@@ -1531,7 +1532,9 @@ function projPace(p){
   if(n<2) return 0;                                    // pas assez d'historique pour estimer un rythme
   return items.reduce((t,x)=>t+x.v,0)/n;
 }
+const isRes = p => p.kind==="reserve";
 function projStatus(p){
+  if(isRes(p)){ const saved=projSaved(p); return {saved, left:0, pct:0, advice:"", tone:""}; }
   const saved=projSaved(p), left=Math.max(0, p.target-saved), pct=p.target? Math.min(100, saved/p.target*100) : 0;
   let advice="", tone="";
   if(p.paid) advice = `Payé le ${fmtD(new Date(p.paidAt||Date.now()))}`;
@@ -1553,6 +1556,14 @@ function projectsHTML(){
   const P=projectsList(), open=P.filter(p=>!p.paid), done=P.filter(p=>p.paid);
   const totLeft=open.reduce((t,p)=>t+projStatus(p).left,0);
   const card = p => { const st=projStatus(p);
+    if(isRes(p)){ const mth=projPlanned(p);
+      return `<div class="proj res" data-proj="${p.id}">
+        <div class="ph"><span class="pn">${esc(p.name)}</span><span class="ptag">réserve</span></div>
+        <div class="pv num${st.saved<0?" neg":""}">${fmtF(st.saved)}<small> disponibles</small></div>
+        <div class="pa">${(()=>{ const L=monthLines(budgetMonth()).filter(l=>l.proj===p.id), dn=L.filter(l=>l.done).reduce((t,l)=>t+Math.abs(xpf(l)),0), pv=L.filter(l=>!l.done).reduce((t,l)=>t+Math.abs(xpf(l)),0), mn=esc(monthName(budgetMonth()));
+          return dn||pv ? [dn?`${fmtF(dn)} mis de côté en ${mn}`:"", pv?`${fmtF(pv)} prévus en ${mn}`:""].filter(Boolean).join(", ")+"." : "Mets de côté quand tu peux, utilise-la pour les imprévus."; })()}</div>
+        <div class="pbtns"><button class="btn small" data-contrib="${p.id}">+ Mettre de côté</button><button class="btn ghost small" data-use="${p.id}">Utiliser</button></div>
+      </div>`; }
     return `<div class="proj${p.paid?" paid":""}" data-proj="${p.id}">
       <div class="ph"><span class="pn">${esc(p.name)}</span>${p.due&&!p.paid?`<span class="pdue">avant le ${esc(fmtDY(new Date(p.due+"T12:00")))}</span>`:""}</div>
       <div class="pv num">${p.paid?fmtF(p.target):st.left>0?fmtF(st.left):"Prêt"}<small>${p.paid?"payés":st.left>0?" à mettre de côté":""}</small></div>
@@ -1562,8 +1573,8 @@ function projectsHTML(){
       ${p.paid?"":`<div class="pbtns"><button class="btn small" data-contrib="${p.id}">+ Mettre de côté</button><button class="btn ghost small" data-projsim="${p.id}">Simuler</button></div>`}
     </div>`; };
   return `<div class="projsec">
-    <div class="gh" style="cursor:default"><span class="t">Mes projets</span>${open.length?`<span class="cnt">${fmtF(totLeft)} à réunir</span>`:""}<button class="linkbtn" id="newProj" style="margin-left:auto;padding:4px 6px">+ Projet</button></div>
-    ${open.length?`<div class="projgrid">${open.map(card).join("")}</div>`:`<button class="envhint" id="newProj2"><span class="envtag">${ENV_ICON}</span><span><b>Prépare tes gros achats</b><br>Impôts, meubles, voyage… Fixe un montant et, si besoin, une date : l'app te dit combien mettre de côté chaque mois.</span></button>`}
+    <div class="gh" style="cursor:default"><span class="t">Mes projets</span>${totLeft>0?`<span class="cnt">${fmtF(totLeft)} à réunir</span>`:""}<button class="linkbtn" id="newProj" style="margin-left:auto;padding:4px 6px">+ Projet</button></div>
+    ${open.length?`<div class="projgrid">${open.map(card).join("")}</div>`:`<button class="envhint" id="newProj2"><span class="envtag">${ENV_ICON}</span><span><b>Prépare tes gros achats et tes imprévus</b><br>Un objectif (impôts, meubles…) avec un montant et une date, ou une réserve libre (réparations de la voiture…) que tu alimentes quand tu veux.</span></button>`}
     ${done.length?`<details style="margin-top:10px"><summary>Projets payés (${done.length})</summary><div class="projgrid" style="margin-top:10px">${done.map(card).join("")}</div></details>`:""}
   </div>`;
 }
@@ -1573,13 +1584,22 @@ function openProject(p, simFocus){
   const st = isNew ? null : projStatus(p);
   const history = isNew ? [] : [...live(S.data.savings).filter(s=>s.proj===p.id).map(s=>({lab:s.label, v:xpf(s), d:new Date(s.at||Date.now()), id:s.id, kind:"sav"})),
     ...live(S.data.lines).filter(l=>l.proj===p.id).map(l=>({lab:l.label+(l.done?"":" (prévu)"), v:l.done?Math.abs(xpf(l)):0, planned:!l.done?Math.abs(xpf(l)):0, d:lineDate(l)||monthStart(l.m), id:l.id, kind:"line", m:l.m}))].sort((a,b)=>a.d-b.d);
-  modal(`<h2>${isNew?"Nouveau projet":esc(p.name)}</h2>${isNew?"":`<div class="sub" style="text-transform:none">${fmtF(st.saved)} de côté sur ${fmtF(p.target)}</div>`}
+  modal(`<h2>${isNew?"Nouveau projet":esc(p.name)}</h2>${isNew?"":`<div class="sub" style="text-transform:none">${isRes(p)?`${fmtF(st.saved)} disponibles`:`${fmtF(st.saved)} de côté sur ${fmtF(p.target)}`}</div>`}
     <section class="sec"><div class="sh">Projet</div>
+      <div class="seg" id="pKind"><button data-v="goal" class="${isRes(p)?"":"on"}">Objectif à atteindre</button><button data-v="reserve" class="${isRes(p)?"on":""}">Réserve libre</button></div>
+      <div class="hint" id="pKindHint"></div>
       <label for="pName">Nom</label><input class="field" id="pName" value="${esc(p.name)}" placeholder="Par exemple : Impôts 2026" autocomplete="off">
+      <div id="goalFields">
       <label for="pTarget">Montant total</label>
       <div class="amtbox" style="margin-top:0"><input id="pTarget" inputmode="decimal" value="${esc(fmtInput(p.target))}" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
       <label for="pDue">Date limite (facultatif)</label><input class="field" type="date" id="pDue" value="${esc(p.due||"")}">
       <div class="hint">Par exemple la date de paiement des impôts. Sans date, tu avances à ton rythme.</div>
+      </div>
+    </section>
+    <section class="sec" id="resPlanSec"><div class="sh">Chaque mois (facultatif)</div>
+      <div class="amtbox" style="margin-top:0"><input id="rAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <button class="btn ghost block" id="rPlan" style="margin-top:10px">Prévoir ce montant dans mon budget de ${esc(monthName(budgetMonth()))}</button>
+      <div class="hint">La ligne « Projet : … » est ajoutée à la catégorie Épargne, puis reprise quand tu crées le mois suivant.</div>
     </section>
     <section class="sec" id="simSec"><div class="sh">Simulateur</div>
       <div class="seg" id="simMode"><button data-v="date" class="on">J'ai une date</button><button data-v="amt">J'ai un montant par mois</button></div>
@@ -1591,12 +1611,18 @@ function openProject(p, simFocus){
     </section>
     ${history.length?`<section class="sec"><div class="sh">Versements</div><div class="spends">${history.map(h=>`<div class="sp"><div class="main"><div>${esc(h.lab||"Versement")}</div><div class="hint" style="margin:0">${esc(fmtD(h.d))}</div></div><span class="num">${h.planned?`<span style="opacity:.6">${fmtF(h.planned)}</span>`:fmtF(h.v,true)}</span><button class="linkbtn danger" data-delv="${h.kind}:${h.id}" aria-label="Retirer ce versement">Retirer</button></div>`).join("")}</div>
       <div class="hint">« Retirer » supprime le versement${history.some(h=>h.kind==="line")?" (et la ligne « Projet » correspondante dans le budget du mois)":""}.</div></section>`:""}
-    ${isNew?"":`<section class="sec"><div class="sh">Achat</div>${p.paid?`<div class="hint" style="margin-top:0">Payé le ${esc(fmtDY(new Date(p.paidAt||Date.now())))}.</div>`:`<button class="btn ghost block" id="pPaid">J'ai payé l'achat</button><div class="hint">Le montant sort de ton épargne et le projet passe dans « Projets payés ».</div>`}
+    ${isNew||!isRes(p)?"":`<section class="sec"><div class="sh">Utiliser</div><button class="btn ghost block" id="pUse">Utiliser de l'argent de la réserve</button><div class="hint">Par exemple une réparation : le montant sort de la réserve et de ton épargne.</div>
+      <button class="linkbtn danger" id="pDel" style="padding-left:0;margin-top:8px">Supprimer la réserve</button></section>`}
+    ${isNew||isRes(p)?"":`<section class="sec"><div class="sh">Achat</div>${p.paid?`<div class="hint" style="margin-top:0">Payé le ${esc(fmtDY(new Date(p.paidAt||Date.now())))}.</div>`:`<button class="btn ghost block" id="pPaid">J'ai payé l'achat</button><div class="hint">Le montant sort de ton épargne et le projet passe dans « Projets payés ».</div>`}
       <button class="linkbtn danger" id="pDel" style="padding-left:0;margin-top:8px">Supprimer le projet</button></section>`}
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="pCancel">Annuler</button><button class="btn" id="pOk">${isNew?"Créer":"Enregistrer"}</button></div>`,
   (bd, close)=>{
-    const q=x=>bd.querySelector(x); const mode=segBind(bd,"simMode");
+    const q=x=>bd.querySelector(x); const mode=segBind(bd,"simMode"), kindOf=segBind(bd,"pKind");
     if(p.due) q("#sDate").value=p.due;
+    const kindUI=()=>{ const r=kindOf()==="reserve"; q("#goalFields").style.display=r?"none":""; q("#simSec").style.display=r?"none":""; q("#resPlanSec").style.display=r?"":"none";
+      q("#pKindHint").textContent = r ? "Pas de montant ni de date : tu mets de côté quand tu veux et tu l'utilises pour les imprévus." : "Un montant à réunir, avec une date limite si besoin.";
+      q("#pName").placeholder = r ? "Par exemple : Réparations voiture" : "Par exemple : Impôts 2026"; };
+    q("#pKind").addEventListener("click", ()=>setTimeout(kindUI)); kindUI();
     let planAmt=0;
     const sim=()=>{
       const target=parseNum(q("#pTarget").value)||0, saved=isNew?0:projStatus(p).saved, left=Math.max(0,target-saved), now=monthIdx(new Date());
@@ -1622,11 +1648,13 @@ function openProject(p, simFocus){
     };
     ["pTarget","pDue","sDate","sAmt2"].forEach(id=>q("#"+id).addEventListener("input", sim)); q("#simMode").addEventListener("click", ()=>setTimeout(sim));
     sim(); if(simFocus) setTimeout(()=>q("#simSec").scrollIntoView({block:"start", behavior:"smooth"}), 120);
-    const save=()=>{ const name=q("#pName").value.trim(), target=parseNum(q("#pTarget").value);
+    const save=()=>{ const name=q("#pName").value.trim(), res=kindOf()==="reserve", target=res?0:parseNum(q("#pTarget").value);
       if(!name){ q("#pName").focus(); toast("Donne un nom au projet"); return null; }
-      if(!(target>0)){ q("#pTarget").focus(); toast("Indique le montant total"); return null; }
+      if(!res && !(target>0)){ q("#pTarget").focus(); toast("Indique le montant total"); return null; }
       const now=Date.now(); if(isNew){ p={id:uid(), ord:now}; S.data.projects.push(p); }
-      Object.assign(p,{name, target, due:q("#pDue").value||"", updatedAt:now}); return p; };
+      Object.assign(p,{name, target, kind:res?"reserve":"goal", due:res?"":(q("#pDue").value||""), updatedAt:now}); return p; };
+    q("#rPlan").onclick=()=>{ const n=parseNum(q("#rAmt").value); if(!(n>0)){ q("#rAmt").focus(); return toast("Indique le montant mensuel"); } planAmt=n; q("#simPlan").onclick(); };
+    if(q("#pUse")) q("#pUse").onclick=()=>{ close(); setTimeout(()=>openUse(p), 60); };
     q("#pCancel").onclick=close;
     bd.querySelectorAll("[data-delv]").forEach(b=>b.onclick=()=>{ const [kind,id]=b.dataset.delv.split(":");
       const rec = kind==="sav" ? S.data.savings.find(x=>x.id===id) : S.data.lines.find(x=>x.id===id); if(!rec) return;
@@ -1649,10 +1677,32 @@ function openProject(p, simFocus){
       Object.assign(p,{paid:true, paidAt:new Date().toISOString(), updatedAt:now}); touch(); close(); render(); toast("Achat noté : "+p.name); };
   });
 }
+/* utiliser l'argent d'une réserve (réparation, imprévu…) */
+function openUse(p){
+  const st=projStatus(p);
+  modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">${fmtF(st.saved)} disponibles</div>
+    <section class="sec"><div class="sh">J'utilise</div>
+      <div class="amtbox" style="margin-top:0"><input id="uAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <div class="conv" id="uAfter"></div>
+      <label for="uLab">Pour quoi ?</label><input class="field" id="uLab" placeholder="Par exemple : changement des pneus" autocomplete="off">
+    </section>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="uCancel">Annuler</button><button class="btn" id="uOk">Utiliser</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    q("#uAmt").oninput=()=>{ const n=parseNum(q("#uAmt").value); q("#uAfter").innerHTML = n>0 ? (st.saved-n>=0 ? `Il restera ${fmtF(st.saved-n)} dans la réserve.` : `<span class="neg">C'est ${fmtF(n-st.saved)} de plus que la réserve.</span>`) : ""; };
+    q("#uCancel").onclick=close;
+    const ok=()=>{ const n=parseNum(q("#uAmt").value); if(!(n>0)){ q("#uAmt").focus(); return toast("Indique le montant utilisé"); }
+      const now=Date.now(), rec={id:uid(), label:"Utilisé : "+(q("#uLab").value.trim()||p.name), amt:-n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, kind:"retrait", ord:now, updatedAt:now};
+      S.data.savings.push(rec); touch(); close(); render();
+      toast(`${fmtF(n)} utilisés sur « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
+    q("#uOk").onclick=ok; q("#uAmt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } });
+    setTimeout(()=>q("#uAmt").focus(), 80);
+  });
+}
 /* versement libre sur un projet */
 function openContrib(p){
   const st=projStatus(p), m=budgetMonth();
-  modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">Reste ${fmtF(st.left)} à mettre de côté</div>
+  modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">${isRes(p)?`${fmtF(st.saved)} disponibles dans la réserve`:`Reste ${fmtF(st.left)} à mettre de côté`}</div>
     <section class="sec"><div class="sh">Je mets de côté</div>
       <div class="amtbox" style="margin-top:0"><input id="cAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
       <div class="conv" id="cAfter"></div>
@@ -1661,7 +1711,7 @@ function openContrib(p){
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="cCancel">Annuler</button><button class="btn" id="cOk">Mettre de côté</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x);
-    q("#cAmt").oninput=()=>{ const n=parseNum(q("#cAmt").value); q("#cAfter").textContent = n>0 ? (st.left-n>0 ? `Il restera ${fmtF(st.left-n)} à mettre de côté.` : "Le projet sera prêt.") : ""; };
+    q("#cAmt").oninput=()=>{ const n=parseNum(q("#cAmt").value); q("#cAfter").textContent = n>0 ? (isRes(p) ? `La réserve passera à ${fmtF(st.saved+n)}.` : st.left-n>0 ? `Il restera ${fmtF(st.left-n)} à mettre de côté.` : "Le projet sera prêt.") : ""; };
     q("#cCancel").onclick=close;
     const ok=()=>{ const n=parseNum(q("#cAmt").value); if(!(n>0)){ q("#cAmt").focus(); return toast("Indique le montant"); }
       const now=Date.now(); let rec;
@@ -2086,6 +2136,7 @@ document.addEventListener("click", e=>{
   if(t.closest("#openInbox")) return openInbox();
   if(el=t.closest("[data-period]")) return openPeriod(el.dataset.period);
   if(el=t.closest("[data-envtog]")){ const lab=el.dataset.envtog, on=!el.classList.contains("on"); setEnv(lab, on); touch(); render(); toast(on?`« ${lab} » est une enveloppe`:`« ${lab} » n'est plus une enveloppe`); return; }
+  if(el=t.closest("[data-use]")){ const pr=projById(el.dataset.use); if(pr) openUse(pr); return; }
   if(el=t.closest("[data-contrib]")){ const pr=projById(el.dataset.contrib); if(pr) openContrib(pr); return; }
   if(el=t.closest("[data-projsim]")){ const pr=projById(el.dataset.projsim); if(pr) openProject(pr, true); return; }
   if(t.closest("#newProj, #newProj2")) return openProject(null);
