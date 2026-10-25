@@ -1156,7 +1156,7 @@ function parseAmount(raw){
   if(s.includes(",") && s.includes(".")) s = s.lastIndexOf(",")>s.lastIndexOf(".") ? s.replace(/\./g,"").replace(",",".") : s.replace(/,/g,"");
   else if(s.includes(",")) s = (cur==="XPF" && /,\d{3}$/.test(s)) ? s.replace(/,/g,"") : s.replace(",",".");
   else if(cur==="XPF" && /\.\d{3}$/.test(s)) s = s.replace(/\./g,"");
-  let n = Math.abs(Number(s)); if(!isFinite(n)) n = NaN;
+  let n = s==="" ? NaN : Math.abs(Number(s)); if(!isFinite(n)) n = NaN;
   return {amt: positive ? n : -n, cur};
 }
 function parseInboxText(text, name){
@@ -1205,9 +1205,13 @@ function pendingBanner(){
   return `<button class="inboxbar" id="openInbox"><span class="ib-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></svg></span>
     <span class="ib-t"><b>${n} paiement${n>1?"s":""} à classer</b><span>${n>1?`${fmtF(tot)} au total`:`${esc(P[0].merchant)}, ${fmtF(tot)}`}</span></span><span class="ib-go">Classer</span></button>`;
 }
-function openInbox(){
+function openInbox(mSel){
   const P = pendingList(); if(!P.length){ toast("Aucun paiement à classer"); return; }
-  const p = P[0], m = monthOfIso(p.at), v = xpf(p), rule = ruleOf(p.merchant);
+  const p = P[0], m0 = monthOfIso(p.at), v = (p.amt==null || isNaN(p.amt)) ? NaN : xpf(p), rule = norm(p.merchant)==="paiement" ? null : ruleOf(p.merchant);
+  const hasLines = x => monthLines(x).some(l=>xpf(l)<0);
+  // mois proposé : celui du paiement, sinon le plus proche qui a un budget (utile juste avant ou après la paie)
+  const m = mSel || (hasLines(m0) ? m0 : [mShift(m0,1), mShift(m0,-1)].find(hasLines) || m0);
+  const choices = [mShift(m0,-1), m0, mShift(m0,1)].filter(x=>x===m0 || x===m || hasLines(x));
   const lines = monthLines(m).filter(l=>xpf(l)<0);
   const ruleLine = rule && rule.value.type==="line" ? lines.find(l=>norm(l.label)===norm(rule.value.label) && l.cat===rule.value.cat) : null;
   // en premier : la ligne de la dernière fois, puis les enveloppes déjà utilisées, puis les lignes pas encore passées hors prélèvements
@@ -1224,6 +1228,8 @@ function openInbox(){
     <label for="iAcc">Compte</label><select class="field" id="iAcc">${accOptions(cardAcc(p.card))}</select>
     ${ruleLine?`<button class="btn block" style="margin-top:16px" data-pickline="${ruleLine.id}">Déduire de « ${esc(ruleLine.label)} » comme la dernière fois</button>`:
       rule && rule.value.type==="new" ? `<button class="btn block" style="margin-top:16px" data-pickcat="${rule.value.cat}">Nouvelle ligne en ${esc(CAT[rule.value.cat].name)} comme la dernière fois</button>`:""}
+    ${choices.length>1?`<label>Classer dans le budget de</label><div class="seg" id="iMonth">${choices.map(x=>`<button data-pickmonth="${x}" class="${x===m?"on":""}">${esc(capF(monthName(x)))}</button>`).join("")}</div>
+      ${m!==m0?`<div class="hint">Le paiement date du ${esc(fmtD(new Date(p.at)))}, qui tombe dans la période ${esc(monthName(m0)==="avril"||monthName(m0)==="août"||monthName(m0)==="octobre"?"d'"+monthName(m0):"de "+monthName(m0))}.</div>`:""}`:""}
     <label>Déduire d'une ligne prévue en ${esc(monthName(m))}</label>
     ${sorted.length?`<div class="picks">${sorted.map(lineBtn).join("")}</div>`:`<div class="hint" style="margin-top:0">Pas encore de budget en ${esc(monthName(m))} : ajoute le paiement comme nouvelle ligne, ou crée d'abord le budget du mois.</div>`}
     <label>Ou l'ajouter comme nouvelle ligne</label>
@@ -1236,6 +1242,7 @@ function openInbox(){
     function amount(){ if(!isNaN(v)) return {amt:p.amt, cur:p.cur}; const n=parseNum(q("#iAmt").value); return isNaN(n)?null:{amt:-Math.abs(n), cur:"XPF"}; }
     function account(){ const a=q("#iAcc").value; return a==="__new" ? "" : a; }
     function next(msg, undo){ close(); const rest=pendingList().length; toast(msg+(rest?` (encore ${rest} à classer)`:""), undo?{label:"Annuler", fn:()=>{ undo(); touch(); render(); }}:null); if(rest) setTimeout(openInbox, 250); }
+    bd.querySelectorAll("[data-pickmonth]").forEach(b=>b.onclick=()=>{ if(b.dataset.pickmonth!==m){ close(); openInbox(b.dataset.pickmonth); } });
     bd.addEventListener("click", e=>{
       const bl=e.target.closest("[data-pickline]"), bc=e.target.closest("[data-pickcat]");
       if(!bl && !bc) return;
