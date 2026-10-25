@@ -1129,13 +1129,15 @@ function envCardsHTML(m){
     </button>`; }).join("")}</div></div>`;
 }
 /* saisie rapide d'une dépense sur une enveloppe */
+const amtX = (n, cur) => cur==="EUR" ? n*rate() : n;
+const amtTxt = (n, cur) => cur==="EUR" ? `${fmtE(n)} (${fmtF(n*rate())})` : fmtF(n);
 function quickSpend(l){
   const g=envGauge(l);
   const recent=[...new Set(live(S.data.spends).filter(s=>{ const ln=S.data.lines.find(x=>x.id===s.lineId); return ln && norm(ln.label)===norm(l.label); })
     .sort((a,b)=>(b.at||"").localeCompare(a.at||"")).map(s=>s.merchant).filter(x=>x && x!=="Dépense"))].slice(0,6);
   modal(`<h2>${esc(l.label)}</h2><div class="sub" style="text-transform:none">${g.over?`Dépassé de ${fmtF(g.left)}`:`Reste ${fmtF(g.left)} sur ${g.plan}`}</div>
     <section class="sec"><div class="sh">Montant dépensé</div>
-      <div class="amtbox" style="margin-top:0"><input id="qAmt" inputmode="decimal" placeholder="0" aria-label="Montant" autocomplete="off"><span class="unit">F</span></div>
+      <div class="amtbox" style="margin-top:0"><input id="qAmt" inputmode="decimal" placeholder="0" aria-label="Montant" autocomplete="off"><div class="seg" id="qCur" style="flex:none;width:92px"><button data-v="XPF" class="on">F</button><button data-v="EUR">€</button></div></div>
       <div class="conv" id="qAfter"></div>
     </section>
     <section class="sec"><div class="sh">Où ?</div>
@@ -1145,17 +1147,18 @@ function quickSpend(l){
     <div class="actions sticky"><button class="linkbtn" id="qDetail">Voir la ligne</button><span class="spacer"></span><button class="linkbtn" id="qCancel">Annuler</button><button class="btn" id="qOk">Déduire</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x);
-    const after=()=>{ const n=parseNum(q("#qAmt").value); if(!(n>0)){ q("#qAfter").textContent=""; return; }
-      const left=(xpf(l)-spentOf(l.id)) - (-n); q("#qAfter").innerHTML = left<=0 ? `Il restera ${fmtF(-left)}` : `<span class="neg">Dépassement de ${fmtF(left)}</span>`; };
+    const qcur=segBind(bd,"qCur"); q("#qCur").addEventListener("click", ()=>setTimeout(after));
+    function after(){ const n0=parseNum(q("#qAmt").value); if(!(n0>0)){ q("#qAfter").textContent=""; return; } const n=amtX(n0,qcur());
+      const left=(xpf(l)-spentOf(l.id)) - (-n); q("#qAfter").innerHTML = (qcur()==="EUR"?`soit ${fmtF(n)}. `:"") + (left<=0 ? `Il restera ${fmtF(-left)}` : `<span class="neg">Dépassement de ${fmtF(left)}</span>`); }
     q("#qAmt").oninput=after;
     if(q("#qRecent")) q("#qRecent").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; q("#qLab").value=b.dataset.v; q("#qRecent").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); });
     q("#qCancel").onclick=close;
     q("#qDetail").onclick=()=>{ close(); setTimeout(()=>openLine(l), 50); };
     const ok=()=>{ const n=parseNum(q("#qAmt").value); if(!(n>0)){ q("#qAmt").focus(); return toast("Indique le montant dépensé"); }
-      const sp={id:uid(), lineId:l.id, m:l.m, amt:-Math.abs(n), cur:"XPF", merchant:q("#qLab").value.trim()||"Dépense", at:new Date().toISOString(), acc:l.acc, src:"manuel", updatedAt:Date.now()};
+      const sp={id:uid(), lineId:l.id, m:l.m, amt:-Math.abs(n), cur:qcur(), merchant:q("#qLab").value.trim()||"Dépense", at:new Date().toISOString(), acc:l.acc, src:"manuel", updatedAt:Date.now()};
       S.data.spends.push(sp); touch(); close(); render();
       const left=xpf(l)-spentOf(l.id);
-      toast(`${fmtF(n)} sur « ${l.label} », ${left<=0?"reste "+fmtF(-left):"dépassé de "+fmtF(left)}`, {label:"Annuler", fn:()=>{ sp.deleted=true; sp.updatedAt=Date.now(); touch(); render(); }}); };
+      toast(`${amtTxt(n,qcur())} sur « ${l.label} », ${left<=0?"reste "+fmtF(-left):"dépassé de "+fmtF(left)}`, {label:"Annuler", fn:()=>{ sp.deleted=true; sp.updatedAt=Date.now(); touch(); render(); }}); };
     q("#qOk").onclick=ok;
     [q("#qAmt"), q("#qLab")].forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } }));
     setTimeout(()=>q("#qAmt").focus(), 80);
@@ -1682,19 +1685,21 @@ function openUse(p){
   const st=projStatus(p);
   modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">${fmtF(st.saved)} disponibles</div>
     <section class="sec"><div class="sh">J'utilise</div>
-      <div class="amtbox" style="margin-top:0"><input id="uAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <div class="amtbox" style="margin-top:0"><input id="uAmt" inputmode="decimal" placeholder="0" autocomplete="off"><div class="seg" id="uCur" style="flex:none;width:92px"><button data-v="XPF" class="on">F</button><button data-v="EUR">€</button></div></div>
       <div class="conv" id="uAfter"></div>
       <label for="uLab">Pour quoi ?</label><input class="field" id="uLab" placeholder="Par exemple : changement des pneus" autocomplete="off">
     </section>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="uCancel">Annuler</button><button class="btn" id="uOk">Utiliser</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x);
-    q("#uAmt").oninput=()=>{ const n=parseNum(q("#uAmt").value); q("#uAfter").innerHTML = n>0 ? (st.saved-n>=0 ? `Il restera ${fmtF(st.saved-n)} dans la réserve.` : `<span class="neg">C'est ${fmtF(n-st.saved)} de plus que la réserve.</span>`) : ""; };
+    const ucur=segBind(bd,"uCur");
+    q("#uAmt").oninput=()=>{ const n0=parseNum(q("#uAmt").value), n=amtX(n0,ucur()); q("#uAfter").innerHTML = n0>0 ? (ucur()==="EUR"?`soit ${fmtF(n)}. `:"") + (st.saved-n>=0 ? `Il restera ${fmtF(st.saved-n)} dans la réserve.` : `<span class="neg">C'est ${fmtF(n-st.saved)} de plus que la réserve.</span>`) : ""; };
     q("#uCancel").onclick=close;
+    q("#uCur").addEventListener("click", ()=>setTimeout(q("#uAmt").oninput));
     const ok=()=>{ const n=parseNum(q("#uAmt").value); if(!(n>0)){ q("#uAmt").focus(); return toast("Indique le montant utilisé"); }
-      const now=Date.now(), rec={id:uid(), label:"Utilisé : "+(q("#uLab").value.trim()||p.name), amt:-n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, kind:"retrait", ord:now, updatedAt:now};
+      const now=Date.now(), rec={id:uid(), label:"Utilisé : "+(q("#uLab").value.trim()||p.name), amt:-n, cur:ucur(), date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, kind:"retrait", ord:now, updatedAt:now};
       S.data.savings.push(rec); touch(); close(); render();
-      toast(`${fmtF(n)} utilisés sur « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
+      toast(`${amtTxt(n,ucur())} utilisés sur « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
     q("#uOk").onclick=ok; q("#uAmt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } });
     setTimeout(()=>q("#uAmt").focus(), 80);
   });
@@ -1704,22 +1709,23 @@ function openContrib(p){
   const st=projStatus(p), m=budgetMonth();
   modal(`<h2>${esc(p.name)}</h2><div class="sub" style="text-transform:none">${isRes(p)?`${fmtF(st.saved)} disponibles dans la réserve`:`Reste ${fmtF(st.left)} à mettre de côté`}</div>
     <section class="sec"><div class="sh">Je mets de côté</div>
-      <div class="amtbox" style="margin-top:0"><input id="cAmt" inputmode="decimal" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
+      <div class="amtbox" style="margin-top:0"><input id="cAmt" inputmode="decimal" placeholder="0" autocomplete="off"><div class="seg" id="cCur" style="flex:none;width:92px"><button data-v="XPF" class="on">F</button><button data-v="EUR">€</button></div></div>
       <div class="conv" id="cAfter"></div>
       <label class="switch"><span>Prendre sur mon budget de ${esc(monthName(m))}<br><span class="hint" style="margin:0">Compté comme de l'épargne : ton reste à vivre baisse d'autant.</span></span><input type="checkbox" id="cBudget" checked></label>
     </section>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="cCancel">Annuler</button><button class="btn" id="cOk">Mettre de côté</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x);
-    q("#cAmt").oninput=()=>{ const n=parseNum(q("#cAmt").value); q("#cAfter").textContent = n>0 ? (isRes(p) ? `La réserve passera à ${fmtF(st.saved+n)}.` : st.left-n>0 ? `Il restera ${fmtF(st.left-n)} à mettre de côté.` : "Le projet sera prêt.") : ""; };
-    q("#cCancel").onclick=close;
+    const ccur=segBind(bd,"cCur");
+    q("#cAmt").oninput=()=>{ const n0=parseNum(q("#cAmt").value), n=amtX(n0,ccur()); q("#cAfter").textContent = n0>0 ? (ccur()==="EUR"?`soit ${fmtF(n)}. `:"") + (isRes(p) ? `La réserve passera à ${fmtF(st.saved+n)}.` : st.left-n>0 ? `Il restera ${fmtF(st.left-n)} à mettre de côté.` : "Le projet sera prêt.") : ""; };
+    q("#cCancel").onclick=close; q("#cCur").addEventListener("click", ()=>setTimeout(q("#cAmt").oninput));
     const ok=()=>{ const n=parseNum(q("#cAmt").value); if(!(n>0)){ q("#cAmt").focus(); return toast("Indique le montant"); }
       const now=Date.now(); let rec;
       if(q("#cBudget").checked){ if(!monthExists(m)) S.data.months.push({id:m, updatedAt:now});
-        S.data.lines.push(rec={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-n, cur:"XPF", day:(()=>{ const t=dayStart(new Date()); return t>=monthStart(m) && t<=monthEnd(m) ? t.getDate() : null; })(), acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:true, ord:now, updatedAt:now}); }
-      else S.data.savings.push(rec={id:uid(), label:"Pour : "+p.name, amt:n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, ord:now, updatedAt:now});
+        S.data.lines.push(rec={id:uid(), m, cat:"epa", label:"Projet : "+p.name, amt:-n, cur:ccur(), day:(()=>{ const t=dayStart(new Date()); return t>=monthStart(m) && t<=monthEnd(m) ? t.getDate() : null; })(), acc:(accounts().find(a=>a.name==="BNC")||{}).name||"", to:savAccounts()[0], proj:p.id, done:true, ord:now, updatedAt:now}); }
+      else S.data.savings.push(rec={id:uid(), label:"Pour : "+p.name, amt:n, cur:ccur(), date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, ord:now, updatedAt:now});
       touch(); close(); render();
-      toast(`${fmtF(n)} mis de côté pour « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
+      toast(`${amtTxt(n,ccur())} mis de côté pour « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); touch(); render(); }}); };
     q("#cOk").onclick=ok; q("#cAmt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } });
     setTimeout(()=>q("#cAmt").focus(), 80);
   });
