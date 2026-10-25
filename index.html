@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mon Budget</title>
-<meta name="theme-color" content="#EDF1F7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121A26" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EEF1F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1525" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&display=swap" rel="stylesheet">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mon Budget">
@@ -15,156 +18,256 @@
 <link rel="icon" href="icon-192.png">
 <style>
 :root{
-  --bg:#EDF1F7; --card:#FFFFFF; --text:#1F2A3A; --muted:#647086; --line:#D7DFEA;
-  --accent:#2E6BB0; --accent-soft:#DCE8F6; --on:#FFFFFF;
-  --plus:#24855A; --plus-soft:#DDF1E6; --minus:#1F2A3A;
-  --danger:#B3402F; --danger-soft:#F6E1DC; --warn:#A86B00; --warn-soft:#F7EBCF;
-  --shadow:0 1px 2px rgba(20,40,70,.06),0 4px 14px rgba(20,40,70,.05);
+  --paper:#EEF1F6; --surface:#FFFFFF; --ink:#14213D; --muted:#66708A; --rule:#DDE2EA;
+  --accent:#2443B5; --accent-soft:#E2E7FA; --on:#FFFFFF;
+  --pos:#17805A; --neg:#C2362B; --warn:#B26A00; --warn-soft:#FBEFD9;
+  --c-sal:#17805A; --c-aide:#5BAE87; --c-fix:#3C5A9E; --c-epa:#0F93A3; --c-sor:#E0921F; --c-exc:#9A4FC9; --c-free:#C9D3E3;
+  --lift:0 1px 0 rgba(20,33,61,.04),0 6px 20px -8px rgba(20,33,61,.18);
+  --display:"Bricolage Grotesque",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --text:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#121A26; --card:#1A2433; --text:#E3EAF4; --muted:#93A1B6; --line:#2A3648;
-    --accent:#6FA8E8; --accent-soft:#213651; --on:#0C1828;
-    --plus:#5FD39A; --plus-soft:#1D3A2D; --minus:#E3EAF4;
-    --danger:#FF8A75; --danger-soft:#3A2420; --warn:#F0B54A; --warn-soft:#3A3020;
-    --shadow:none;
+    --paper:#0E1525; --surface:#172034; --ink:#E7ECF6; --muted:#909CB5; --rule:#263149;
+    --accent:#8299F2; --accent-soft:#222E52; --on:#0B1430;
+    --pos:#5FD3A0; --neg:#FF8C7E; --warn:#F2B552; --warn-soft:#3A2F1C;
+    --c-sal:#5FD3A0; --c-aide:#8FD9B5; --c-fix:#7F9BE0; --c-epa:#3FC3D1; --c-sor:#F2B552; --c-exc:#C58CEB; --c-free:#33405C;
+    --lift:none;
   }
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);
-  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
-body{min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 var(--text);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 button,input,textarea,select{font:inherit;color:inherit}
+button{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .hidden{display:none!important}
 .num{font-variant-numeric:tabular-nums;white-space:nowrap}
-.wrap{max-width:720px;margin:0 auto;padding:16px}
-header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(10px + env(safe-area-inset-top)) 16px 8px;border-bottom:1px solid var(--line)}
-header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:6px}
-header.top h1{font-size:20px;margin:0;letter-spacing:-.01em}
-.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-right:4px}
+.pos{color:var(--pos)} .neg{color:var(--neg)!important}
+.wrap{max-width:720px;margin:0 auto;padding:12px 16px 24px}
+
+/* ---------- en-tête ---------- */
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 88%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);padding:calc(8px + env(safe-area-inset-top)) 16px 8px}
+header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:4px}
+.ptitle{flex:1;min-width:0;display:flex;align-items:center;gap:2px}
+.ptitle h1{font:700 26px/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle h1 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ptitle h1 button::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);margin-left:2px}
+.arr{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--accent);font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.arr:active{background:var(--accent-soft)}
+.sync{display:flex;align-items:center;margin:0 4px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
-.dot.ok{background:var(--plus)}.dot.busy{background:var(--warn)}.dot.err{background:var(--danger)}
-.iconbtn{border:0;background:transparent;padding:6px;border-radius:8px;cursor:pointer;color:var(--muted);display:flex}
+.dot.ok{background:var(--pos)}.dot.busy{background:var(--warn)}.dot.err{background:var(--neg)}
+.iconbtn{border:0;background:transparent;padding:7px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex}
 .iconbtn.on{color:var(--accent)}
-.period{display:flex;align-items:center;gap:4px;margin-top:8px}
-.period .lbl{flex:1;text-align:center;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:9px 10px;font-weight:600;cursor:pointer;text-transform:capitalize}
-.period .arr{width:44px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:20px;color:var(--accent)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
-.stack{display:flex;flex-direction:column;gap:12px}
-.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:var(--on);font-weight:600;cursor:pointer}
-.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
-.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--line)}
-.btn.small{padding:8px 12px;font-size:14px}
-.btn.block{width:100%}
-.btn:disabled{opacity:.5}
-.hint{color:var(--muted);font-size:13px;margin-top:6px}
-.empty{color:var(--muted);text-align:center;padding:24px 10px}
-.plus{color:var(--plus)}
-/* KPI */
-.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);cursor:pointer;min-width:0}
-.kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;line-height:1.25}
-.kpi .v{font-size:17px;font-weight:700;margin-top:3px;overflow:hidden;text-overflow:ellipsis}
-.neg{color:var(--danger)!important}
-/* catégories */
-.cat{padding:0;overflow:hidden;margin-bottom:12px}
-.cat .ch{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
-.cat .ch .t{font-weight:700;flex:1;min-width:0}
-.cat .ch .tot{font-weight:700}
-.cat .ch .cnt{font-size:12px;color:var(--muted);font-weight:500;margin-left:6px}
-.ln{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line)}
-.ln:first-of-type{border-top:0}
+.iconbtn:active{background:var(--accent-soft)}
+
+/* ---------- reste à vivre (élément central) ---------- */
+.hero{background:var(--surface);border-radius:22px;padding:18px 18px 16px;box-shadow:var(--lift);margin-bottom:18px}
+.hero .lead{font-size:15px;color:var(--muted)}
+.hero .big{font:800 46px/1.05 var(--display);letter-spacing:-.035em;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+.hero .big small{font-size:.5em;font-weight:700;letter-spacing:0;margin-left:4px;color:var(--muted)}
+.hero .pace{font-size:14.5px;color:var(--muted)}
+.hero .pace b{color:var(--ink);font-weight:600}
+.ribbon{display:flex;height:18px;border-radius:9px;overflow:hidden;margin:16px 0 10px;gap:2px;background:var(--surface)}
+.ribbon span{display:block;height:100%;min-width:3px}
+.ribbon.anim{animation:reveal .8s cubic-bezier(.2,.8,.2,1) both}
+.ribbon span.free{background:repeating-linear-gradient(-45deg,var(--c-free) 0 5px,transparent 5px 9px);box-shadow:inset 0 0 0 1.5px var(--c-free);border-radius:0 9px 9px 0}
+@keyframes reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@media (prefers-reduced-motion:reduce){.ribbon.anim{animation:none}.sheet{animation:none!important}.chk.on{animation:none!important}}
+.legend{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:13.5px}
+.legend div{display:flex;align-items:center;gap:6px}
+.legend i{flex:none;width:10px;height:10px;border-radius:3px}
+.legend i.free{background:repeating-linear-gradient(-45deg,var(--c-free) 0 3px,transparent 3px 5px);box-shadow:inset 0 0 0 1.5px var(--c-free)}
+.legend .n{color:var(--muted);white-space:nowrap}
+.legend .v{font-weight:600}
+.hero .after{display:flex;justify-content:space-between;gap:12px;align-items:baseline;border-top:1px solid var(--rule);margin-top:14px;padding-top:12px;font-size:15px}
+.hero .after .v{font-weight:700;font-size:17px}
+.alert{margin-top:10px;font-size:13.5px;color:var(--neg);background:color-mix(in srgb,var(--neg) 10%,transparent);border-radius:10px;padding:8px 10px}
+
+/* ---------- avancement + filtre ---------- */
+.progress{display:flex;align-items:center;gap:12px;margin:0 2px 12px}
+.progress .meter{flex:1;height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.progress .meter div{height:100%;background:var(--accent);border-radius:3px;transition:width .35s}
+.progress .t{font-size:13.5px;color:var(--muted);white-space:nowrap}
+.progress .t b{color:var(--ink)}
+.seg{display:flex;background:var(--rule);border-radius:11px;padding:2px;gap:2px}
+.seg button{flex:1;border:0;background:transparent;padding:7px 10px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(20,33,61,.12)}
+.filterbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.filterbar .seg{flex:1;max-width:280px}
+
+/* ---------- catégories ---------- */
+.group{margin-bottom:18px}
+.gh{display:flex;align-items:center;gap:9px;padding:0 4px 7px;cursor:pointer;user-select:none}
+.gh .sw{flex:none;width:12px;height:12px;border-radius:4px}
+.gh .t{font:700 17px/1.2 var(--display);letter-spacing:-.01em}
+.gh .cnt{font-size:12.5px;color:var(--muted);font-weight:500}
+.gh .tot{margin-left:auto;font-weight:700;font-size:15.5px}
+.gh .chev{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);margin:0 2px 3px 4px;transition:transform .2s}
+.group.closed .chev{transform:rotate(-45deg);margin-bottom:0}
+.group.closed .list{display:none}
+.list{background:var(--surface);border-radius:16px;box-shadow:var(--lift);overflow:hidden}
+.ln{display:flex;align-items:center;gap:12px;padding:11px 14px;position:relative}
+.ln + .ln::before{content:"";position:absolute;top:0;left:52px;right:0;border-top:1px solid var(--rule)}
 .ln .main{flex:1;min-width:0;cursor:pointer}
 .ln .lab{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ln .meta{color:var(--muted);font-size:12.5px;margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
-.ln .amt{text-align:right;cursor:pointer;font-weight:600}
+.ln .meta{color:var(--muted);font-size:13px;margin-top:1px;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center}
+.ln .meta .late{color:var(--warn);font-weight:600}
+.ln .amt{text-align:right;cursor:pointer;font-weight:600;font-size:15.5px}
 .ln .amt .eur{display:block;font-size:12px;color:var(--muted);font-weight:400}
 .ln.done .lab{color:var(--muted)}
-.addln{display:block;width:100%;border:0;border-top:1px solid var(--line);background:transparent;color:var(--accent);padding:10px 14px;text-align:left;cursor:pointer;font-size:14px}
-.chk{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--accent);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--on);padding:0;font-size:14px;font-weight:700}
-.chk.on{background:var(--accent)}
-.acc{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--text)}
-.acc i{width:8px;height:8px;border-radius:50%;display:inline-block}
-.day{font-variant-numeric:tabular-nums}
-/* synthèse */
-.srow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
-.srow:first-child{border-top:0}
-.srow .k{color:var(--muted)}
-.srow.big .k{color:var(--text);font-weight:600}
-.srow.big .v{font-size:19px;font-weight:700}
+.ln.done .amt{color:var(--muted)}
+.ln.done .amt.pos{color:color-mix(in srgb,var(--pos) 60%,var(--muted))}
+.chk{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--cc,var(--accent));background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:#fff}
+.chk svg{width:14px;height:14px;opacity:0}
+.chk.on{background:var(--cc,var(--accent));animation:pop .28s ease-out}
+.chk.on svg{opacity:1}
+@keyframes pop{40%{transform:scale(1.18)}}
+.addln{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--rule);background:transparent;color:var(--accent);padding:11px 14px;text-align:left;cursor:pointer;font-size:15px;font-weight:500}
+.addln span{width:26px;text-align:center;font-size:20px;line-height:1}
+.allpassed{padding:13px 14px;color:var(--muted);font-size:14px}
+.acc{display:inline-flex;align-items:center;gap:5px}
+.acc i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.mfoot{display:flex;justify-content:center;margin-top:8px}
+.linkbtn{border:0;background:transparent;color:var(--accent);font-size:15px;font-weight:500;padding:10px 12px;border-radius:10px;cursor:pointer}
+.linkbtn.danger{color:var(--neg)}
+
+/* ---------- blocs génériques ---------- */
+.panel{background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--lift);margin-bottom:14px}
+.panel h3{font:700 17px/1.2 var(--display);margin:0 0 8px;letter-spacing:-.01em}
+.srow{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--rule);align-items:baseline}
+.srow:first-of-type{border-top:0}
+.srow .k{color:var(--muted);display:flex;align-items:center;gap:8px;min-width:0}
+.srow .k i{flex:none;width:10px;height:10px;border-radius:3px}
 .srow .v{font-weight:600}
-.sh{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 2px 6px;font-weight:700}
-.sh:first-child{margin-top:0}
-table.acct{width:100%;border-collapse:collapse;font-size:14.5px}
-table.acct th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:4px 0 6px}
+.srow.total .k{color:var(--ink);font-weight:600}
+table.acct{width:100%;border-collapse:collapse;font-size:15px}
+table.acct th{font-size:13px;color:var(--muted);font-weight:500;text-align:right;padding:2px 0 6px}
 table.acct th:first-child{text-align:left}
-table.acct td{padding:8px 0;border-top:1px solid var(--line);text-align:right}
+table.acct td{padding:9px 0;border-top:1px solid var(--rule);text-align:right}
 table.acct td:first-child{text-align:left}
-.bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
-.bar div{height:100%;background:var(--accent);border-radius:99px}
-/* année */
-.mcard{cursor:pointer}
-.mcard .mh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.mcard .mn{font-weight:700;text-transform:capitalize}
-.mcard .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px;font-size:13px}
-.mcard .grid3 .k{color:var(--muted);font-size:11.5px}
-/* navigation */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+.hint{color:var(--muted);font-size:13.5px;margin-top:6px}
+.empty{color:var(--muted);text-align:center;padding:28px 12px}
+.btn{border:0;border-radius:13px;padding:13px 18px;background:var(--accent);color:var(--on);font-weight:600;cursor:pointer;font-size:16px}
+.btn:active{filter:brightness(.92)}
+.btn.ghost{background:var(--accent-soft);color:var(--accent)}
+.btn.danger{background:transparent;color:var(--neg);box-shadow:inset 0 0 0 1px var(--rule)}
+.btn.small{padding:8px 13px;font-size:14px;border-radius:10px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* ---------- création de mois ---------- */
+.newmonth{text-align:center;padding:26px 18px}
+.newmonth h2{font:700 26px/1.15 var(--display);margin:0 0 4px;text-transform:capitalize;letter-spacing:-.02em}
+.copycats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0 6px}
+.tog{border:0;border-radius:99px;padding:8px 13px 8px 10px;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;background:var(--paper);color:var(--muted);box-shadow:inset 0 0 0 1px var(--rule)}
+.tog i{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--cc);display:inline-flex;align-items:center;justify-content:center}
+.tog.on{color:var(--ink);background:color-mix(in srgb,var(--cc) 14%,var(--surface));box-shadow:none}
+.tog.on i{background:var(--cc)}
+.tog.on i::after{content:"";width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+
+/* ---------- année / épargne ---------- */
+.chart{width:100%;height:auto;display:block;margin:6px 0 2px;overflow:visible}
+.chart text{font:12px var(--text);fill:var(--muted)}
+.chart .bar{cursor:pointer}
+.chart .bar:hover rect{opacity:.85}
+.ylist .yr{display:grid;grid-template-columns:minmax(70px,1fr) repeat(3,minmax(0,auto));gap:4px 14px;align-items:baseline;padding:11px 0;border-top:1px solid var(--rule);cursor:pointer}
+.ylist .yr:first-child{border-top:0}
+.ylist .yr .m{font-weight:600;text-transform:capitalize}
+.ylist .yr .c{text-align:right;font-size:14px}
+.ylist .yh{display:grid;grid-template-columns:minmax(70px,1fr) repeat(3,minmax(0,auto));gap:4px 14px;font-size:12.5px;color:var(--muted)}
+.ylist .yh span:not(:first-child){text-align:right}
+.sv{display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;position:relative}
+.sv + .sv::before{content:"";position:absolute;top:0;left:14px;right:0;border-top:1px solid var(--rule)}
+.sv .main{flex:1;min-width:0}
+.sv .lab{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sv .meta{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap}
+.sv .r{text-align:right}
+.sv .bal{font-size:12.5px;color:var(--muted)}
+
+/* ---------- navigation ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:color-mix(in srgb,var(--surface) 90%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);border-top:1px solid var(--rule);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs .in{display:flex;max-width:720px;width:100%}
-nav.tabs button{flex:1;border:0;background:transparent;padding:9px 2px 7px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button{flex:1;border:0;background:transparent;padding:9px 2px 7px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:500}
 nav.tabs button svg{width:24px;height:24px}
 nav.tabs button.on{color:var(--accent)}
-.fab{position:fixed;right:18px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:7;width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--on);box-shadow:0 6px 18px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center}
-.fab svg{width:28px;height:28px}
-/* fenêtres */
-.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.fab{position:fixed;right:18px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:7;height:54px;padding:0 20px 0 16px;border-radius:27px;border:0;background:var(--accent);color:var(--on);box-shadow:0 10px 24px -8px color-mix(in srgb,var(--accent) 70%,transparent);cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600;font-size:15.5px}
+.fab svg{width:22px;height:22px}
+.fab:active{transform:scale(.97)}
+
+/* ---------- fenêtres ---------- */
+.backdrop{position:fixed;inset:0;background:rgba(10,16,32,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
 @media (min-width:640px){.backdrop{align-items:center}}
-.sheet{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
-@media (min-width:640px){.sheet{border-radius:18px}}
-.sheet h2{margin:0 0 6px;font-size:19px}
-label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
-.field{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.sheet{background:var(--surface);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;animation:up .25s cubic-bezier(.2,.8,.2,1)}
+.sheet::before{content:"";display:block;width:38px;height:5px;border-radius:3px;background:var(--rule);margin:0 auto 12px}
+@media (min-width:640px){.sheet{border-radius:22px;padding-top:20px}.sheet::before{display:none}}
+.sheet h2{margin:0 0 4px;font:700 21px/1.2 var(--display);letter-spacing:-.01em}
+.sheet .sub{color:var(--muted);font-size:14px;text-transform:capitalize}
+label{display:block;font-size:13.5px;color:var(--muted);margin:14px 0 5px}
+.field{width:100%;padding:12px 13px;border-radius:12px;border:1px solid var(--rule);background:var(--paper);font-size:16px}
 .field:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
 select.field{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px}
-.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px}
-.seg button{flex:1;border:0;background:transparent;padding:8px;border-radius:9px;font-size:14px;cursor:pointer;color:var(--muted)}
-.seg button.on{background:var(--card);color:var(--accent);font-weight:600;box-shadow:var(--shadow)}
-.amtrow{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:8px;align-items:center}
-.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.amtbox{display:flex;align-items:center;gap:10px;margin-top:12px;padding:6px 6px 6px 14px;border-radius:16px;background:var(--paper);border:1px solid var(--rule)}
+.amtbox:focus-within{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.amtbox input{flex:1;min-width:0;border:0;background:transparent;font:700 34px/1.1 var(--display);letter-spacing:-.02em;padding:6px 0;font-variant-numeric:tabular-nums}
+.amtbox input:focus{outline:none}
+.amtbox .seg{flex:none;width:92px}
+.conv{font-size:13.5px;color:var(--muted);min-height:18px;margin:6px 2px 0}
+.catpick{display:flex;flex-wrap:wrap;gap:7px}
+.catpick button{border:0;border-radius:99px;padding:8px 12px;font-size:14px;cursor:pointer;background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule);display:inline-flex;align-items:center;gap:7px}
+.catpick button i{width:9px;height:9px;border-radius:50%;background:var(--cc)}
+.catpick button.on{background:var(--cc);color:#fff;box-shadow:none;font-weight:600}
+.catpick button.on i{background:#fff}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px}
+.actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;align-items:center}
 .actions .spacer{flex:1}
-.chkline{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--text);margin:14px 0 4px;cursor:pointer}
+.chkline{display:flex;align-items:center;gap:10px;font-size:15.5px;color:var(--ink);margin:16px 0 4px;cursor:pointer}
 .chkline input{width:22px;height:22px;accent-color:var(--accent);margin:0}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--paper);cursor:pointer;font-size:15.5px}
+.switch input{appearance:none;-webkit-appearance:none;flex:none;width:48px;height:28px;border-radius:14px;background:var(--rule);position:relative;cursor:pointer;margin:0;transition:background .2s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.switch input:checked{background:var(--pos)}
+.switch input:checked::after{transform:translateX(20px)}
 .lock{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.lock .card{width:100%;max-width:420px}
-.lock h1{margin:0 0 4px;font-size:24px}
-.err{color:var(--danger);font-size:14px;margin-top:10px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom));background:var(--text);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;max-width:90vw}
+.lock .card{width:100%;max-width:420px;background:var(--surface);border-radius:22px;padding:22px;box-shadow:var(--lift)}
+.lock h1{margin:0 0 4px;font:800 30px/1.1 var(--display);letter-spacing:-.02em}
+.card{background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--lift)}
+.card strong{font:700 17px/1.2 var(--display);display:block}
+.err{color:var(--neg);font-size:14px;margin-top:10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(158px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:11px 8px 11px 16px;border-radius:14px;font-size:14.5px;z-index:30;max-width:92vw;display:flex;align-items:center;gap:6px;animation:fade .2s;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
+.toast:not(:has(button)){padding-right:16px}
+.toast button{border:0;background:transparent;color:var(--c-free);font-weight:700;padding:4px 10px;cursor:pointer;font-size:14.5px}
+@media (prefers-color-scheme: dark){.toast button{color:var(--accent-soft)}}
 details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 12px;font-size:14px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip{border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);border-radius:99px;padding:8px 13px;font-size:14px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
 .chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-.sw{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer}
-.sw.on{border-color:var(--text)}
-.mlist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.mlist button{text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;text-transform:capitalize}
-.mlist button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
-.sv{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
-.sv:first-child{border-top:0}
-.sv .main{flex:1;min-width:0}
-.sv .bal{font-size:12px;color:var(--muted);text-align:right}
+.swatches{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.swatches .sw{width:34px;height:34px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1px var(--rule);cursor:pointer}
+.swatches .sw.on{box-shadow:0 0 0 2px var(--ink)}
+.mlist{display:flex;flex-direction:column;margin-top:6px}
+.mlist button{text-align:left;border:0;border-top:1px solid var(--rule);background:transparent;padding:13px 4px;cursor:pointer;display:flex;justify-content:space-between;align-items:baseline;text-transform:capitalize;font-size:16px}
+.mlist button:first-child{border-top:0}
+.mlist button.on{color:var(--accent);font-weight:600}
+.mlist .hint{text-transform:none;margin:0}
 .desk{display:none}
-/* ordinateur : disposition comme dans l'Excel */
+
+/* ---------- ordinateur : deux colonnes comme dans l'Excel ---------- */
 @media (min-width:1000px){
   header.top .row, .wrap, nav.tabs .in{max-width:1180px}
-  .mgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+  .mgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+  .topgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start;margin-bottom:4px}
+  .topgrid .hero{margin-bottom:18px}
   .desk{display:block}
   .mob{display:none!important}
-  .synthside{position:sticky;top:130px}
-  .period{max-width:420px;margin-left:auto;margin-right:auto}
-  .ygrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .ydesk{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}
 }
+@media (max-width:480px){.ylist .yr,.ylist .yh{grid-template-columns:minmax(60px,1fr) repeat(2,minmax(0,auto))}.ylist .c-inc{display:none}}
+.ptitle h1 button.nochev::after{display:none}
 </style>
 </head>
 <body>
@@ -211,9 +314,12 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 <div id="appView" class="hidden">
   <header class="top">
     <div class="row">
-      <h1 id="title">Mois</h1>
-      <div style="flex:1"></div>
-      <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt"></span></div>
+      <div class="ptitle">
+        <button class="arr" id="prevP" aria-label="Mois précédent">‹</button>
+        <h1 id="title"><button id="periodLbl"></button></h1>
+        <button class="arr" id="nextP" aria-label="Mois suivant">›</button>
+      </div>
+      <div class="sync" id="syncBox" title=""><span class="dot" id="syncDot"></span><span id="syncTxt" class="hidden"></span></div>
       <button class="iconbtn" id="gearBtn" title="Réglages" aria-label="Réglages">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
@@ -221,17 +327,10 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       </button>
     </div>
-    <div class="row period" id="periodBar">
-      <button class="arr" id="prevP" aria-label="Précédent">‹</button>
-      <div class="lbl" id="periodLbl"></div>
-      <button class="arr" id="nextP" aria-label="Suivant">›</button>
-    </div>
   </header>
 
   <main class="wrap">
-    <section id="tab-month">
-      <div id="monthBody"></div>
-    </section>
+    <section id="tab-month"><div id="monthBody"></div></section>
     <section id="tab-synth" class="hidden"><div id="synthTab"></div></section>
     <section id="tab-savings" class="hidden"><div id="savingsBody"></div></section>
     <section id="tab-year" class="hidden"><div id="yearBody"></div></section>
@@ -240,60 +339,61 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
       <div class="stack">
         <div class="card">
           <strong>Taux de change</strong>
-          <label>1 € = … F (XPF)</label>
+          <label for="rateIn">Valeur de 1 € en francs (XPF)</label>
           <input class="field" id="rateIn" inputmode="decimal">
-          <div class="hint">Les montants saisis en € sont convertis avec ce taux (comme la cellule C45 de ton Excel).</div>
+          <div class="hint">Les montants saisis en € sont convertis avec ce taux, comme la cellule C45 de ton Excel.</div>
         </div>
         <div class="card">
-          <strong>Comptes / moyens de paiement</strong>
-          <div class="hint" style="margin-bottom:8px">Appuie sur un compte pour le renommer, changer sa couleur ou le supprimer.</div>
+          <strong>Comptes et moyens de paiement</strong>
+          <div class="hint" style="margin-bottom:10px">Touche un compte pour le renommer, changer sa couleur ou le supprimer.</div>
           <div class="chips" id="accChips"></div>
-          <button class="btn ghost small" id="addAcc" style="margin-top:10px">+ Ajouter un compte</button>
+          <button class="btn ghost small" id="addAcc" style="margin-top:12px">Ajouter un compte</button>
         </div>
         <div class="card">
           <strong>Importer mon fichier Excel</strong>
-          <div class="hint">Choisis ton classeur budget (.xlsx) : chaque onglet de mois (ex. « 06-26_JUIN ») et l'onglet Épargne sont repris. Le fichier est lu sur l'appareil, il n'est envoyé nulle part.</div>
-          <button class="btn ghost" id="xlsBtn" style="margin-top:10px">📄 Choisir le fichier Excel</button>
+          <div class="hint">Chaque onglet de mois (par exemple « 06-26_JUIN ») et l'onglet Épargne sont repris. Le fichier est lu sur l'appareil, il n'est envoyé nulle part.</div>
+          <button class="btn ghost" id="xlsBtn" style="margin-top:12px">Choisir le fichier Excel</button>
           <input type="file" id="xlsFile" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
         </div>
         <div class="card">
           <strong>Synchronisation</strong>
           <div class="hint" id="setInfo"></div>
-          <button class="btn ghost" id="syncNow" style="margin-top:10px">Synchroniser maintenant</button>
+          <button class="btn ghost" id="syncNow" style="margin-top:12px">Synchroniser maintenant</button>
         </div>
         <div class="card">
           <strong>Sécurité</strong>
-          <div class="hint">Données chiffrées (AES-256) sur l'appareil avant l'envoi sur GitHub. Sans « Rester connecté » : verrouillage après 10 min d'inactivité.</div>
-          <label class="chkline"><input type="checkbox" id="remToggle"> Rester connecté sur cet appareil</label>
-          <button class="btn ghost" id="chgPw" style="margin-top:8px">Changer le mot de passe</button>
+          <div class="hint">Tes données sont chiffrées sur l'appareil avant d'être envoyées sur GitHub.</div>
+          <label class="switch"><span>Rester connecté sur cet appareil</span><input type="checkbox" id="remToggle"></label>
+          <div class="hint">Désactivé : l'app se verrouille après 10 minutes sans utilisation.</div>
+          <button class="btn ghost" id="chgPw" style="margin-top:12px">Changer le mot de passe</button>
         </div>
         <div class="card">
           <strong>Sauvegarde</strong>
-          <div class="hint">Copie lisible de tes données (à garder en lieu sûr : elle n'est pas chiffrée).</div>
-          <div class="actions" style="margin-top:10px">
-            <button class="btn ghost" id="exportBtn">Exporter (JSON)</button>
-            <button class="btn ghost" id="importBtn">Importer un JSON</button>
+          <div class="hint">Copie lisible de tes données. Elle n'est pas chiffrée : garde-la en lieu sûr.</div>
+          <div class="actions" style="margin-top:12px">
+            <button class="btn ghost" id="exportBtn">Exporter une sauvegarde</button>
+            <button class="btn ghost" id="importBtn">Restaurer une sauvegarde</button>
           </div>
           <input type="file" id="importFile" accept="application/json" class="hidden">
         </div>
         <div class="card">
           <strong>Cet appareil</strong>
-          <div class="actions" style="margin-top:8px"><button class="btn danger" id="forgetBtn2">Oublier cet appareil</button></div>
+          <div class="hint">Efface la connexion de ce téléphone ou de cet ordinateur. Tes données sur GitHub restent intactes.</div>
+          <div class="actions" style="margin-top:10px"><button class="btn danger" id="forgetBtn2">Oublier cet appareil</button></div>
         </div>
       </div>
     </section>
   </main>
 
-  <button class="fab" id="fab" aria-label="Ajouter une ligne"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="fab" id="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span id="fabTxt">Ajouter</span></button>
 
   <nav class="tabs"><div class="in">
-    <button data-tab="month" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>Mois</button>
-    <button data-tab="synth" class="synthbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Synthèse</button>
+    <button data-tab="month" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>Mois</button>
+    <button data-tab="synth" class="synthbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Synthèse</button>
     <button data-tab="savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9c1.5 0 2 1 2 2v3h-2l-1.5 3H15v2h-3v-2H9v2H6v-2.5C4.2 15.5 3 13.8 3 12c0-3.3 3.6-6 8-6 1.6 0 3.1.3 4.3.9L18 5v4h1z"/><circle cx="15.5" cy="11" r=".8" fill="currentColor"/></svg>Épargne</button>
-    <button data-tab="year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>Année</button>
+    <button data-tab="year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></svg>Année</button>
   </div></nav>
 </div>
-
 <div id="modalRoot"></div>
 <datalist id="labelsDL"></datalist>
 
@@ -440,7 +540,7 @@ function calc(m){
 
 /* ================= SYNCHRO ================= */
 let saveTimer=null, syncing=false;
-function setSync(state, txt){ $("syncDot").className="dot "+state; $("syncTxt").textContent=txt; }
+function setSync(state, txt){ $("syncDot").className="dot "+state; $("syncTxt").textContent=txt; $("syncBox").title = txt || (state==="ok"?"À jour":""); }
 async function cacheLocal(){ try{ ls.set(LS_CACHE, await encryptStr(S.pw, JSON.stringify(S.data), S.cfg.salt)); }catch(e){} }
 function touch(){
   S.dirty = true; cacheLocal(); setSync("busy","À envoyer…");
@@ -576,7 +676,6 @@ const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août"
 const mLabel = m => { const [y,mm]=m.split("-").map(Number); return MOIS[mm-1]+" "+y; };
 const mShift = (m, d) => { let [y,mm]=m.split("-").map(Number); mm+=d; while(mm>12){mm-=12;y++;} while(mm<1){mm+=12;y--;} return y+"-"+String(mm).padStart(2,"0"); };
 const thisMonth = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
-function toast(msg){ document.querySelectorAll(".toast").forEach(x=>x.remove()); const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3200); }
 function parseNum(s){ if(typeof s==="number") return s; s=(s||"").toString().replace(/[\s  ]/g,"").replace(",","."); if(s==="") return NaN; return Number(s); }
 function modal(html, onReady){
   const root=$("modalRoot");
@@ -608,9 +707,16 @@ function ensureAccount(name){
 const accPill = name => name ? `<span class="acc"><i style="background:${esc(accColor(name))}"></i>${esc(name)}</span>` : "";
 
 /* ================= INTERFACE ================= */
-const ui = Object.assign({tab:"month", month:null, year:null}, ls.get(LS_UI)||{});
-const TITLES = {month:"Budget du mois", synth:"Synthèse", savings:"Épargne", year:"Bilan de l'année", settings:"Réglages"};
-const saveUI = () => ls.set(LS_UI, {tab:ui.tab});
+const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}}, ls.get(LS_UI)||{});
+ui.month = null; ui.year = null;
+const TITLES = {savings:"Épargne", settings:"Réglages"};
+const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed});
+const cc = k => `var(--c-${k})`;
+const CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const MOIS_C = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+const monthName = m => MOIS[Number(m.slice(5))-1];
+const capF = s => s.charAt(0).toUpperCase()+s.slice(1);
+
 function startApp(){
   if(seedDefaults()) touch();
   if(!ui.month){ const ms=allMonths(), t=thisMonth(); ui.month = ms.includes(t) ? t : (ms[ms.length-1] || t); }
@@ -623,251 +729,351 @@ function setTab(t){
   ui.tab=t; saveUI();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
   $("gearBtn").classList.toggle("on", t==="settings");
-  for(const k of Object.keys(TITLES)) $("tab-"+k).classList.toggle("hidden", k!==t);
-  $("title").textContent = TITLES[t];
-  $("fab").classList.toggle("hidden", !["month","savings"].includes(t));
-  $("periodBar").classList.toggle("hidden", !["month","synth","year"].includes(t));
+  for(const k of ["month","synth","savings","year","settings"]) $("tab-"+k).classList.toggle("hidden", k!==t);
   render(); scrollTo(0,0);
+}
+function renderHeader(){
+  const t=ui.tab, period = ["month","synth","year"].includes(t);
+  $("prevP").classList.toggle("hidden", !period); $("nextP").classList.toggle("hidden", !period);
+  $("periodLbl").textContent = t==="year" ? String(ui.year) : period ? capF(mLabel(ui.month)) : TITLES[t];
+  $("periodLbl").disabled = !period || t==="year";
+  $("periodLbl").style.pointerEvents = (t==="month"||t==="synth") ? "" : "none";
+  $("periodLbl").classList.toggle("nochev", !(t==="month"||t==="synth"));
+  const fab = t==="savings" || (t==="month" && monthExists(ui.month));
+  $("fab").classList.toggle("hidden", !fab);
+  $("fabTxt").textContent = t==="savings" ? "Mouvement" : "Ligne";
+  document.querySelector(".synthbtn").classList.toggle("hidden", isDesk());
 }
 function render(){
   if(!S.data) return;
+  renderHeader();
   const t = ui.tab;
-  $("periodLbl").textContent = t==="year" ? "Année "+ui.year : mLabel(ui.month);
-  document.querySelector(".synthbtn").classList.toggle("hidden", isDesk());
   if(t==="month") renderMonth();
-  else if(t==="synth") $("synthTab").innerHTML = synthHTML(ui.month);
+  else if(t==="synth") renderSynthTab();
   else if(t==="savings") renderSavings();
   else if(t==="year") renderYear();
   else if(t==="settings") renderSettings();
   $("labelsDL").innerHTML = [...new Set(live(S.data.lines).map(l=>l.label).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")).map(x=>`<option value="${esc(x)}">`).join("");
 }
+function toast(msg, action){
+  document.querySelectorAll(".toast").forEach(x=>x.remove());
+  const t=document.createElement("div"); t.className="toast"; t.setAttribute("role","status");
+  t.innerHTML = `<span>${esc(msg)}</span>${action?`<button>${esc(action.label)}</button>`:""}`;
+  if(action) t.querySelector("button").onclick=()=>{ t.remove(); action.fn(); };
+  document.body.appendChild(t); setTimeout(()=>t.remove(), action?6000:3200);
+}
+function removeWithUndo(rec, msg){
+  rec.deleted=true; rec.updatedAt=Date.now(); touch(); render();
+  toast(msg, {label:"Annuler", fn:()=>{ rec.deleted=false; rec.updatedAt=Date.now(); touch(); render(); }});
+}
+
+/* ---------- Reste à vivre ---------- */
+let lastAnim=null; // la barre se dessine une seule fois par mois affiché
+const animOnce = m => { if(lastAnim===m) return false; lastAnim=m; return true; };
+function heroHTML(m, C){
+  const spend = [["fix",-C.tot.fix],["epa",-C.tot.epa],["sor",-C.tot.sor],["exc",-C.tot.exc]].map(([k,v])=>[k,Math.max(0,v)]);
+  const out = spend.reduce((s,[,v])=>s+v,0);
+  const free = Math.max(0, C.restantExc);
+  const base = Math.max(C.inc, out, 1);
+  const segs = spend.filter(([,v])=>v>0).map(([k,v])=>`<span style="width:${(v/base*100).toFixed(2)}%;background:${cc(k)}" title="${esc(CAT[k].name)}"></span>`).join("")
+    + (free>0 ? `<span class="free" style="width:${(free/base*100).toFixed(2)}%" title="Libre"></span>` : "");
+  const legend = spend.filter(([,v])=>v>0).map(([k,v])=>`<div><i style="background:${cc(k)}"></i><span class="n">${esc(CAT[k].name)}</span><span class="v num">${fmtF(v)}</span></div>`).join("")
+    + `<div><i class="free"></i><span class="n">Libre</span><span class="v num">${fmtF(free)}</span></div>`;
+  return `<div class="hero">
+    <div class="lead">Reste à vivre en ${esc(monthName(m))}</div>
+    <div class="big${C.restant<0?" neg":""}">${fmtF(C.restant).replace(/ F$/,"")}<small>F</small></div>
+    <div class="pace">soit <b class="num">${fmtF(C.semaine)}</b> par semaine et <b class="num">${fmtF(C.jour)}</b> par jour</div>
+    ${C.inc>0||out>0?`<div class="ribbon${animOnce(m)?" anim":""}" role="img" aria-label="Répartition des rentrées">${segs}</div><div class="legend">${legend}</div>`:""}
+    <div class="after"><span>Avec l'exceptionnel</span><span class="v num${C.restantExc<0?" neg":""}">${fmtF(C.restantExc)}</span></div>
+    ${C.restantExc<0?`<div class="alert">Avec l'exceptionnel, il manque ${fmtF(-C.restantExc)} ce mois-ci.</div>`:""}
+  </div>`;
+}
+function progressHTML(C){
+  const pct = C.n ? Math.round(C.nDone/C.n*100) : 0;
+  return `<div class="progress"><div class="meter"><div style="width:${pct}%"></div></div></div>
+    <div class="progress" style="margin-top:-6px"><span class="t"><b>${C.nDone}</b> sur ${C.n} ligne${C.n>1?"s":""} passée${C.nDone>1?"s":""}</span><span class="t" style="margin-left:auto">Réel <b class="num">${fmtF(C.reel)}</b></span></div>`;
+}
+function filterHTML(){
+  return `<div class="filterbar"><div class="seg" id="filterSeg" role="tablist">
+    <button data-filter="all" class="${ui.filter!=="todo"?"on":""}">Tout</button>
+    <button data-filter="todo" class="${ui.filter==="todo"?"on":""}">À passer</button></div></div>`;
+}
+function catsPanel(C){
+  return `<div class="panel"><h3>Par catégorie</h3>
+    ${CATS.map(c=>`<div class="srow"><span class="k"><i style="background:${cc(c.k)}"></i>${esc(c.name)}</span><span class="v num${C.tot[c.k]>0?" pos":""}">${fmtF(C.tot[c.k], true)}</span></div>`).join("")}
+    <div class="srow total"><span class="k">Rentrées</span><span class="v num pos">${fmtF(C.inc, true)}</span></div>
+    <div class="srow total"><span class="k">Sorties</span><span class="v num">${fmtF(C.exp, true)}</span></div>
+  </div>`;
+}
+function accountsPanel(C){
+  const order = n => { const i=accounts().findIndex(x=>x.name===n); return i<0?99:i; };
+  const accs = Object.entries(C.acc).sort((a,b)=>order(a[0])-order(b[0]));
+  return `<div class="panel"><h3>Par compte</h3>
+    <table class="acct"><thead><tr><th>Compte</th><th>Prévu</th><th>Passé</th></tr></thead><tbody>
+    ${accs.map(([n,a])=>`<tr><td>${n==="—"?`<span class="hint" style="margin:0">Sans compte</span>`:accPill(n)}</td><td class="num${a.prev<0?" neg":""}">${fmtF(a.prev)}</td><td class="num">${fmtF(a.reel)}</td></tr>`).join("")}
+    </tbody></table>
+    <div class="hint">« Passé » ne compte que les lignes cochées.</div></div>`;
+}
 
 /* ---------- Mois ---------- */
+function dayInfo(l){
+  if(!l.day) return "";
+  if(!l.done && l.m===thisMonth()){
+    const d=new Date().getDate();
+    if(l.day<d) return `<span class="late">prévu le ${l.day}</span>`;
+    if(l.day===d) return `<span class="late">aujourd'hui</span>`;
+  }
+  return `<span>le ${l.day}</span>`;
+}
 function lineHTML(l){
   const v=xpf(l);
-  const meta = [l.day?`<span class="day">le ${l.day}</span>`:"", accPill(l.acc)].filter(Boolean).join("");
+  const meta = [dayInfo(l), accPill(l.acc)].filter(Boolean).join("");
   return `<div class="ln${l.done?" done":""}">
-    <button class="chk${l.done?" on":""}" data-done="${l.id}" aria-label="${l.done?"Décocher":"Marquer comme passé"}">${l.done?"✓":""}</button>
-    <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"(sans libellé)")}</div>${meta?`<div class="meta">${meta}</div>`:""}</div>
-    <div class="amt num${v>0?" plus":""}" data-edit="${l.id}">${fmtF(v, true)}${l.cur==="EUR"?`<span class="eur">${fmtE(l.amt)}</span>`:""}</div>
+    <button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>
+    <div class="main" data-edit="${l.id}"><div class="lab">${esc(l.label||"Sans motif")}</div>${meta?`<div class="meta">${meta}</div>`:""}</div>
+    <div class="amt num${v>0?" pos":""}" data-edit="${l.id}">${fmtF(v, true)}${l.cur==="EUR"?`<span class="eur">${fmtE(l.amt)}</span>`:""}</div>
   </div>`;
 }
-function catHTML(c, C){
-  const L = C.L.filter(l=>l.cat===c.k);
-  const done = L.filter(l=>l.done).length;
-  return `<div class="card cat">
-    <div class="ch"><span class="t">${esc(c.name)}${L.length?`<span class="cnt">${done}/${L.length} ✓</span>`:""}</span><span class="tot num${C.tot[c.k]>0?" plus":""}">${fmtF(C.tot[c.k], true)}</span></div>
-    ${L.map(lineHTML).join("")}
-    <button class="addln" data-add="${c.k}">＋ Ajouter</button>
-  </div>`;
-}
-function kpisHTML(C){
-  return `<div class="kpis mob">
-    <div class="kpi" data-goto="synth"><div class="k">Restant mensuel</div><div class="v num${C.restant<0?" neg":""}">${fmtF(C.restant)}</div></div>
-    <div class="kpi" data-goto="synth"><div class="k">Avec except.</div><div class="v num${C.restantExc<0?" neg":""}">${fmtF(C.restantExc)}</div></div>
-    <div class="kpi" data-goto="synth"><div class="k">Réel (cochés)</div><div class="v num${C.reel<0?" neg":""}">${fmtF(C.reel)}</div></div>
+function groupHTML(c, C){
+  const all = C.L.filter(l=>l.cat===c.k);
+  const L = ui.filter==="todo" ? all.filter(l=>!l.done) : all;
+  const done = all.filter(l=>l.done).length;
+  if(ui.filter==="todo" && !L.length && !all.length) return "";
+  const closed = !!ui.closed[c.k];
+  return `<div class="group${closed?" closed":""}">
+    <div class="gh" data-toggle="${c.k}" role="button" aria-expanded="${!closed}"><span class="sw" style="background:${cc(c.k)}"></span><span class="t">${esc(c.name)}</span>${all.length?`<span class="cnt">${done}/${all.length}</span>`:""}<span class="tot num${C.tot[c.k]>0?" pos":""}">${fmtF(C.tot[c.k], true)}</span><span class="chev"></span></div>
+    <div class="list">
+      ${L.map(lineHTML).join("")}
+      ${ui.filter==="todo" && all.length && !L.length ? `<div class="allpassed">Tout est passé.</div>` : ""}
+      <button class="addln" data-add="${c.k}"><span>+</span>Ajouter ${c.sign>0?"une rentrée":"une sortie"}</button>
+    </div>
   </div>`;
 }
 function renderMonth(){
   const m=ui.month;
   if(!monthExists(m)){ $("monthBody").innerHTML = createMonthHTML(m); return; }
   const C = calc(m);
-  $("monthBody").innerHTML = `${kpisHTML(C)}
-    <div class="mgrid">
-      <div>${CATS.filter(c=>c.col==="L").map(c=>catHTML(c,C)).join("")}</div>
-      <div>${CATS.filter(c=>c.col==="R").map(c=>catHTML(c,C)).join("")}
-        <div class="desk synthside">${synthHTML(m, C)}</div></div>
+  $("monthBody").innerHTML = `
+    <div class="topgrid">
+      <div>${heroHTML(m, C)}${progressHTML(C)}${filterHTML()}</div>
+      <div class="desk">${accountsPanel(C)}</div>
     </div>
-    <div class="actions" style="justify-content:center"><button class="btn ghost small" id="resetDone">Tout décocher</button><button class="btn danger small" id="delMonth">Supprimer ce mois</button></div>`;
-  $("resetDone").onclick=()=>{ if(!confirm("Décocher toutes les lignes de "+mLabel(m)+" ?")) return; const now=Date.now(); for(const l of monthLines(m)) if(l.done){ l.done=false; l.updatedAt=now; } touch(); render(); };
-  $("delMonth").onclick=()=>{ if(!confirm("Supprimer tout le budget de "+mLabel(m)+" ?")) return; const now=Date.now();
-    for(const l of monthLines(m)){ l.deleted=true; l.updatedAt=now; }
-    const mo=S.data.months.find(x=>x.id===m); if(mo){ mo.deleted=true; mo.updatedAt=now; }
-    touch(); render(); toast("Mois supprimé"); };
+    <div class="mgrid">
+      <div>${CATS.filter(c=>c.col==="L").map(c=>groupHTML(c,C)).join("")}</div>
+      <div>${CATS.filter(c=>c.col==="R").map(c=>groupHTML(c,C)).join("")}<div class="desk">${catsPanel(C)}</div></div>
+    </div>
+    <div class="mfoot"><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
+  $("monthOpts").onclick = ()=>monthOptions(m);
+}
+function monthOptions(m){
+  modal(`<h2>Options du mois</h2><div class="sub">${esc(mLabel(m))}</div>
+    <div class="mlist" style="margin-top:12px">
+      <button id="oUncheck">Tout décocher<span class="hint">remet toutes les lignes « à passer »</span></button>
+      <button id="oDelete" style="color:var(--neg)">Supprimer ce mois<span class="hint">efface toutes ses lignes</span></button>
+    </div>`, (bd, close)=>{
+    bd.querySelector("#oUncheck").onclick=()=>{ const now=Date.now(), ch=monthLines(m).filter(l=>l.done);
+      ch.forEach(l=>{ l.done=false; l.updatedAt=now; }); touch(); close(); render();
+      toast("Lignes décochées", {label:"Annuler", fn:()=>{ const t=Date.now(); ch.forEach(l=>{ l.done=true; l.updatedAt=t; }); touch(); render(); }}); };
+    bd.querySelector("#oDelete").onclick=()=>{ if(!confirm("Supprimer tout le budget de "+mLabel(m)+" ?")) return;
+      const now=Date.now(), ls_=monthLines(m), mo=S.data.months.find(x=>x.id===m);
+      ls_.forEach(l=>{ l.deleted=true; l.updatedAt=now; }); if(mo){ mo.deleted=true; mo.updatedAt=now; }
+      touch(); close(); render();
+      toast("Budget de "+monthName(m)+" supprimé", {label:"Annuler", fn:()=>{ const t=Date.now(); ls_.forEach(l=>{ l.deleted=false; l.updatedAt=t; }); if(mo){ mo.deleted=false; mo.updatedAt=t; } touch(); render(); }}); };
+  });
 }
 function prevExisting(m){ return allMonths().filter(x=>x<m).pop() || allMonths().filter(x=>x>m)[0] || null; }
 function createMonthHTML(m){
   const src = prevExisting(m);
-  return `<div class="card" style="text-align:center">
-    <div style="font-size:40px">🗓️</div>
-    <h2 style="margin:6px 0;text-transform:capitalize">${esc(mLabel(m))}</h2>
-    <div class="hint">Pas encore de budget pour ce mois.</div>
-    ${src?`<div style="text-align:left;margin-top:14px">
-      <label>Reprendre les lignes de <b style="text-transform:capitalize">${esc(mLabel(src))}</b> :</label>
-      ${CATS.map(c=>`<label class="chkline"><input type="checkbox" data-copycat="${c.k}" ${c.k!=="exc"?"checked":""}> ${esc(c.name)}</label>`).join("")}
-      <div class="hint">Les montants, jours et comptes sont repris, toutes les cases « passé » sont décochées.</div>
-    </div>
-    <div class="actions"><button class="btn block" data-create="${src}">Créer ${esc(mLabel(m))} à partir de ${esc(mLabel(src))}</button></div>`:""}
-    <div class="actions"><button class="btn ghost block" data-create="">Créer un mois vide</button></div>
+  return `<div class="panel newmonth">
+    <h2>${esc(mLabel(m))}</h2>
+    <div class="hint" style="margin-top:0">Pas encore de budget pour ce mois.</div>
+    ${src?`<div class="hint" style="margin-top:18px;color:var(--ink)">Lignes à reprendre de ${esc(mLabel(src))}</div>
+      <div class="copycats">${CATS.map(c=>`<button class="tog${c.k!=="exc"?" on":""}" style="--cc:${cc(c.k)}" data-copycat="${c.k}" aria-pressed="${c.k!=="exc"}"><i></i>${esc(c.name)}</button>`).join("")}</div>
+      <div class="hint">Montants, jours et comptes sont repris. Toutes les lignes repartent « à passer ».</div>
+      <div class="actions" style="justify-content:center"><button class="btn block" data-create="${src}">Créer le budget de ${esc(monthName(m))}</button></div>`:""}
+    <div class="actions" style="justify-content:center;margin-top:${src?8:18}px"><button class="${src?"linkbtn":"btn block"}" data-create="">Commencer un mois vide</button></div>
   </div>`;
 }
 function createMonth(m, src){
   const now=Date.now();
-  const cats = new Set([...document.querySelectorAll("[data-copycat]")].filter(x=>x.checked).map(x=>x.dataset.copycat));
+  const cats = new Set([...document.querySelectorAll("[data-copycat].on")].map(x=>x.dataset.copycat));
   const ex = S.data.months.find(x=>x.id===m);
   if(ex){ ex.deleted=false; ex.updatedAt=now; } else S.data.months.push({id:m, updatedAt:now});
   if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>S.data.lines.push({...l, id:uid(), m, done:false, ord:i, updatedAt:now}));
-  touch(); render(); toast("Budget de "+mLabel(m)+" créé");
+  touch(); render(); toast("Budget de "+monthName(m)+" créé");
 }
 
-/* ---------- Synthèse ---------- */
+/* ---------- Synthèse (téléphone) ---------- */
 function synthHTML(m, C){
   if(!monthExists(m)) return `<div class="empty">Pas de budget pour ${esc(mLabel(m))}.</div>`;
   C = C || calc(m);
-  const row = (k, v, cls="") => `<div class="srow ${cls}"><span class="k">${k}</span><span class="v num${v<0?" neg":""}">${fmtF(v)}</span></div>`;
-  const accs = Object.entries(C.acc).sort((a,b)=>{ const o=n=>{ const i=accounts().findIndex(x=>x.name===n); return i<0?99:i; }; return o(a[0])-o(b[0]); });
-  const pct = C.n ? Math.round(C.nDone/C.n*100) : 0;
-  return `<div class="card">
-      <div class="sh">Reste à vivre</div>
-      ${row("Total restant mensuel", C.restant, "big")}
-      ${row("Soit par semaine", C.semaine)}
-      ${row("Soit par jour", C.jour)}
-      ${row("Total restant avec exceptionnel", C.restantExc, "big")}
-      <div class="sh">Réel</div>
-      ${row("Total réel (lignes cochées)", C.reel, "big")}
-      <div class="hint">${C.nDone} ligne${C.nDone>1?"s":""} passée${C.nDone>1?"s":""} sur ${C.n}</div>
-      <div class="bar"><div style="width:${pct}%"></div></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="sh">Par catégorie</div>
-      ${CATS.map(c=>`<div class="srow"><span class="k">${esc(c.name)}</span><span class="v num${C.tot[c.k]>0?" plus":""}">${fmtF(C.tot[c.k], true)}</span></div>`).join("")}
-      <div class="srow"><span class="k">Total rentrées</span><span class="v num plus">${fmtF(C.inc, true)}</span></div>
-      <div class="srow"><span class="k">Total sorties</span><span class="v num">${fmtF(C.exp, true)}</span></div>
-    </div>
-    <div class="card" style="margin-top:12px">
-      <div class="sh">Par compte</div>
-      <table class="acct"><thead><tr><th>Compte</th><th>Total</th><th>Réel</th></tr></thead><tbody>
-      ${accs.map(([n,a])=>`<tr><td>${n==="—"?"<span class='hint'>Sans compte</span>":accPill(n)}</td><td class="num${a.prev<0?" neg":""}">${fmtF(a.prev)}</td><td class="num">${fmtF(a.reel)}</td></tr>`).join("")}
-      </tbody></table>
-      <div class="hint">« Réel » = seulement les lignes cochées.</div>
-    </div>`;
+  return heroHTML(m, C) + progressHTML(C) + `<div style="height:10px"></div>` + catsPanel(C) + accountsPanel(C);
 }
+function renderSynthTab(){ $("synthTab").innerHTML = synthHTML(ui.month); }
 
 /* ---------- Édition d'une ligne ---------- */
+function fmtInput(n){ return n===""||n==null ? "" : NF2.format(Math.abs(n)).replace(/[\s ]/g," "); }
 function openLine(l, catK){
   const isNew = !l;
   l = l || {cat:catK||"fix", label:"", amt:"", cur:"XPF", day:null, acc:"", done:false};
-  const sign = isNew ? CAT[l.cat].sign : (Number(l.amt)<0 ? -1 : (Number(l.amt)>0 ? 1 : CAT[l.cat].sign));
-  modal(`<h2>${isNew?"Nouvelle ligne":"Modifier la ligne"}</h2>
-    <div class="hint" style="text-transform:capitalize">${esc(mLabel(isNew?ui.month:l.m))}</div>
-    <label>Catégorie</label>
-    <select class="field" id="fCat">${CATS.map(c=>`<option value="${c.k}"${c.k===l.cat?" selected":""}>${esc(c.name)}</option>`).join("")}</select>
-    <label>Motif</label>
-    <input class="field" id="fLab" value="${esc(l.label)}" list="labelsDL" autocomplete="off" placeholder="ex. Électricité">
-    <label>Montant</label>
-    <div class="amtrow"><input class="field num" id="fAmt" inputmode="decimal" value="${l.amt===""?"":esc(NF2.format(Math.abs(l.amt)).replace(/[\s ]/g," "))}" placeholder="0">
+  let cat = l.cat;
+  const sign = isNew ? CAT[cat].sign : (Number(l.amt)<0 ? -1 : (Number(l.amt)>0 ? 1 : CAT[cat].sign));
+  modal(`<h2>${isNew?"Nouvelle ligne":"Modifier la ligne"}</h2><div class="sub">${esc(mLabel(isNew?ui.month:l.m))}</div>
+    <div class="amtbox"><input id="fAmt" inputmode="decimal" value="${esc(fmtInput(l.amt))}" placeholder="0" aria-label="Montant" autocomplete="off">
       <div class="seg" id="fCur"><button data-v="XPF" class="${l.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${l.cur==="EUR"?"on":""}">€</button></div></div>
-    <div class="hint" id="fConv"></div>
-    <label>Sens</label>
-    <div class="seg" id="fSign"><button data-v="-1" class="${sign<0?"on":""}">Sortie</button><button data-v="1" class="${sign>0?"on":""}">Rentrée</button></div>
+    <div class="conv" id="fConv"></div>
+    <div class="seg" id="fSign" style="margin-top:8px"><button data-v="-1" class="${sign<0?"on":""}">Sortie</button><button data-v="1" class="${sign>0?"on":""}">Rentrée</button></div>
+    <label>Catégorie</label>
+    <div class="catpick" id="fCat">${CATS.map(c=>`<button data-v="${c.k}" style="--cc:${cc(c.k)}" class="${c.k===cat?"on":""}"><i></i>${esc(c.name)}</button>`).join("")}</div>
+    <label for="fLab">Motif</label>
+    <input class="field" id="fLab" value="${esc(l.label)}" list="labelsDL" autocomplete="off" placeholder="Par exemple : Électricité">
     <div class="row2">
-      <div><label>Jour du mois</label><input class="field" id="fDay" inputmode="numeric" value="${l.day||""}" placeholder="--"></div>
-      <div><label>Compte</label><select class="field" id="fAcc">${accOptions(l.acc)}</select></div>
+      <div><label for="fDay">Jour du mois</label><input class="field" id="fDay" inputmode="numeric" value="${l.day||""}" placeholder="—"></div>
+      <div><label for="fAcc">Compte</label><select class="field" id="fAcc">${accOptions(l.acc)}</select></div>
     </div>
     <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
-    <label class="chkline"><input type="checkbox" id="fDone" ${l.done?"checked":""}> Passé (compte dans le total réel)</label>
-    <div class="actions">${isNew?"":`<button class="btn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
-      <button class="btn ghost" id="fCancel">Annuler</button><button class="btn" id="fOk">Enregistrer</button></div>`,
+    <label class="switch"><span>Déjà passé</span><input type="checkbox" id="fDone" ${l.done?"checked":""}></label>
+    <div class="actions">${isNew?"":`<button class="linkbtn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
+      <button class="linkbtn" id="fCancel">Annuler</button><button class="btn" id="fOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
   (bd, close)=>{
     const q = s=>bd.querySelector(s);
     const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign");
-    const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "≈ "+fmtF(n*rate())+" (1 € = "+NF2.format(rate())+" F)" : ""; };
+    const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
+    const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
     q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
-    q("#fCat").onchange=()=>{ if(isNew){ const s=CAT[q("#fCat").value].sign; q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); } };
+    q("#fCat").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; cat=b.dataset.v;
+      q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); if(isNew) setSign(CAT[cat].sign); });
+    q("#fLab").addEventListener("change", ()=>{ // reprend les infos de la dernière ligne au même motif
+      if(!isNew || q("#fAmt").value.trim()) return;
+      const prev = live(S.data.lines).filter(x=>norm(x.label)===norm(q("#fLab").value)).sort((a,b)=>(b.m+b.ord).localeCompare(a.m+a.ord))[0];
+      if(!prev) return;
+      q("#fAmt").value=fmtInput(prev.amt); q("#fCur").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===prev.cur)); q("#fCur").dataset.v=prev.cur;
+      setSign(Number(prev.amt)<0?-1:1); if(prev.day) q("#fDay").value=prev.day;
+      if(prev.acc){ q("#fAcc").innerHTML=accOptions(prev.acc); }
+      cat=prev.cat; q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x.dataset.v===cat)); conv();
+    });
     q("#fAcc").onchange=()=>{ q("#fAccNew").classList.toggle("hidden", q("#fAcc").value!=="__new"); if(q("#fAcc").value==="__new") q("#fAccNew").focus(); };
     q("#fCancel").onclick=close;
-    if(!isNew) q("#fDel").onclick=()=>{ if(!confirm("Supprimer « "+(l.label||"cette ligne")+" » ?")) return; l.deleted=true; l.updatedAt=Date.now(); touch(); close(); render(); };
-    q("#fOk").onclick=()=>{
+    if(!isNew) q("#fDel").onclick=()=>{ close(); removeWithUndo(l, "« "+(l.label||"Ligne")+" » supprimée"); };
+    const save=()=>{
       const n = parseNum(q("#fAmt").value);
-      if(isNaN(n)) return toast("Montant invalide");
+      if(isNaN(n)){ q("#fAmt").focus(); return toast("Indique un montant"); }
       const day = parseInt(q("#fDay").value,10);
       let acc = q("#fAcc").value; if(acc==="__new") acc = ensureAccount(q("#fAccNew").value);
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
-      Object.assign(rec, {cat:q("#fCat").value, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
+      Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, done:q("#fDone").checked, updatedAt:Date.now()});
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
-      touch(); close(); render();
+      touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
     };
-    if(isNew) setTimeout(()=>q("#fLab").focus(), 60);
+    q("#fOk").onclick=save;
+    bd.querySelectorAll("input.field, #fAmt").forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter" && i.id!=="fLab"){ e.preventDefault(); save(); } }));
+    if(isNew) setTimeout(()=>q("#fAmt").focus(), 80);
   });
 }
 
 /* ---------- Épargne ---------- */
 const savingsList = () => live(S.data.savings).sort((a,b)=>(a.ord||0)-(b.ord||0));
+function balanceChart(points){
+  if(points.length<2) return "";
+  const W=640, H=150, P=8, min=Math.min(0,...points), max=Math.max(...points,1);
+  const x=i=>P+i*(W-2*P)/(points.length-1), y=v=>P+(H-2*P)*(1-(v-min)/((max-min)||1));
+  let d=`M${x(0)},${y(points[0])}`; points.forEach((v,i)=>{ if(i) d+=`H${x(i)}V${y(v)}`; });
+  const area = d+`V${y(Math.max(min,0))}H${x(0)}Z`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:110px" aria-hidden="true">
+    <path d="${area}" fill="color-mix(in srgb, var(--c-epa) 16%, transparent)"/>
+    ${min<0?`<line x1="0" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="var(--rule)" stroke-dasharray="4 4"/>`:""}
+    <path d="${d}" fill="none" stroke="var(--c-epa)" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+  </svg>`;
+}
 function renderSavings(){
-  const L = savingsList(); let bal=0;
-  const rows = L.map(s=>{ const v=xpf(s); bal+=v; return `<div class="sv" data-sav="${s.id}">
-      <div class="main"><div class="lab" style="font-weight:500">${esc(s.label||"(sans libellé)")}</div>
-        <div class="ln" style="padding:0;border:0"><div class="meta">${s.date?`<span>${esc(s.date)}</span>`:""}${accPill(s.acc)}</div></div></div>
-      <div style="text-align:right"><div class="num${v>0?" plus":""}" style="font-weight:600">${fmtF(v,true)}</div>${s.cur==="EUR"?`<div class="bal num">${fmtE(s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(bal)}</div></div>
+  const L = savingsList(); let bal=0; const pts=[0];
+  const rows = L.map(s=>{ const v=xpf(s); bal+=v; pts.push(bal); return `<div class="sv" data-sav="${s.id}">
+      <div class="main"><div class="lab">${esc(s.label||"Sans motif")}</div>
+        <div class="meta">${s.date?`<span>${esc(s.date)}</span>`:""}${accPill(s.acc)}</div></div>
+      <div class="r"><div class="num${v>0?" pos":""}" style="font-weight:600">${fmtF(v,true)}</div>${s.cur==="EUR"?`<div class="bal num">${fmtE(s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(bal)}</div></div>
     </div>`; }).join("");
   const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); }
-  $("savingsBody").innerHTML = `<div class="card">
-      <div class="sh">Total épargne</div>
-      <div style="font-size:30px;font-weight:700" class="num${bal<0?" neg":""}">${fmtF(bal)}</div>
+  $("savingsBody").innerHTML = `<div class="ydesk"><div>
+    <div class="hero">
+      <div class="lead">Épargne disponible</div>
+      <div class="big${bal<0?" neg":""}">${fmtF(bal).replace(/ F$/,"")}<small>F</small></div>
+      ${balanceChart(pts)}
       ${Object.keys(byAcc).length>1?Object.entries(byAcc).map(([n,v])=>`<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>`).join(""):""}
-    </div>
-    <div class="card" style="padding:0;margin-top:12px;overflow:hidden">${rows || `<div class="empty">Aucun mouvement. Ajoute ton épargne actuelle avec le bouton +.</div>`}</div>
-    <div class="hint" style="text-align:center">Le solde se cumule ligne après ligne, comme le « Sous total » de l'Excel.</div>`;
+    </div></div>
+    <div><div class="list">${rows || `<div class="empty">Aucun mouvement pour l'instant. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
+    <div class="hint" style="text-align:center;margin-top:10px">Le solde se cumule ligne après ligne, comme le « Sous total » de ton Excel.</div></div></div>`;
 }
 function openSaving(s){
   const isNew=!s;
   s = s || {label:"", amt:"", cur:"XPF", date:"", acc:""};
   const sign = Number(s.amt)<0 ? -1 : 1;
-  modal(`<h2>${isNew?"Mouvement d'épargne":"Modifier le mouvement"}</h2>
-    <label>Motif</label><input class="field" id="gLab" value="${esc(s.label)}" placeholder="ex. Épargne mai, Impôt 2026…">
-    <label>Montant</label>
-    <div class="amtrow"><input class="field num" id="gAmt" inputmode="decimal" value="${s.amt===""?"":esc(NF2.format(Math.abs(s.amt)).replace(/[\s ]/g," "))}" placeholder="0">
+  modal(`<h2>${isNew?"Nouveau mouvement":"Modifier le mouvement"}</h2><div class="sub" style="text-transform:none">Épargne</div>
+    <div class="amtbox"><input id="gAmt" inputmode="decimal" value="${esc(fmtInput(s.amt))}" placeholder="0" aria-label="Montant" autocomplete="off">
       <div class="seg" id="gCur"><button data-v="XPF" class="${s.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${s.cur==="EUR"?"on":""}">€</button></div></div>
-    <label>Sens</label>
-    <div class="seg" id="gSign"><button data-v="1" class="${sign>0?"on":""}">Ajout</button><button data-v="-1" class="${sign<0?"on":""}">Retrait</button></div>
+    <div class="seg" id="gSign" style="margin-top:12px"><button data-v="1" class="${sign>0?"on":""}">Je mets de côté</button><button data-v="-1" class="${sign<0?"on":""}">Je retire</button></div>
+    <label for="gLab">Motif</label><input class="field" id="gLab" value="${esc(s.label)}" placeholder="Par exemple : Épargne de mai">
     <div class="row2">
-      <div><label>Date</label><input class="field" id="gDate" value="${esc(s.date)}" placeholder="jj/mm"></div>
-      <div><label>Compte</label><select class="field" id="gAcc">${accOptions(s.acc)}</select></div>
+      <div><label for="gDate">Date</label><input class="field" id="gDate" value="${esc(s.date)}" placeholder="jj/mm"></div>
+      <div><label for="gAcc">Compte</label><select class="field" id="gAcc">${accOptions(s.acc)}</select></div>
     </div>
     <input class="field hidden" id="gAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
-    <div class="actions">${isNew?"":`<button class="btn danger" id="gDel">Supprimer</button>`}<span class="spacer"></span>
-      <button class="btn ghost" id="gCancel">Annuler</button><button class="btn" id="gOk">Enregistrer</button></div>`,
+    <div class="actions">${isNew?"":`<button class="linkbtn danger" id="gDel">Supprimer</button>`}<span class="spacer"></span>
+      <button class="linkbtn" id="gCancel">Annuler</button><button class="btn" id="gOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
   (bd, close)=>{
     const q = x=>bd.querySelector(x);
     const cur=segBind(bd,"gCur"), sg=segBind(bd,"gSign");
     q("#gAcc").onchange=()=>{ q("#gAccNew").classList.toggle("hidden", q("#gAcc").value!=="__new"); };
     q("#gCancel").onclick=close;
-    if(!isNew) q("#gDel").onclick=()=>{ if(!confirm("Supprimer ce mouvement ?")) return; s.deleted=true; s.updatedAt=Date.now(); touch(); close(); render(); };
+    if(!isNew) q("#gDel").onclick=()=>{ close(); removeWithUndo(s, "Mouvement supprimé"); };
     q("#gOk").onclick=()=>{
-      const n=parseNum(q("#gAmt").value); if(isNaN(n)) return toast("Montant invalide");
+      const n=parseNum(q("#gAmt").value); if(isNaN(n)){ q("#gAmt").focus(); return toast("Indique un montant"); }
       let acc=q("#gAcc").value; if(acc==="__new") acc=ensureAccount(q("#gAccNew").value);
       const rec = isNew ? {id:uid(), ord:Date.now()} : s;
       Object.assign(rec, {label:q("#gLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(), date:q("#gDate").value.trim(), acc, updatedAt:Date.now()});
       if(isNew) S.data.savings.push(rec);
-      touch(); close(); render();
+      touch(); close(); render(); toast(isNew?"Mouvement ajouté":"Mouvement enregistré");
     };
-    if(isNew) setTimeout(()=>q("#gLab").focus(), 60);
+    if(isNew) setTimeout(()=>q("#gAmt").focus(), 80);
   });
 }
 
 /* ---------- Année ---------- */
+function yearChart(y, Cmap){
+  const W=640, H=190, top=22, bot=26, n=12, gw=(W-8)/n, bw=Math.min(30, gw*.6);
+  const vals = Array.from({length:12},(_,i)=>{ const m=y+"-"+String(i+1).padStart(2,"0"); return Cmap[m] ? Cmap[m].restant : null; });
+  const ex = vals.filter(v=>v!=null);
+  const max=Math.max(1,...ex), min=Math.min(0,...ex), span=(max-min)||1;
+  const yy=v=>top+(H-top-bot)*(1-(v-min)/span), z=yy(0);
+  const k = v => { const a=Math.abs(v); return (v<0?"−":"")+(a>=1e6?NF2.format(Math.round(a/1e5)/10)+" M":a>=1000?NF0.format(Math.round(a/1000))+" k":NF0.format(a)); };
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Reste à vivre par mois">
+    <line x1="4" x2="${W-4}" y1="${z}" y2="${z}" stroke="var(--rule)" stroke-width="1.5"/>
+    ${vals.map((v,i)=>{ const cx=4+gw*i+gw/2, m=y+"-"+String(i+1).padStart(2,"0");
+      const lab=`<text x="${cx}" y="${H-6}" text-anchor="middle">${MOIS_C[i].slice(0,1).toUpperCase()}</text>`;
+      if(v==null) return `<circle cx="${cx}" cy="${z}" r="2.5" fill="var(--rule)"/>`+lab;
+      const y1=Math.min(yy(v),z), h=Math.max(2,Math.abs(yy(v)-z));
+      return `<g class="bar" data-month="${m}"><title>${esc(capF(mLabel(m)))} : ${fmtF(v)}</title><rect x="${cx-bw/2}" y="${y1}" width="${bw}" height="${h}" rx="5" fill="${v<0?"var(--neg)":"var(--accent)"}"/>
+        <text x="${cx}" y="${v<0?y1+h+13:y1-6}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${k(v)}</text></g>`+lab; }).join("")}
+  </svg>`;
+}
 function renderYear(){
   const y=String(ui.year);
   const ms = allMonths().filter(m=>m.startsWith(y+"-"));
   if(!ms.length){ $("yearBody").innerHTML=`<div class="empty">Aucun budget en ${esc(y)}.</div>`; return; }
-  const Cs = ms.map(m=>[m, calc(m)]);
-  const sum = k => Cs.reduce((s,[,C])=>s+C[k],0);
-  const maxAbs = Math.max(1, ...Cs.map(([,C])=>Math.abs(C.restant)));
-  $("yearBody").innerHTML = `<div class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      <div class="kpi"><div class="k">Rentrées</div><div class="v num plus">${fmtF(sum("inc"))}</div></div>
-      <div class="kpi"><div class="k">Sorties</div><div class="v num">${fmtF(sum("exp"))}</div></div>
-      <div class="kpi"><div class="k">Restant (avec except.)</div><div class="v num${sum("restantExc")<0?" neg":""}">${fmtF(sum("restantExc"))}</div></div>
+  const Cmap = Object.fromEntries(ms.map(m=>[m, calc(m)]));
+  const sum = k => ms.reduce((s,m)=>s+Cmap[m][k],0);
+  $("yearBody").innerHTML = `<div class="ydesk"><div class="hero">
+      <div class="lead">Reste à vivre cumulé en ${esc(y)}</div>
+      <div class="big${sum("restant")<0?" neg":""}">${fmtF(sum("restant")).replace(/ F$/,"")}<small>F</small></div>
+      <div class="pace">${fmtF(sum("restantExc"))} avec l'exceptionnel, sur ${ms.length} mois</div>
+      ${yearChart(y, Cmap)}
     </div>
-    <div class="stack ygrid">${Cs.map(([m,C])=>`<div class="card mcard" data-month="${m}">
-      <div class="mh"><span class="mn">${esc(MOIS[Number(m.slice(5))-1])}</span><span class="num${C.restant<0?" neg":""}" style="font-weight:700">${fmtF(C.restant)}</span></div>
-      <div class="bar"><div style="width:${Math.round(Math.abs(C.restant)/maxAbs*100)}%;${C.restant<0?"background:var(--danger)":""}"></div></div>
-      <div class="grid3">
-        <div><div class="k">Rentrées</div><div class="num plus">${fmtF(C.inc)}</div></div>
-        <div><div class="k">Sorties</div><div class="num">${fmtF(C.exp)}</div></div>
-        <div><div class="k">Avec except.</div><div class="num${C.restantExc<0?" neg":""}">${fmtF(C.restantExc)}</div></div>
-      </div></div>`).join("")}</div>
-    <div class="hint" style="text-align:center">Le grand chiffre = total restant mensuel (hors exceptionnel). Appuie sur un mois pour l'ouvrir.</div>`;
+    <div class="panel ylist">
+      <div class="yh"><span>Mois</span><span class="c-inc">Rentrées</span><span>Sorties</span><span>Reste</span></div>
+      ${ms.map(m=>{ const C=Cmap[m]; return `<div class="yr" data-month="${m}"><span class="m">${esc(monthName(m))}</span><span class="c c-inc num pos">${fmtF(C.inc)}</span><span class="c num">${fmtF(C.exp)}</span><span class="c num${C.restant<0?" neg":""}" style="font-weight:700">${fmtF(C.restant)}</span></div>`; }).join("")}
+      <div class="yr" style="cursor:default"><span class="m">Total</span><span class="c c-inc num pos">${fmtF(sum("inc"))}</span><span class="c num">${fmtF(sum("exp"))}</span><span class="c num" style="font-weight:700">${fmtF(sum("restant"))}</span></div>
+    </div></div>
+    <div class="hint" style="text-align:center">Touche un mois pour l'ouvrir. « Reste » est hors exceptionnel, comme dans ton Excel.</div>`;
 }
 
 /* ---------- Réglages ---------- */
@@ -1107,22 +1313,23 @@ $("forgetBtn").onclick=forget; $("forgetBtn2").onclick=forget;
 $("lockNow").onclick=()=>lock(true);
 $("gearBtn").onclick=()=>setTab(ui.tab==="settings"?"month":"settings");
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-$("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else if(monthExists(ui.month)) openLine(null, "fix"); else toast("Crée d'abord le budget du mois"); };
-$("prevP").onclick=()=>{ if(ui.tab==="year") ui.year--; else ui.month=mShift(ui.month,-1); render(); };
-$("nextP").onclick=()=>{ if(ui.tab==="year") ui.year++; else ui.month=mShift(ui.month,1); render(); };
+$("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else openLine(null, "fix"); };
+function shiftPeriod(d){ if(ui.tab==="year") ui.year+=d; else ui.month=mShift(ui.month,d); render(); }
+$("prevP").onclick=()=>shiftPeriod(-1);
+$("nextP").onclick=()=>shiftPeriod(1);
 $("periodLbl").onclick=()=>{
-  if(ui.tab==="year") return;
+  if(!["month","synth"].includes(ui.tab)) return;
   const ms = allMonths(); const t=thisMonth();
   modal(`<h2>Choisir un mois</h2>
-    <div class="mlist">${(ms.includes(t)?"":`<button data-pick="${t}">${esc(mLabel(t))}<span class="hint">ce mois-ci · à créer</span></button>`)+ms.slice().reverse().map(m=>`<button data-pick="${m}" class="${m===ui.month?"on":""}">${esc(mLabel(m))}<span class="hint">${monthLines(m).length} lignes</span></button>`).join("")}</div>
-    <label>Ou un autre mois</label><input class="field" type="month" id="pickM" value="${ui.month}">
-    <div class="actions"><span class="spacer"></span><button class="btn" id="pickOk">Ouvrir</button></div>`,
+    <div class="mlist">${(ms.includes(t)?"":`<button data-pick="${t}">${esc(mLabel(t))}<span class="hint">ce mois-ci, à créer</span></button>`)+ms.slice().reverse().map(m=>`<button data-pick="${m}" class="${m===ui.month?"on":""}">${esc(mLabel(m))}<span class="hint">${m===t?"ce mois-ci, ":""}${monthLines(m).length} lignes</span></button>`).join("")}</div>
+    <label for="pickM">Un autre mois</label>
+    <div style="display:flex;gap:8px"><input class="field" type="month" id="pickM" value="${ui.month}"><button class="btn" id="pickOk">Ouvrir</button></div>`,
   (bd, close)=>{
     bd.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{ ui.month=b.dataset.pick; close(); render(); });
     bd.querySelector("#pickOk").onclick=()=>{ const v=bd.querySelector("#pickM").value; if(/^\d{4}-\d{2}$/.test(v)){ ui.month=v; close(); render(); } };
   });
 };
-$("rateIn").onchange=()=>{ const n=parseNum($("rateIn").value); if(!(n>0)) return toast("Taux invalide"); const p=S.data.prefs.find(p=>p.id==="rate"); p.value=n; p.updatedAt=Date.now(); touch(); toast("Taux enregistré : 1 € = "+NF2.format(n)+" F"); };
+$("rateIn").onchange=()=>{ const n=parseNum($("rateIn").value); if(!(n>0)) return toast("Indique un taux supérieur à 0"); const p=S.data.prefs.find(p=>p.id==="rate"); p.value=n; p.updatedAt=Date.now(); touch(); toast("Taux enregistré : 1 € = "+NF2.format(n)+" F"); };
 $("addAcc").onclick=()=>openAccount(null);
 $("xlsBtn").onclick=()=>$("xlsFile").click();
 $("xlsFile").onchange=e=>{ if(e.target.files[0]) importExcel(e.target.files[0]); e.target.value=""; };
@@ -1135,15 +1342,27 @@ $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]
 document.addEventListener("click", e=>{
   const t=e.target; let el;
   if(!S.data) return;
-  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch(); render(); } return; }
+  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch();
+      if(ui.filter==="todo" && l.done){ el.classList.add("on"); setTimeout(render, 380); } else render(); } return; }
   if(el=t.closest("[data-edit]")){ const l=S.data.lines.find(x=>x.id===el.dataset.edit); if(l) openLine(l); return; }
   if(el=t.closest("[data-add]")) return openLine(null, el.dataset.add);
+  if(el=t.closest("[data-toggle]")){ const k=el.dataset.toggle; ui.closed[k]=!ui.closed[k]; saveUI(); render(); return; }
+  if(el=t.closest("[data-filter]")){ ui.filter=el.dataset.filter; saveUI(); render(); return; }
+  if(el=t.closest("[data-copycat]")){ el.classList.toggle("on"); el.setAttribute("aria-pressed", el.classList.contains("on")); return; }
   if(el=t.closest("[data-create]")) return createMonth(ui.month, el.dataset.create||null);
-  if(el=t.closest("[data-goto]")) return setTab(el.dataset.goto);
   if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
   if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
   if(el=t.closest("[data-accedit]")){ const a=S.data.accounts.find(x=>x.id===el.dataset.accedit); if(a) openAccount(a); return; }
 });
+/* balayer à gauche / à droite pour changer de mois */
+(()=>{ let sx=0, sy=0, st=0;
+  document.querySelector("main").addEventListener("touchstart", e=>{ const p=e.touches[0]; sx=p.clientX; sy=p.clientY; st=Date.now(); }, {passive:true});
+  document.querySelector("main").addEventListener("touchend", e=>{
+    if(!["month","synth","year"].includes(ui.tab) || $("modalRoot").firstElementChild) return;
+    const p=e.changedTouches[0], dx=p.clientX-sx, dy=p.clientY-sy;
+    if(Date.now()-st<600 && Math.abs(dx)>70 && Math.abs(dy)<45) shiftPeriod(dx<0?1:-1);
+  }, {passive:true});
+})();
 matchMedia("(min-width:1000px)").addEventListener("change", ()=>{ if(S.data){ if(ui.tab==="synth" && isDesk()) setTab("month"); else render(); } });
 addEventListener("online", ()=>{ if(S.pw) sync(); });
 
