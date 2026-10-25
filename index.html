@@ -292,8 +292,13 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .pick .pr{font-size:13px;color:var(--muted)}
 .pick.sugg{box-shadow:inset 0 0 0 2px var(--accent)}
 .pick:active{filter:brightness(.95)}
-.env{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12.5px;color:var(--muted)}
-.envbar{flex:1;max-width:160px;height:5px;border-radius:3px;background:var(--rule);overflow:hidden}
+.env{margin-top:8px;font-size:13px;color:var(--muted)}
+.env b{color:var(--ink);font-weight:600}
+.envbar{height:8px;border-radius:4px;background:var(--rule);overflow:hidden;margin-bottom:5px}
+.spbox{background:var(--accent-soft);border-radius:16px;padding:12px;margin-top:12px}
+.spbox .hint{margin-top:6px}
+.spadd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto;gap:8px}
+@media (max-width:420px){.spadd{grid-template-columns:minmax(0,1fr) auto}.spadd #sLab{grid-column:1/-1;grid-row:2}}
 .envbar div{height:100%;border-radius:3px}
 .spends{background:var(--paper);border-radius:14px;padding:2px 12px}
 .spends .sp{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);font-size:15px}
@@ -969,7 +974,8 @@ function lineHTML(l){
   const v=xpf(l), sp=lineSpends(l.id);
   let env="";
   if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
-    env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div><span class="${over?"neg":""}">${over?"dépassé de "+fmtF(v-t).replace("−",""):"reste "+fmtF(t-v).replace("−","")}</span></div>`; }
+    const ab = n => fmtF(Math.abs(n));
+    env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>${ab(t)} dépensés sur ${ab(v)}, ${over?`<b class="neg">dépassé de ${ab(v-t)}</b>`:`<b>reste ${ab(t-v)}</b>`}</div>`; }
   const meta = [dayInfo(l), accPill(l.acc), l.mode?`<span>${esc(modeLabel(l.mode).toLowerCase())}</span>`:"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
   return `<div class="ln${l.done?" done":""}">
     <button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>
@@ -1067,6 +1073,10 @@ function openLine(l, catK){
   let cat = l.cat;
   const sign = isNew ? CAT[cat].sign : (Number(l.amt)<0 ? -1 : (Number(l.amt)>0 ? 1 : CAT[cat].sign));
   modal(`<h2>${isNew?"Nouvelle ligne":"Modifier la ligne"}</h2><div class="sub">${esc(mLabel(isNew?ui.month:l.m))}</div>
+    ${!isNew && xpf(l)<0 ? `<div class="spbox"><label for="sAmt" style="margin-top:0">Ajouter une dépense sur cette ligne</label>
+      <div class="spadd"><input class="field" id="sAmt" inputmode="decimal" placeholder="Montant F" autocomplete="off"><input class="field" id="sLab" placeholder="Où ? (facultatif)" autocomplete="off"><button class="btn" id="sAdd">Déduire</button></div>
+      <div class="hint">Pour un paiement en espèces ou par carte sans Apple Pay. Il se déduit des ${fmtF(Math.abs(xpf(l)))} prévus, sans changer ton reste à vivre.</div></div>` : ""}
+    ${!isNew && xpf(l)<0 ? `<label style="margin-top:16px">Montant prévu</label>` : ""}
     <div class="amtbox"><input id="fAmt" inputmode="decimal" value="${esc(fmtInput(l.amt))}" placeholder="0" aria-label="Montant" autocomplete="off">
       <div class="seg" id="fCur"><button data-v="XPF" class="${l.cur!=="EUR"?"on":""}">F</button><button data-v="EUR" class="${l.cur==="EUR"?"on":""}">€</button></div></div>
     <div class="conv" id="fConv"></div>
@@ -1107,6 +1117,12 @@ function openLine(l, catK){
     q("#fCancel").onclick=close;
     if(!isNew) q("#fDel").onclick=()=>{ close(); removeWithUndo(l, "« "+(l.label||"Ligne")+" » supprimée"); };
     bd.querySelectorAll("[data-unspend]").forEach(b=>b.onclick=()=>{ close(); unspend(b.dataset.unspend); });
+    if(q("#sAdd")){ const add=()=>{ const n=parseNum(q("#sAmt").value); if(!(n>0)){ q("#sAmt").focus(); return toast("Indique le montant dépensé"); }
+        const now=Date.now(), sp={id:uid(), lineId:l.id, m:l.m, amt:-Math.abs(n), cur:"XPF", merchant:q("#sLab").value.trim()||"Dépense", at:new Date().toISOString(), acc:l.acc, src:"manuel", updatedAt:now};
+        S.data.spends.push(sp); touch(); close(); render();
+        const left = xpf(l) - spentOf(l.id);
+        toast(`${fmtF(n)} déduits de « ${l.label} », ${left<=0?"reste "+fmtF(-left):"dépassé de "+fmtF(left)}`, {label:"Annuler", fn:()=>{ sp.deleted=true; sp.updatedAt=Date.now(); touch(); render(); }}); };
+      q("#sAdd").onclick=add; q("#sAmt").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } }); }
     const save=()=>{
       const n = parseNum(q("#fAmt").value);
       if(isNaN(n)){ q("#fAmt").focus(); return toast("Indique un montant"); }
@@ -1119,7 +1135,7 @@ function openLine(l, catK){
       touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
     };
     q("#fOk").onclick=save;
-    bd.querySelectorAll("input.field, #fAmt").forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter" && i.id!=="fLab"){ e.preventDefault(); save(); } }));
+    bd.querySelectorAll("input.field, #fAmt").forEach(i=>i.addEventListener("keydown", e=>{ if(e.key==="Enter" && !["fLab","sAmt","sLab"].includes(i.id)){ e.preventDefault(); save(); } }));
     if(isNew) setTimeout(()=>q("#fAmt").focus(), 80);
   });
 }
@@ -1251,6 +1267,7 @@ function spendsHTML(l){
 function unspend(id){
   const s=S.data.spends.find(x=>x.id===id); if(!s) return; const now=Date.now();
   s.deleted=true; s.updatedAt=now;
+  if(s.src==="manuel"){ touch(); render(); toast("Dépense retirée", {label:"Annuler", fn:()=>{ s.deleted=false; s.updatedAt=Date.now(); touch(); render(); }}); return; }
   const p=S.data.pending.find(x=>x.id===s.src); if(p){ p.deleted=false; p.updatedAt=now; }
   else S.data.pending.push({id:"p:retour-"+uid(), merchant:s.merchant, amt:s.amt, cur:s.cur, at:s.at, card:"", updatedAt:now});
   touch(); render(); toast("Paiement remis à classer");
