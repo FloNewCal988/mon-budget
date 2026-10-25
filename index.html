@@ -378,6 +378,11 @@ nav.tabs button{position:relative}
 .proj .ptag{font-size:12px;font-weight:600;color:var(--c-epa);background:color-mix(in srgb,var(--c-epa) 16%,transparent);border-radius:99px;padding:2px 8px}
 .simres{margin-top:12px;font-size:15px;line-height:1.45;background:var(--surface);border-radius:12px;padding:10px 12px}
 .simres:empty{display:none}
+.srow.sub{border-top:0;padding:3px 0 3px 18px;font-size:14px}
+.srow.sub .k{color:var(--muted)}
+.srow.sub .k::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rule);margin-right:4px}
+.srow.sub .v{font-weight:500}
+.srow.sub:last-of-type{padding-bottom:9px}
 </style>
 </head>
 <body>
@@ -1756,14 +1761,22 @@ function renderSavings(){
       <div class="r"><div class="num${x.v>0?" pos":""}" style="font-weight:600${counted?"":";opacity:.6"}">${fmtF(x.v,true)}</div>${counted?`<div class="bal num">solde ${fmtF(bal)}</div>`:""}</div></div>`; };
   const autoRows = Bdone.map(x=>autoRow(x,true)).join("");
   const todoRows = Btodo.map(x=>autoRow(x,false)).join("");
-  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); } for(const x of Bdone){ byAcc[x.acc] = (byAcc[x.acc]||0) + x.v; }
+  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); } for(const x of Bdone){ byAcc[x.acc||"—"] = (byAcc[x.acc||"—"]||0) + x.v; }
+  // part de chaque projet (en cours) sur chaque compte
+  const openP = new Set(projectsList().filter(x=>!x.paid).map(x=>x.id)), byAP = {};
+  const addP = (acc, pid, v) => { if(!pid || !openP.has(pid)) return; const a=byAP[acc||"—"] ||= {}; a[pid]=(a[pid]||0)+v; };
+  for(const s of L) addP(s.acc, s.proj, xpf(s)); for(const x of Bdone) addP(x.acc, x.l.proj, x.v);
+  const accRows = Object.entries(byAcc).map(([n,v])=>{ const P=Object.entries(byAP[n]||{}).filter(([,a])=>Math.round(a)!==0);
+    const sub = P.length ? P.map(([pid,a])=>`<div class="srow sub"><span class="k">${esc(projById(pid).name)}</span><span class="v num">${fmtF(a)}</span></div>`).join("")
+      + `<div class="srow sub"><span class="k">Libre</span><span class="v num${v-P.reduce((t,[,a])=>t+a,0)<0?" neg":""}">${fmtF(v-P.reduce((t,[,a])=>t+a,0))}</span></div>` : "";
+    return `<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>${sub}`; }).join("");
   $("savingsBody").innerHTML = `<div class="ydesk"><div>
     <div class="hero">
       <div class="lead">Épargne disponible</div>
       <div class="big${bal<0?" neg":""}">${fmtF(bal).replace(/ F$/,"")}<small>F</small></div>
       ${(()=>{ const res=projectsList().filter(x=>!x.paid).reduce((t,x)=>t+Math.max(0,projSaved(x)),0); return res>0?`<div class="pace">dont <b class="num">${fmtF(res)}</b> réservés pour tes projets, <b class="num${bal-res<0?" neg":""}">${fmtF(bal-res)}</b> libres</div>`:""; })()}
       ${balanceChart(pts)}
-      ${Object.keys(byAcc).length>1?Object.entries(byAcc).map(([n,v])=>`<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>`).join(""):""}
+      ${Object.keys(byAcc).length>1 || Object.keys(byAP).length ? accRows : ""}
     </div></div>
     <div>${projectsHTML()}<div class="gh" style="cursor:default"><span class="t">Mouvements saisis</span></div>
     <div class="list">${rows || `<div class="empty">Aucun mouvement saisi. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
