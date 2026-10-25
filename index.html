@@ -381,6 +381,11 @@ nav.tabs button{position:relative}
     <section id="tab-settings" class="hidden">
       <div class="stack">
         <div class="card">
+          <strong>Enveloppes</strong>
+          <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
+          <div class="chips" id="envChips"></div>
+        </div>
+        <div class="card">
           <strong>Jour de paie habituel</strong>
           <label for="payIn">Ma paie arrive en général le</label>
           <div style="display:flex;gap:8px;align-items:center"><input class="field" id="payIn" inputmode="numeric" style="max-width:110px"><span class="hint" style="margin:0">du mois précédent</span></div>
@@ -1093,6 +1098,7 @@ function openLine(l, catK){
     <label>Mode de paiement</label>
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     ${isNew?"":spendsHTML(l)}
+    ${CAT[l.cat]?.sign<0 || isNew ? `<label class="switch"><span>Enveloppe<br><span class="hint" style="margin:0">dépenses au fil du mois (repas, courses, essence…)</span></span><input type="checkbox" id="fEnv" ${!isNew && isEnv(l)?"checked":""}></label>` : ""}
     <label class="switch"><span>Déjà passé</span><input type="checkbox" id="fDone" ${l.done?"checked":""}></label>
     <div class="actions">${isNew?"":`<button class="linkbtn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
       <button class="linkbtn" id="fCancel">Annuler</button><button class="btn" id="fOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
@@ -1131,6 +1137,7 @@ function openLine(l, catK){
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
+      if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
       touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
     };
@@ -1197,6 +1204,10 @@ const monthOfIso = iso => { const d=new Date(iso); return isNaN(d) ? ui.month : 
 const ruleOf = merchant => S.data.prefs.find(p=>p.id==="rule:"+norm(merchant) && !p.deleted);
 const cardAcc = card => { const p=S.data.prefs.find(x=>x.id==="card:"+norm(card) && !x.deleted); if(p) return p.value;
   const n=norm(card); if(/nouvelle.?caledonie|bnc/.test(n)) return (accounts().find(a=>a.name==="BNC")||{}).name||""; if(/populaire|banque ?pop/.test(n)) return (accounts().find(a=>a.name==="Banque Pop")||{}).name||""; if(/revolut/.test(n)) return (accounts().find(a=>a.name==="Revolut")||{}).name||""; return ""; };
+const envKey = label => "env:"+norm(label);
+const isEnv = l => { const p=S.data.prefs.find(x=>x.id===envKey(l.label) && !x.deleted); return !!(p && p.value); };
+const setEnv = (label, on) => setPref(envKey(label), !!on);
+const anyEnv = () => S.data.prefs.some(x=>x.id.startsWith("env:") && !x.deleted && x.value);
 function setPref(id, value){ const now=Date.now(); const p=S.data.prefs.find(x=>x.id===id); if(p){ p.value=value; p.deleted=false; p.updatedAt=now; } else S.data.prefs.push({id, value, updatedAt:now}); }
 
 function pendingBanner(){
@@ -1205,14 +1216,16 @@ function pendingBanner(){
   return `<button class="inboxbar" id="openInbox"><span class="ib-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></svg></span>
     <span class="ib-t"><b>${n} paiement${n>1?"s":""} à classer</b><span>${n>1?`${fmtF(tot)} au total`:`${esc(P[0].merchant)}, ${fmtF(tot)}`}</span></span><span class="ib-go">Classer</span></button>`;
 }
-function openInbox(mSel){
+function openInbox(mSel, showAll){
   const P = pendingList(); if(!P.length){ toast("Aucun paiement à classer"); return; }
   const p = P[0], m0 = monthOfIso(p.at), v = (p.amt==null || isNaN(p.amt)) ? NaN : xpf(p), rule = norm(p.merchant)==="paiement" ? null : ruleOf(p.merchant);
   const hasLines = x => monthLines(x).some(l=>xpf(l)<0);
   // mois proposé : celui du paiement, sinon le plus proche qui a un budget (utile juste avant ou après la paie)
   const m = mSel || (hasLines(m0) ? m0 : [mShift(m0,1), mShift(m0,-1)].find(hasLines) || m0);
   const choices = [mShift(m0,-1), m0, mShift(m0,1)].filter(x=>x===m0 || x===m || hasLines(x));
-  const lines = monthLines(m).filter(l=>xpf(l)<0);
+  const allLines = monthLines(m).filter(l=>xpf(l)<0);
+  const envMode = anyEnv() && !showAll && allLines.some(isEnv);
+  const lines = envMode ? allLines.filter(isEnv) : allLines;
   const ruleLine = rule && rule.value.type==="line" ? lines.find(l=>norm(l.label)===norm(rule.value.label) && l.cat===rule.value.cat) : null;
   // en premier : la ligne de la dernière fois, puis les enveloppes déjà utilisées, puis les lignes pas encore passées hors prélèvements
   const order = l => l===ruleLine ? 0 : lineSpends(l.id).length ? 1 : (!l.done && l.mode!=="prelevement" && !/prelevement/.test(norm(l.acc))) ? 2 : 3;
@@ -1230,8 +1243,10 @@ function openInbox(mSel){
       rule && rule.value.type==="new" ? `<button class="btn block" style="margin-top:16px" data-pickcat="${rule.value.cat}">Nouvelle ligne en ${esc(CAT[rule.value.cat].name)} comme la dernière fois</button>`:""}
     ${choices.length>1?`<label>Classer dans le budget de</label><div class="seg" id="iMonth">${choices.map(x=>`<button data-pickmonth="${x}" class="${x===m?"on":""}">${esc(capF(monthName(x)))}</button>`).join("")}</div>
       ${m!==m0?`<div class="hint">Le paiement date du ${esc(fmtD(new Date(p.at)))}, qui tombe dans la période ${esc(monthName(m0)==="avril"||monthName(m0)==="août"||monthName(m0)==="octobre"?"d'"+monthName(m0):"de "+monthName(m0))}.</div>`:""}`:""}
-    <label>Déduire d'une ligne prévue en ${esc(monthName(m))}</label>
-    ${sorted.length?`<div class="picks">${sorted.map(lineBtn).join("")}</div>`:`<div class="hint" style="margin-top:0">Pas encore de budget en ${esc(monthName(m))} : ajoute le paiement comme nouvelle ligne, ou crée d'abord le budget du mois.</div>`}
+    <label>Déduire ${envMode?"d'une enveloppe":"d'une ligne prévue"} en ${esc(monthName(m))}</label>
+    ${sorted.length?`<div class="picks">${sorted.map(lineBtn).join("")}</div>
+      ${envMode?`<button class="linkbtn" id="iAll" style="padding-left:0">Afficher toutes les lignes (${allLines.length})</button>`:
+        !anyEnv()?`<div class="hint">Astuce : marque tes enveloppes (Repas midi, Course…) dans Réglages pour ne voir qu'elles ici.</div>`:""}`:`<div class="hint" style="margin-top:0">Pas encore de budget en ${esc(monthName(m))} : ajoute le paiement comme nouvelle ligne, ou crée d'abord le budget du mois.</div>`}
     <label>Ou l'ajouter comme nouvelle ligne</label>
     <div class="catpick">${CATS.filter(c=>c.sign<0).map(c=>`<button data-pickcat="${c.k}" style="--cc:${cc(c.k)}"><i></i>${esc(c.name)}</button>`).join("")}</div>
     <div class="actions"><button class="linkbtn danger" id="iSkip">Ignorer ce paiement</button><span class="spacer"></span><button class="linkbtn" id="iLater">Plus tard</button></div>`,
@@ -1242,6 +1257,7 @@ function openInbox(mSel){
     function amount(){ if(!isNaN(v)) return {amt:p.amt, cur:p.cur}; const n=parseNum(q("#iAmt").value); return isNaN(n)?null:{amt:-Math.abs(n), cur:"XPF"}; }
     function account(){ const a=q("#iAcc").value; return a==="__new" ? "" : a; }
     function next(msg, undo){ close(); const rest=pendingList().length; toast(msg+(rest?` (encore ${rest} à classer)`:""), undo?{label:"Annuler", fn:()=>{ undo(); touch(); render(); }}:null); if(rest) setTimeout(openInbox, 250); }
+    if(q("#iAll")) q("#iAll").onclick=()=>{ close(); openInbox(m, true); };
     bd.querySelectorAll("[data-pickmonth]").forEach(b=>b.onclick=()=>{ if(b.dataset.pickmonth!==m){ close(); openInbox(b.dataset.pickmonth); } });
     bd.addEventListener("click", e=>{
       const bl=e.target.closest("[data-pickline]"), bc=e.target.closest("[data-pickcat]");
@@ -1387,6 +1403,9 @@ function renderYear(){
 /* ---------- Réglages ---------- */
 function renderSettings(){
   $("payIn").value = payday();
+  { const seen=new Map(); for(const l of live(S.data.lines).filter(l=>xpf(l)<0 && l.label).sort((a,b)=>b.m.localeCompare(a.m))) if(!seen.has(norm(l.label))) seen.set(norm(l.label), l);
+    const L=[...seen.values()].sort((a,b)=>(isEnv(b)-isEnv(a)) || a.label.localeCompare(b.label,"fr"));
+    $("envChips").innerHTML = L.length ? L.map(l=>`<button class="tog${isEnv(l)?" on":""}" style="--cc:${cc(l.cat)}" data-envtog="${esc(l.label)}" aria-pressed="${isEnv(l)}"><i></i>${esc(l.label)}</button>`).join("") : `<span class="hint">Aucune ligne de sortie pour l'instant.</span>`; }
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
@@ -1666,6 +1685,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-create]")) return createMonth(ui.month, el.dataset.create||null);
   if(t.closest("#openInbox")) return openInbox();
   if(el=t.closest("[data-period]")) return openPeriod(el.dataset.period);
+  if(el=t.closest("[data-envtog]")){ const lab=el.dataset.envtog, on=!el.classList.contains("on"); setEnv(lab, on); touch(); render(); toast(on?`« ${lab} » est une enveloppe`:`« ${lab} » n'est plus une enveloppe`); return; }
   if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
   if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
   if(el=t.closest("[data-accedit]")){ const a=S.data.accounts.find(x=>x.id===el.dataset.accedit); if(a) openAccount(a); return; }
