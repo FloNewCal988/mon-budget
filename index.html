@@ -633,6 +633,8 @@ function seedDefaults(){
       const parts=norm(l.label).split(/\bvers\b/); const to = l.acc || (parts[1] && find(parts[1])) || ""; let from = parts[0] && find(parts[0].replace(/^vir(ement)?/,""));
       if(!from || from===to) from = names.find(nm=>nm==="BNC" && nm!==to) || "";
       Object.assign(l, {cat:"vir", acc:from, to, amt:-Math.abs(Number(l.amt)), updatedAt:now}); } }
+  if(!d.prefs.find(p=>p.id==="mig:sav")){ d.prefs.push({id:"mig:sav", value:1, updatedAt:5}); n++;
+    for(const a of live(d.accounts)) if(/epargne|livret/.test(norm(a.name)) && !a.savings){ a.savings=true; a.updatedAt=Date.now(); } }
   if(!d.prefs.find(p=>p.id==="payday")){ d.prefs.push({id:"payday", value:27, updatedAt:2}); n++;
     // les mois déjà saisis gardent leurs dates actuelles (du 1er au dernier jour)
     for(const mid of new Set([...live(d.months).map(x=>x.id), ...live(d.lines).map(l=>l.m)])){ const r=d.months.find(x=>x.id===mid);
@@ -643,6 +645,8 @@ function seedDefaults(){
 const rate = () => Number((S.data.prefs.find(p=>p.id==="rate")||{}).value) || DEFAULT_RATE;
 const xpf = l => l.cur==="EUR" ? (Number(l.amt)||0)*rate() : (Number(l.amt)||0);
 const accounts = () => live(S.data.accounts).sort((a,b)=>(a.ord??0)-(b.ord??0)||a.name.localeCompare(b.name,"fr"));
+const isSavAcc = name => !!name && !!live(S.data.accounts).find(a=>a.name===name && a.savings);
+const savAccounts = () => accounts().filter(a=>a.savings).map(a=>a.name);
 const accColor = name => (live(S.data.accounts).find(a=>a.name===name)||{}).color || "#8A94A6";
 const monthLines = m => live(S.data.lines).filter(l=>l.m===m).sort((a,b)=>{ const da=lineDate(a), db=lineDate(b);
   if(da && db && +da!==+db) return da-db; if(!!da!==!!db) return da?-1:1; return (a.ord||0)-(b.ord||0); });
@@ -658,6 +662,10 @@ function calc(m, A){
   const acc = {}; let reel=0, inc=0, exp=0, nDone=0;
   const spent = {}; for(const sp of live(S.data.spends)) if(sp.m===m) spent[sp.lineId]=(spent[sp.lineId]||0)+xpf(sp);
   for(const l of L){
+    if(l.cat==="vir" && isSavAcc(l.to)!==isSavAcc(l.acc)){
+      const amt=Math.abs(xpf(l)), into=isSavAcc(l.to), from=into?l.acc:l.to, v=into?-amt:amt;
+      tot.epa+=v; if(v>0) inc+=v; else exp+=v;
+      const a=acc[from||"—"] ||= {prev:0, reel:0}; a.prev+=v; if(l.done){ reel+=v; a.reel+=v; nDone++; } continue; }
     if(l.cat==="vir" && A){ const val=(l.to===A?1:-1)*Math.abs(xpf(l)); tot.vir+=val; if(val>0) inc+=val; else exp+=val;
       const a=acc[A] ||= {prev:0, reel:0}; a.prev+=val; if(l.done){ reel+=val; a.reel+=val; nDone++; } continue; }
     if(l.cat==="vir"){ const amt=Math.abs(xpf(l)); tot.vir+=amt;
@@ -903,7 +911,7 @@ ui.month = null; ui.year = null;
 const TITLES = {savings:"Épargne", settings:"Réglages"};
 const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||""});
 /* comptes utilisés dans un mois (pour le sélecteur au-dessus du reste à vivre) */
-function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc) set.add(l.acc); if(l.cat==="vir" && l.to) set.add(l.to); }
+function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc && !isSavAcc(l.acc)) set.add(l.acc); if(l.cat==="vir" && l.to && !isSavAcc(l.to)) set.add(l.to); }
   const order=n=>{ const i=accounts().findIndex(a=>a.name===n); return i<0?99:i; }; return [...set].sort((a,b)=>order(a)-order(b)); }
 const viewAcc = m => monthAccounts(m).includes(ui.accView) ? ui.accView : "";
 function accSelHTML(m){
@@ -1248,7 +1256,7 @@ function openLine(l, catK){
       <div><label for="fAcc" id="fAccLab">${cat==="vir"?"Depuis le compte":"Compte"}</label><select class="field" id="fAcc">${accOptions(l.acc || (cat==="vir" ? (accounts().find(a=>a.name==="BNC")||{}).name||"" : ""))}</select></div>
     </div>
     <input class="field hidden" id="fAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
-    <div id="fToRow" style="${cat==="vir"?"":"display:none"}"><label for="fTo">Vers le compte</label><select class="field" id="fTo">${accOptions(l.to||"").replace(/<option value="__new">.*?<\/option>/,"")}</select></div>
+    <div id="fToRow" style="${cat==="vir"||cat==="epa"?"":"display:none"}"><label for="fTo" id="fToLab">Vers le compte</label><select class="field" id="fTo"></select><div class="hint" id="fToHint"></div></div>
     <label>Mode de paiement</label>
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     </section>
@@ -1265,9 +1273,14 @@ function openLine(l, catK){
     const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
     const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
     q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
-    const virUI=()=>{ const v=cat==="vir"; q("#fToRow").style.display=v?"":"none"; q("#fSign").style.display=v?"none":""; q("#fVirHint").style.display=v?"":"none"; q("#fAccLab").textContent=v?"Depuis le compte":"Compte"; };
+    const toOpts=()=>{ const cur=q("#fTo").value||l.to||"";
+      if(cat==="epa"){ const L=savAccounts(); q("#fTo").innerHTML=`<option value="">— Aucun —</option>`+L.map(n=>`<option${n===cur?" selected":""}>${esc(n)}</option>`).join("");
+        q("#fToLab").textContent="Vers le compte d'épargne (facultatif)"; q("#fToHint").textContent = L.length ? "Une fois la ligne cochée, le montant s'ajoute à l'onglet Épargne." : "Marque un compte comme « Compte d'épargne » dans Réglages pour le choisir ici."; }
+      else { q("#fTo").innerHTML=accOptions(cur).replace(/<option value="__new">.*?<\/option>/,""); q("#fToLab").textContent="Vers le compte"; q("#fToHint").textContent=""; } };
+    const virUI=()=>{ const v=cat==="vir"; q("#fToRow").style.display=(v||cat==="epa")?"":"none"; toOpts(); q("#fSign").style.display=v?"none":""; q("#fVirHint").style.display=v?"":"none"; q("#fAccLab").textContent=v?"Depuis le compte":"Compte"; };
     q("#fCat").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; cat=b.dataset.v;
       q("#fCat").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); if(isNew && CAT[cat].sign) setSign(CAT[cat].sign); virUI(); });
+    virUI();
     q("#fLab").addEventListener("change", ()=>{ // reprend les infos de la dernière ligne au même motif
       if(!isNew || q("#fAmt").value.trim()) return;
       const prev = live(S.data.lines).filter(x=>norm(x.label)===norm(q("#fLab").value)).sort((a,b)=>(b.m+b.ord).localeCompare(a.m+a.ord))[0];
@@ -1294,7 +1307,7 @@ function openLine(l, catK){
       let acc = q("#fAcc").value; if(acc==="__new") acc = ensureAccount(q("#fAccNew").value);
       if(cat==="vir" && (!acc || !q("#fTo").value || acc===q("#fTo").value)) return toast("Choisis deux comptes différents pour le virement");
       const rec = isNew ? {id:uid(), m:ui.month, ord:Date.now()} : l;
-      rec.to = cat==="vir" ? q("#fTo").value : undefined;
+      rec.to = (cat==="vir" || cat==="epa") ? (q("#fTo").value || undefined) : undefined;
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
@@ -1470,14 +1483,32 @@ function balanceChart(points){
     <path d="${d}" fill="none" stroke="var(--c-epa)" stroke-width="3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
   </svg>`;
 }
+function budgetSavings(){
+  const out=[];
+  for(const l of live(S.data.lines)){
+    let v=0, acc="";
+    if((l.cat==="epa"||l.cat==="vir") && isSavAcc(l.to) && !isSavAcc(l.acc)){ v=Math.abs(xpf(l)); acc=l.to; }
+    else if(l.cat==="vir" && isSavAcc(l.acc) && !isSavAcc(l.to)){ v=-Math.abs(xpf(l)); acc=l.acc; }
+    else continue;
+    out.push({l, v, acc, d:lineDate(l)||monthStart(l.m)});
+  }
+  return out.sort((a,b)=>a.d-b.d);
+}
 function renderSavings(){
   const L = savingsList(); let bal=0; const pts=[0];
+  const B = budgetSavings(), Bdone=B.filter(x=>x.l.done), Btodo=B.filter(x=>!x.l.done);
   const rows = L.map(s=>{ const v=xpf(s); bal+=v; pts.push(bal); return `<div class="sv" data-sav="${s.id}">
       <div class="main"><div class="lab">${esc(s.label||"Sans motif")}</div>
         <div class="meta">${s.date?`<span>${esc(s.date)}</span>`:""}${accPill(s.acc)}</div></div>
       <div class="r"><div class="num${v>0?" pos":""}" style="font-weight:600">${fmtF(v,true)}</div>${s.cur==="EUR"?`<div class="bal num">${fmtE(s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(bal)}</div></div>
     </div>`; }).join("");
-  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); }
+  const autoRow = (x, counted) => { if(counted){ bal+=x.v; pts.push(bal); }
+    return `<div class="sv" data-gomonth="${x.l.m}" data-line="${x.l.id}"><div class="main"><div class="lab">${esc(x.l.label||"Épargne")}</div>
+      <div class="meta"><span>${esc(fmtD(x.d))}</span>${x.l.acc?`<span class="vir">${accPill(x.l.acc)}<span class="arrow">→</span>${accPill(x.l.to)}</span>`:accPill(x.acc)}${counted?"":`<span class="late">prévu, pas encore coché</span>`}</div></div>
+      <div class="r"><div class="num${x.v>0?" pos":""}" style="font-weight:600${counted?"":";opacity:.6"}">${fmtF(x.v,true)}</div>${counted?`<div class="bal num">solde ${fmtF(bal)}</div>`:""}</div></div>`; };
+  const autoRows = Bdone.map(x=>autoRow(x,true)).join("");
+  const todoRows = Btodo.map(x=>autoRow(x,false)).join("");
+  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); } for(const x of Bdone){ byAcc[x.acc] = (byAcc[x.acc]||0) + x.v; }
   $("savingsBody").innerHTML = `<div class="ydesk"><div>
     <div class="hero">
       <div class="lead">Épargne disponible</div>
@@ -1485,8 +1516,11 @@ function renderSavings(){
       ${balanceChart(pts)}
       ${Object.keys(byAcc).length>1?Object.entries(byAcc).map(([n,v])=>`<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>`).join(""):""}
     </div></div>
-    <div><div class="list">${rows || `<div class="empty">Aucun mouvement pour l'instant. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
-    <div class="hint" style="text-align:center;margin-top:10px">Le solde se cumule ligne après ligne, comme le « Sous total » de ton Excel.</div></div></div>`;
+    <div><div class="gh" style="cursor:default"><span class="t">Mouvements saisis</span></div>
+    <div class="list">${rows || `<div class="empty">Aucun mouvement saisi. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
+    ${autoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">Depuis le budget</span><span class="cnt">virements cochés</span></div><div class="list">${autoRows}</div>`:""}
+    ${todoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">À venir</span></div><div class="list">${todoRows}</div>`:""}
+    <div class="hint" style="text-align:center;margin-top:10px">${savAccounts().length?`Les virements cochés vers ${esc(savAccounts().join(", "))} s'ajoutent ici automatiquement.`:`Marque ton compte d'épargne dans Réglages (Comptes) pour que tes virements s'ajoutent ici.`}</div></div></div>`;
 }
 function openSaving(s){
   const isNew=!s;
@@ -1583,6 +1617,7 @@ function openAccount(a){
   modal(`<h2>${isNew?"Nouveau compte":"Compte"}</h2>
     <label>Nom</label><input class="field" id="aName" value="${esc(a.name)}" placeholder="ex. Banque Pop">
     <label>Couleur</label><div class="swatches">${PALETTE.map(c=>`<button class="sw${c===color?" on":""}" data-c="${c}" style="background:${c}" aria-label="Couleur"></button>`).join("")}</div>
+    <label class="switch"><span>Compte d'épargne<br><span class="hint" style="margin:0">Les virements vers ce compte alimentent l'onglet Épargne.</span></span><input type="checkbox" id="aSav" ${a.savings||(isNew?false:/epargne|livret/.test(norm(a.name)))?"checked":""}></label>
     ${isNew?"":`<div class="hint">Renommer met à jour toutes les lignes qui utilisent ce compte.</div>`}
     <div class="actions">${isNew?"":`<button class="btn danger" id="aDel">Supprimer</button>`}<span class="spacer"></span>
       <button class="btn ghost" id="aCancel">Annuler</button><button class="btn" id="aOk">Enregistrer</button></div>`,
@@ -1598,9 +1633,10 @@ function openAccount(a){
       const name=q("#aName").value.trim(); if(!name) return toast("Donne un nom");
       if(live(S.data.accounts).some(x=>x!==a && norm(x.name)===norm(name))) return toast("Ce compte existe déjà");
       const now=Date.now();
-      if(isNew) S.data.accounts.push({id:uid(), name, color, ord:live(S.data.accounts).length, updatedAt:now});
-      else { if(a.name!==name) for(const x of [...S.data.lines, ...S.data.savings]) if(x.acc===a.name){ x.acc=name; x.updatedAt=now; }
-        Object.assign(a,{name, color, updatedAt:now}); }
+      const savings=q("#aSav").checked;
+      if(isNew) S.data.accounts.push({id:uid(), name, color, savings, ord:live(S.data.accounts).length, updatedAt:now});
+      else { if(a.name!==name) for(const x of [...S.data.lines, ...S.data.savings]){ if(x.acc===a.name){ x.acc=name; x.updatedAt=now; } if(x.to===a.name){ x.to=name; x.updatedAt=now; } }
+        Object.assign(a,{name, color, savings, updatedAt:now}); }
       touch(); close(); render();
     };
   });
@@ -1853,6 +1889,7 @@ document.addEventListener("click", e=>{
   if(t.closest("#openInbox")) return openInbox();
   if(el=t.closest("[data-period]")) return openPeriod(el.dataset.period);
   if(el=t.closest("[data-envtog]")){ const lab=el.dataset.envtog, on=!el.classList.contains("on"); setEnv(lab, on); touch(); render(); toast(on?`« ${lab} » est une enveloppe`:`« ${lab} » n'est plus une enveloppe`); return; }
+  if(el=t.closest("[data-gomonth]")){ const l=S.data.lines.find(x=>x.id===el.dataset.line); ui.month=el.dataset.gomonth; setTab("month"); if(l) setTimeout(()=>openLine(l), 60); return; }
   if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
   if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
   if(el=t.closest("[data-accedit]")){ const a=S.data.accounts.find(x=>x.id===el.dataset.accedit); if(a) openAccount(a); return; }
