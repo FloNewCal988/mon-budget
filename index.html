@@ -50,7 +50,7 @@ button{-webkit-tap-highlight-color:transparent}
 header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 88%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);padding:calc(8px + env(safe-area-inset-top)) 16px 8px}
 header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:4px}
 .ptitle{flex:1;min-width:0;display:flex;align-items:center;gap:2px}
-.ptitle h1{font:700 26px/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle h1{font:700 clamp(20px,6.2vw,26px)/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ptitle h1 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .ptitle h1 button::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);margin-left:2px}
 .arr{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--link);font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -303,6 +303,9 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .spends .sp.tot{font-weight:600}
 nav.tabs button{position:relative}
 .nbadge{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--neg);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+.periodbtn{display:block;border:0;background:transparent;padding:0;margin:0 0 2px;color:var(--link);font-size:13.5px;cursor:pointer;text-align:left}
+.paystart{max-width:280px;margin:14px auto 0;text-align:left}
 </style>
 </head>
 <body>
@@ -372,6 +375,12 @@ nav.tabs button{position:relative}
 
     <section id="tab-settings" class="hidden">
       <div class="stack">
+        <div class="card">
+          <strong>Jour de paie habituel</strong>
+          <label for="payIn">Ma paie arrive en général le</label>
+          <div style="display:flex;gap:8px;align-items:center"><input class="field" id="payIn" inputmode="numeric" style="max-width:110px"><span class="hint" style="margin:0">du mois précédent</span></div>
+          <div class="hint">Le budget de novembre commence alors le jour de la paie de fin octobre. Comme la date change, tu peux la corriger pour chaque mois (touche les dates sous « Reste à vivre »). Mets 1 pour des mois du 1er au 30/31.</div>
+        </div>
         <div class="card">
           <strong>Taux de change</strong>
           <label for="rateIn">Valeur de 1 € en francs (XPF)</label>
@@ -551,6 +560,10 @@ function seedDefaults(){
   const d=S.data; let n=0;
   for(const k of KEYS) d[k] ||= [];
   if(!d.accounts.length){ DEFAULT_ACC.forEach(([name,color],i)=>d.accounts.push({id:"a:"+norm(name), name, color, ord:i, updatedAt:1})); n++; }
+  if(!d.prefs.find(p=>p.id==="payday")){ d.prefs.push({id:"payday", value:27, updatedAt:2}); n++;
+    // les mois déjà saisis gardent leurs dates actuelles (du 1er au dernier jour)
+    for(const mid of new Set([...live(d.months).map(x=>x.id), ...live(d.lines).map(l=>l.m)])){ const r=d.months.find(x=>x.id===mid);
+      if(r){ if(!r.start){ r.start=mid+"-01"; r.updatedAt=Date.now(); } } else d.months.push({id:mid, start:mid+"-01", updatedAt:Date.now()}); } }
   if(!d.prefs.find(p=>p.id==="rate")){ d.prefs.push({id:"rate", value:DEFAULT_RATE, updatedAt:1}); n++; }
   return n;
 }
@@ -558,7 +571,8 @@ const rate = () => Number((S.data.prefs.find(p=>p.id==="rate")||{}).value) || DE
 const xpf = l => l.cur==="EUR" ? (Number(l.amt)||0)*rate() : (Number(l.amt)||0);
 const accounts = () => live(S.data.accounts).sort((a,b)=>(a.ord??0)-(b.ord??0)||a.name.localeCompare(b.name,"fr"));
 const accColor = name => (live(S.data.accounts).find(a=>a.name===name)||{}).color || "#8A94A6";
-const monthLines = m => live(S.data.lines).filter(l=>l.m===m).sort((a,b)=>(a.ord||0)-(b.ord||0));
+const monthLines = m => live(S.data.lines).filter(l=>l.m===m).sort((a,b)=>{ const da=lineDate(a), db=lineDate(b);
+  if(da && db && +da!==+db) return da-db; if(!!da!==!!db) return da?-1:1; return (a.ord||0)-(b.ord||0); });
 const monthExists = m => live(S.data.months).some(x=>x.id===m) || live(S.data.lines).some(l=>l.m===m);
 const allMonths = () => [...new Set([...live(S.data.months).map(x=>x.id), ...live(S.data.lines).map(l=>l.m)])].sort();
 
@@ -724,7 +738,36 @@ const fmtAmt = l => l.cur==="EUR" ? fmtE(l.amt) : fmtF(l.amt);
 const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 const mLabel = m => { const [y,mm]=m.split("-").map(Number); return MOIS[mm-1]+" "+y; };
 const mShift = (m, d) => { let [y,mm]=m.split("-").map(Number); mm+=d; while(mm>12){mm-=12;y++;} while(mm<1){mm+=12;y--;} return y+"-"+String(mm).padStart(2,"0"); };
-const thisMonth = () => { const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+const calMonth = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+/* Mois de paie : le budget de « novembre » commence le jour où arrive la paie (fin octobre) et finit la veille de la paie suivante.
+   La date de paie se règle mois par mois ; sans réglage, on prend le jour de paie habituel du mois précédent. */
+const payday = () => { const p=S.data && S.data.prefs.find(x=>x.id==="payday" && !x.deleted); return p ? Number(p.value) : 1; };
+const isoDate = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const dayStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function monthStart(m){
+  const rec = S.data && live(S.data.months).find(x=>x.id===m && x.start);
+  if(rec){ const [y,mm,dd]=rec.start.split("-").map(Number); return new Date(y,mm-1,dd); }
+  const [y,mm]=m.split("-").map(Number), pd=payday();
+  if(pd<=1) return new Date(y,mm-1,1);
+  const last=new Date(y,mm-1,0).getDate();             // dernier jour du mois précédent
+  return new Date(y,mm-2,Math.min(pd,last));
+}
+const monthEnd = m => { const d=monthStart(mShift(m,1)); d.setDate(d.getDate()-1); return d; };
+function periodOf(date){
+  const d=dayStart(date); let m=calMonth(d);
+  if(d>=monthStart(mShift(m,1))) m=mShift(m,1); else if(d<monthStart(m)) m=mShift(m,-1);
+  return m;
+}
+const thisMonth = () => S.data ? periodOf(new Date()) : calMonth(new Date());
+/* date réelle d'une ligne « le 27 » dans la période */
+function lineDate(l){
+  if(!l.day) return null;
+  const st=monthStart(l.m), en=monthEnd(l.m);
+  for(const base of [st, en]){ const last=new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    const d=new Date(base.getFullYear(), base.getMonth(), Math.min(l.day,last)); if(d>=st && d<=en) return d; }
+  return new Date(en.getFullYear(), en.getMonth(), Math.min(l.day, en.getDate()));
+}
+const fmtD = (d, opt) => d.toLocaleDateString("fr-FR", opt||{day:"numeric", month:"long"}).replace(/^1 /,"1er ");
 function parseNum(s){ if(typeof s==="number") return s; s=(s||"").toString().replace(/[\s  ]/g,"").replace(",","."); if(s==="") return NaN; return Number(s); }
 function modal(html, onReady){
   const root=$("modalRoot");
@@ -832,6 +875,7 @@ function heroHTML(m, C){
     + `<div><i class="free"></i><span class="n">Libre</span><span class="v num">${fmtF(free)}</span></div>`;
   return `<div class="hero">
     <div class="lead">Reste à vivre en ${esc(monthName(m))}</div>
+    ${periodLine(m)}
     <div class="big${C.restant<0?" neg":""}">${fmtF(C.restant).replace(/ F$/,"")}<small>F</small></div>
     <div class="pace">soit <b class="num">${fmtF(C.semaine)}</b> par semaine et <b class="num">${fmtF(C.jour)}</b> par jour</div>
     ${C.inc>0||out>0?`<div class="ribbon${animOnce(m)?" anim":""}" role="img" aria-label="Répartition des rentrées">${segs}</div><div class="legend">${legend}</div>`:""}
@@ -867,14 +911,47 @@ function accountsPanel(C){
 }
 
 /* ---------- Mois ---------- */
+function periodLine(m){
+  const st=monthStart(m), en=monthEnd(m), t=dayStart(new Date()), nx=monthStart(mShift(m,1));
+  let extra="";
+  if(t>=st && t<=en){ const n=Math.round((nx-t)/86400000); extra = `, prochaine paie dans ${n} jour${n>1?"s":""}`; }
+  return `<button class="periodbtn" data-period="${m}">Du ${esc(fmtD(st))} au ${esc(fmtD(en))}${extra}</button>`;
+}
+function openPeriod(m){
+  const st=monthStart(m), rec=live(S.data.months).find(x=>x.id===m);
+  modal(`<h2>Date de paie</h2><div class="sub" style="text-transform:none">Budget de ${esc(mLabel(m))}</div>
+    <label for="pDate">Paie reçue (ou prévue) le</label>
+    <input class="field" type="date" id="pDate" value="${isoDate(st)}">
+    <div class="hint" id="pInfo"></div>
+    <div class="hint">La période se termine la veille de la paie suivante. Pour la décaler, règle la date de paie de ${esc(mLabel(mShift(m,1)))}.</div>
+    ${rec&&rec.start?`<button class="linkbtn" id="pReset" style="padding-left:0;margin-top:6px">Revenir au jour de paie habituel</button>`:""}
+    <div class="actions"><span class="spacer"></span><button class="linkbtn" id="pCancel">Annuler</button><button class="btn" id="pOk">Enregistrer</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    const info=()=>{ const v=q("#pDate").value; if(!v) return; const [y,mm,dd]=v.split("-").map(Number); const d=new Date(y,mm-1,dd), e=monthEnd(m);
+      q("#pInfo").textContent = d<=e ? `Période : du ${fmtD(d)} au ${fmtD(e)}.` : "Cette date tombe après la fin de la période : choisis une date plus tôt."; };
+    q("#pDate").oninput=info; info();
+    q("#pCancel").onclick=close;
+    if(q("#pReset")) q("#pReset").onclick=()=>{ delete rec.start; rec.updatedAt=Date.now(); touch(); close(); render(); toast("Jour de paie habituel rétabli"); };
+    q("#pOk").onclick=()=>{ const v=q("#pDate").value; if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return toast("Choisis une date");
+      setMonthStart(m, v); touch(); close(); render(); toast("Date de paie enregistrée"); };
+  });
+}
+function setMonthStart(m, iso){
+  const now=Date.now(); let rec=S.data.months.find(x=>x.id===m);
+  if(rec){ rec.start=iso; rec.deleted=false; rec.updatedAt=now; } else S.data.months.push(rec={id:m, start:iso, updatedAt:now});
+  const day=Number(iso.slice(8,10));
+  for(const l of monthLines(m)) if(l.cat==="sal" && l.day!==day){ l.day=day; l.updatedAt=now; }   // la ligne Salaire suit la date de paie
+}
 function dayInfo(l){
-  if(!l.day) return "";
+  const d=lineDate(l); if(!d) return "";
+  const lab = d.getMonth()===monthStart(l.m).getMonth() && monthStart(l.m).getDate()>1 && d.getMonth()!==monthEnd(l.m).getMonth() ? `le ${l.day} ${MOIS_C[d.getMonth()]}` : `le ${l.day}`;
   if(!l.done && l.m===thisMonth()){
-    const d=new Date().getDate();
-    if(l.day<d) return `<span class="late">prévu le ${l.day}</span>`;
-    if(l.day===d) return `<span class="late">aujourd'hui</span>`;
+    const t=dayStart(new Date());
+    if(d<t) return `<span class="late">prévu ${lab}</span>`;
+    if(+d===+t) return `<span class="late">aujourd'hui</span>`;
   }
-  return `<span>le ${l.day}</span>`;
+  return `<span>${lab}</span>`;
 }
 function lineHTML(l){
   const v=xpf(l), sp=lineSpends(l.id);
@@ -922,9 +999,11 @@ function renderMonth(){
 function monthOptions(m){
   modal(`<h2>Options du mois</h2><div class="sub">${esc(mLabel(m))}</div>
     <div class="mlist" style="margin-top:12px">
+      <button id="oPeriod">Date de paie<span class="hint">${esc(fmtD(monthStart(m)))}</span></button>
       <button id="oUncheck">Tout décocher<span class="hint">remet toutes les lignes « à passer »</span></button>
       <button id="oDelete" style="color:var(--neg)">Supprimer ce mois<span class="hint">efface toutes ses lignes</span></button>
     </div>`, (bd, close)=>{
+    bd.querySelector("#oPeriod").onclick=()=>{ close(); setTimeout(()=>openPeriod(m), 50); };
     bd.querySelector("#oUncheck").onclick=()=>{ const now=Date.now(), ch=monthLines(m).filter(l=>l.done);
       ch.forEach(l=>{ l.done=false; l.updatedAt=now; }); touch(); close(); render();
       toast("Lignes décochées", {label:"Annuler", fn:()=>{ const t=Date.now(); ch.forEach(l=>{ l.done=true; l.updatedAt=t; }); touch(); render(); }}); };
@@ -941,6 +1020,8 @@ function createMonthHTML(m){
   return `<div class="panel newmonth">
     <h2>${esc(mLabel(m))}</h2>
     <div class="hint" style="margin-top:0">Pas encore de budget pour ce mois.</div>
+    <div class="paystart"><label for="newStart">Paie de ce budget reçue (ou prévue) le</label>
+      <input class="field" type="date" id="newStart" value="${isoDate(monthStart(m))}"></div>
     ${src?`<div class="hint" style="margin-top:18px;color:var(--ink)">Lignes à reprendre de ${esc(mLabel(src))}</div>
       <div class="copycats">${CATS.map(c=>`<button class="tog${c.k!=="exc"?" on":""}" style="--cc:${cc(c.k)}" data-copycat="${c.k}" aria-pressed="${c.k!=="exc"}"><i></i>${esc(c.name)}</button>`).join("")}</div>
       <div class="hint">Montants, jours et comptes sont repris. Toutes les lignes repartent « à passer ».</div>
@@ -954,6 +1035,7 @@ function createMonth(m, src){
   const ex = S.data.months.find(x=>x.id===m);
   if(ex){ ex.deleted=false; ex.blank=!src; ex.updatedAt=now; } else S.data.months.push({id:m, blank:!src, updatedAt:now});
   if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>S.data.lines.push({...l, id:uid(), m, done:false, ord:i, updatedAt:now}));
+  const ns=document.getElementById("newStart"); if(ns && /^\d{4}-\d{2}-\d{2}$/.test(ns.value)) setMonthStart(m, ns.value);
   touch(); render(); toast("Budget de "+monthName(m)+" créé");
 }
 
@@ -1081,7 +1163,7 @@ async function clearInbox(list){
   }
 }
 const fmtWhen = iso => { const d=new Date(iso); if(isNaN(d)) return ""; return d.toLocaleDateString("fr-FR",{weekday:"long", day:"numeric", month:"long"})+" à "+d.toLocaleTimeString("fr-FR",{hour:"2-digit", minute:"2-digit"}); };
-const monthOfIso = iso => { const d=new Date(iso); return isNaN(d) ? ui.month : d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+const monthOfIso = iso => { const d=new Date(iso); return isNaN(d) ? ui.month : periodOf(d); };
 const ruleOf = merchant => S.data.prefs.find(p=>p.id==="rule:"+norm(merchant) && !p.deleted);
 const cardAcc = card => { const p=S.data.prefs.find(x=>x.id==="card:"+norm(card) && !x.deleted); if(p) return p.value;
   const n=norm(card); if(/nouvelle.?caledonie|bnc/.test(n)) return (accounts().find(a=>a.name==="BNC")||{}).name||""; if(/populaire|banque ?pop/.test(n)) return (accounts().find(a=>a.name==="Banque Pop")||{}).name||""; if(/revolut/.test(n)) return (accounts().find(a=>a.name==="Revolut")||{}).name||""; return ""; };
@@ -1266,6 +1348,7 @@ function renderYear(){
 
 /* ---------- Réglages ---------- */
 function renderSettings(){
+  $("payIn").value = payday();
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
@@ -1480,7 +1563,7 @@ async function importExcel(file){
       let nm=0;
       for(const x of res.months){
         if(monthExists(x.m)){ if(!rep) continue; for(const l of monthLines(x.m)){ l.deleted=true; l.updatedAt=now; } }
-        const mo=S.data.months.find(z=>z.id===x.m); if(mo){ mo.deleted=false; mo.updatedAt=now; } else S.data.months.push({id:x.m, updatedAt:now});
+        const mo=S.data.months.find(z=>z.id===x.m); if(mo){ mo.deleted=false; mo.start=mo.start||x.m+"-01"; mo.updatedAt=now; } else S.data.months.push({id:x.m, start:x.m+"-01", updatedAt:now});
         x.lines.forEach((l,i)=>S.data.lines.push({...l, id:uid(), m:x.m, ord:i, updatedAt:now})); nm++;
       }
       if(res.savings.length){
@@ -1519,6 +1602,7 @@ $("periodLbl").onclick=()=>{
     bd.querySelector("#pickOk").onclick=()=>{ const v=bd.querySelector("#pickM").value; if(/^\d{4}-\d{2}$/.test(v)){ ui.month=v; close(); render(); } };
   });
 };
+$("payIn").onchange=()=>{ const n=parseInt($("payIn").value,10); if(!(n>=1 && n<=31)) return toast("Indique un jour entre 1 et 31"); setPref("payday", n); touch(); render(); toast(n>1?`Paie habituelle le ${n} : le budget d'un mois commence le ${n} du mois précédent`:"Mois du 1er au dernier jour"); };
 $("rateIn").onchange=()=>{ const n=parseNum($("rateIn").value); if(!(n>0)) return toast("Indique un taux supérieur à 0"); const p=S.data.prefs.find(p=>p.id==="rate"); p.value=n; p.updatedAt=Date.now(); touch(); toast("Taux enregistré : 1 € = "+NF2.format(n)+" F"); };
 $("addAcc").onclick=()=>openAccount(null);
 $("xlsBtn").onclick=()=>$("xlsFile").click();
@@ -1543,6 +1627,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-copycat]")){ el.classList.toggle("on"); el.setAttribute("aria-pressed", el.classList.contains("on")); return; }
   if(el=t.closest("[data-create]")) return createMonth(ui.month, el.dataset.create||null);
   if(t.closest("#openInbox")) return openInbox();
+  if(el=t.closest("[data-period]")) return openPeriod(el.dataset.period);
   if(el=t.closest("[data-sav]")){ const s=S.data.savings.find(x=>x.id===el.dataset.sav); if(s) openSaving(s); return; }
   if(el=t.closest("[data-month]")){ ui.month=el.dataset.month; return setTab("month"); }
   if(el=t.closest("[data-accedit]")){ const a=S.data.accounts.find(x=>x.id===el.dataset.accedit); if(a) openAccount(a); return; }
