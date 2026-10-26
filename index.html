@@ -1244,16 +1244,19 @@ function renderMonth(){
       <div>${CATS.filter(c=>c.col==="L").map(c=>groupHTML(c,C)).join("")}</div>
       <div>${CATS.filter(c=>c.col==="R").map(c=>groupHTML(c,C)).join("")}<div class="desk">${catsPanel(C)}</div></div>
     </div>
-    <div class="mfoot"><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
+    <div class="mfoot"><button class="linkbtn" id="monthAlerts">Alertes Calendrier</button><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
+  $("monthAlerts").onclick = ()=>openAlerts(m);
   $("monthOpts").onclick = ()=>monthOptions(m);
 }
 function monthOptions(m){
   modal(`<h2>Options du mois</h2><div class="sub">${esc(mLabel(m))}</div>
     <div class="mlist" style="margin-top:12px">
+      <button id="oAlerts">Alertes dans le Calendrier<span class="hint">rappels de paiements</span></button>
       <button id="oPeriod">Date de paie<span class="hint">${esc(fmtD(monthStart(m)))}</span></button>
       <button id="oUncheck">Tout décocher<span class="hint">remet toutes les lignes « à passer »</span></button>
       <button id="oDelete" style="color:var(--neg)">Supprimer ce mois<span class="hint">efface toutes ses lignes</span></button>
     </div>`, (bd, close)=>{
+    bd.querySelector("#oAlerts").onclick=()=>{ close(); setTimeout(()=>openAlerts(m), 50); };
     bd.querySelector("#oPeriod").onclick=()=>{ close(); setTimeout(()=>openPeriod(m), 50); };
     bd.querySelector("#oUncheck").onclick=()=>{ const now=Date.now(), ch=monthLines(m).filter(l=>l.done);
       ch.forEach(l=>{ l.done=false; l.updatedAt=now; }); touch(); close(); render();
@@ -2056,6 +2059,85 @@ function bindBars(el, info){
     const on=e=>{ el.querySelectorAll(".ibar").forEach(x=>x.classList.toggle("hov", x===g)); const [t,rows]=info(i); showTip(e,t,rows); };
     g.addEventListener("pointerenter", on); g.addEventListener("pointerdown", on); g.addEventListener("pointermove", on);
     g.addEventListener("pointerleave", ()=>{ g.classList.remove("hov"); hideTip(); }); });
+}
+
+/* ================= ALERTES CALENDRIER =================
+   Un fichier .ics avec au plus une alerte par jour, à ajouter au calendrier « Budget » de l'iPhone.
+   Rien ne part sur internet : le fichier est créé sur l'appareil. */
+const alertPrefs = () => Object.assign({threshold:20000, when:"veille", paie:true, proj:true}, (S.data.prefs.find(p=>p.id==="alerts" && !p.deleted)||{}).value||{});
+function alertItems(m){
+  const P=alertPrefs(), byDay=new Map(), today=dayStart(new Date());
+  const add=(d, txt, amt)=>{ const k=isoDate(d); if(!byDay.has(k)) byDay.set(k, {d, items:[]}); byDay.get(k).items.push({txt, amt}); };
+  for(const l of monthLines(m)){
+    if(l.done || !l.day) continue;
+    const d=lineDate(l); if(!d || d<today) continue;
+    const v=Math.abs(xpf(l)), manual = l.cat==="vir" || l.mode==="virement" || !l.mode;
+    if(!v || (xpf(l)>0 && l.cat!=="vir")) continue;                       // les rentrées ne demandent rien
+    if(isEnv(l)) continue;                                         // les enveloppes se dépensent au fil du mois
+    if(!(manual || v>=P.threshold)) continue;                      // petits prélèvements : silencieux
+    const what = l.cat==="vir" ? `virement ${l.acc||""} → ${l.to||""}` : (l.mode ? modeLabel(l.mode).toLowerCase() : "à payer");
+    add(d, `${l.label} ${fmtF(v)} (${what.trim()})`, v);
+  }
+  if(P.paie){ const nx=monthStart(mShift(m,1)); if(nx>=today) add(nx, `Paie prévue : crée le budget de ${monthName(mShift(m,1))}`, 0); }
+  if(P.proj) for(const p of projectsList().filter(x=>!x.paid && !isRes(x) && x.due)){
+    const [y,mm,dd]=p.due.split("-").map(Number), due=new Date(y,mm-1,dd), st=projStatus(p);
+    for(const k of [30,7]){ const d=new Date(due); d.setDate(d.getDate()-k);
+      if(d>=monthStart(m) && d<=monthEnd(m) && d>=today) add(d, `${p.name} : échéance dans ${k} jours${st.left>0?`, il manque ${fmtF(st.left)}`:", tout est prêt"}`, 0); }
+  }
+  return [...byDay.values()].sort((a,b)=>a.d-b.d);
+}
+function icsFold(line){ const out=[]; let cur=""; for(const ch of line){ if(te.encode(cur+ch).length>73){ out.push(cur); cur=" "+ch; } else cur+=ch; } out.push(cur); return out.join("\r\n"); }
+const icsEsc = x => (x||"").replace(/\\/g,"\\\\").replace(/;/g,"\\;").replace(/,/g,"\\,").replace(/\n/g,"\\n");
+function alertTitle(day){
+  const pay=day.items.filter(i=>i.amt>0), other=day.items.filter(i=>!i.amt);
+  if(day.items.length===1) return "Budget : "+day.items[0].txt.replace(/ \(.*\)$/,"");
+  if(pay.length && !other.length) return `Budget : ${pay.length} paiements (${fmtF(pay.reduce((t,i)=>t+i.amt,0))})`;
+  return `Budget : ${day.items.length} rappels`;
+}
+function buildIcs(m, days){
+  const P=alertPrefs(), ymd=x=>isoDate(x).replace(/-/g,""), stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
+  const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Mon Budget//FR","CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:Budget"];
+  for(const day of days){ const e=new Date(day.d); e.setDate(e.getDate()+1); const title=alertTitle(day);
+    L.push("BEGIN:VEVENT", `UID:mb-${ymd(day.d)}@mon-budget`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(day.d)}`, `DTEND;VALUE=DATE:${ymd(e)}`,
+      `SUMMARY:${icsEsc(title)}`, `DESCRIPTION:${icsEsc(day.items.map(i=>"• "+i.txt).join("\n")+"\n\nMon Budget : "+location.origin+location.pathname)}`, "TRANSP:TRANSPARENT");
+    const triggers = P.when==="both" ? ["-PT6H","PT8H"] : P.when==="matin" ? ["PT8H"] : ["-PT6H"];   // la veille à 18 h / le jour même à 8 h
+    for(const t of triggers) L.push("BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(title)}`,`TRIGGER:${t}`,"END:VALARM");
+    L.push("END:VEVENT"); }
+  L.push("END:VCALENDAR");
+  return L.map(icsFold).join("\r\n")+"\r\n";
+}
+function openAlerts(m){
+  const P=alertPrefs();
+  const draw=()=>{ const days=alertItems(m); const box=document.getElementById("alList"); if(!box) return days;
+    box.innerHTML = days.length ? days.map(day=>`<div class="sp"><div class="main"><div style="font-weight:600;text-transform:capitalize">${esc(fmtD(day.d,{weekday:"long", day:"numeric", month:"long"}))}</div>${day.items.map(i=>`<div class="hint" style="margin:2px 0 0">${esc(i.txt)}</div>`).join("")}</div></div>`).join("")
+      : `<div class="hint" style="padding:10px 0">Aucune alerte à venir pour ce mois avec ces réglages.</div>`;
+    document.getElementById("alGo").textContent = days.length ? `Ajouter ${days.length} alerte${days.length>1?"s":""} au Calendrier` : "Rien à ajouter";
+    document.getElementById("alGo").disabled = !days.length; return days; };
+  modal(`<h2>Alertes de ${esc(monthName(m))}</h2><div class="sub" style="text-transform:none">Une alerte par jour au maximum, dans ton calendrier « Budget »</div>
+    <section class="sec"><div class="sh">Quand me prévenir</div>
+      <div class="seg" id="alWhen"><button data-v="veille" class="${P.when==="veille"?"on":""}">La veille, 18 h</button><button data-v="matin" class="${P.when==="matin"?"on":""}">Le jour, 8 h</button><button data-v="both" class="${P.when==="both"?"on":""}">Les deux</button></div>
+    </section>
+    <section class="sec"><div class="sh">Quoi</div>
+      <div class="hint" style="margin-top:0">Toujours : virements et paiements à faire toi-même. Les prélèvements et paiements par carte seulement au-dessus de :</div>
+      <div class="amtbox" style="margin-top:8px"><input id="alThr" inputmode="decimal" value="${esc(fmtInput(P.threshold))}" autocomplete="off"><span class="unit">F</span></div>
+      <label class="switch"><span>Rappel le jour de la paie</span><input type="checkbox" id="alPaie" ${P.paie?"checked":""}></label>
+      <label class="switch"><span>Échéances des projets (30 et 7 jours avant)</span><input type="checkbox" id="alProj" ${P.proj?"checked":""}></label>
+    </section>
+    <section class="sec"><div class="sh">Aperçu</div><div class="spends" id="alList"></div></section>
+    <div class="hint">Les enveloppes, les rentrées et les lignes déjà cochées ne déclenchent pas d'alerte. Si tu ajoutes de nouveau les alertes du même mois, l'iPhone met à jour celles du même jour.</div>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="alCancel">Fermer</button><button class="btn" id="alGo"></button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x), when=segBind(bd,"alWhen");
+    const savePrefs=()=>{ const thr=parseNum(q("#alThr").value); setPref("alerts", {threshold: thr>=0?thr:20000, when:when(), paie:q("#alPaie").checked, proj:q("#alProj").checked}); };
+    const upd=()=>{ savePrefs(); draw(); };
+    q("#alThr").addEventListener("input", upd); q("#alPaie").onchange=upd; q("#alProj").onchange=upd; q("#alWhen").addEventListener("click", ()=>setTimeout(upd));
+    draw();
+    q("#alCancel").onclick=()=>{ touch(); close(); };
+    q("#alGo").onclick=()=>{ savePrefs(); touch(); const days=alertItems(m); if(!days.length) return;
+      const blob=new Blob([buildIcs(m, days)], {type:"text/calendar"}), a=document.createElement("a");
+      a.href=URL.createObjectURL(blob); a.download=`alertes-budget-${m}.ics`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
+      toast("Ouvre le fichier, choisis le calendrier « Budget », puis Ajouter tout"); };
+  });
 }
 
 /* ---------- Réglages ---------- */
