@@ -315,6 +315,12 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .mv .lab{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv .meta{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mv .num{flex:none;font-weight:600}
+.mv.del .lab,.mv.del .num{text-decoration:line-through;opacity:.55}
+.mv.del > i{opacity:.4}
+.mvdel{font-weight:600;color:var(--neg)}
+@keyframes flashbg{0%,35%{background:color-mix(in srgb,var(--accent) 22%,transparent)}100%{background:transparent}}
+.flash{animation:flashbg 2.1s ease-out;border-radius:12px}
+@media (prefers-reduced-motion:reduce){.flash{animation:none;outline:2px solid var(--accent)}}
 .mvday{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 2px}
 .mvday:first-letter{text-transform:uppercase}
 .sheet .mvlist{background:var(--paper);border-radius:14px;padding:0 12px}
@@ -2444,15 +2450,15 @@ function openClose(m){
 /* ================= MOUVEMENTS ================= */
 function movesOf(m){
   const out=[];
-  for(const s of live(S.data.spends)) if(s.m===m){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted);
-    out.push({d:new Date(s.at||monthStart(m)), time:!!s.at, lab:s.merchant||"Dépense", sub:l?l.label:"", v:xpf(s), l, cat:l?l.cat:"sor", src:s.src==="manuel"?"saisie":"Apple Pay"}); }
-  for(const l of monthLines(m)) if(l.done && !(isEnv(l) && lineSpends(l.id).length)){
+  for(const s of S.data.spends) if(s.m===m){ const l=S.data.lines.find(x=>x.id===s.lineId);
+    out.push({k:"s", id:s.id, del:!!(s.deleted || (l && l.deleted)), d:new Date(s.at||monthStart(m)), time:!!s.at, lab:s.merchant||"Dépense", sub:l?l.label:"", v:xpf(s), l, cat:l?l.cat:"sor", src:s.src==="manuel"?"saisie":"Apple Pay"}); }
+  for(const l of S.data.lines) if(l.m===m && l.done && !(isEnv(l) && S.data.spends.some(x=>x.lineId===l.id))){
     const d=lineDate(l)||monthStart(m);
-    out.push({d, time:false, lab:l.label||"Ligne", sub:l.cat==="vir"?`${l.acc||"?"} → ${l.to||"?"}`:CAT[l.cat].name, v:l.cat==="vir"?-Math.abs(xpf(l)):xpf(l), vir:l.cat==="vir", l, cat:l.cat, src:l.mode?modeLabel(l.mode).toLowerCase():""}); }
+    out.push({k:"l", id:l.id, del:!!l.deleted, d, time:false, lab:l.label||"Ligne", sub:l.cat==="vir"?`${l.acc||"?"} → ${l.to||"?"}`:CAT[l.cat].name, v:l.cat==="vir"?-Math.abs(xpf(l)):xpf(l), vir:l.cat==="vir", l, cat:l.cat, src:l.mode?modeLabel(l.mode).toLowerCase():""}); }
   return out.sort((a,b)=>b.d-a.d || (b.time-a.time));
 }
-const mvRow = x => `<div class="mv"${x.l?` data-edit="${x.l.id}"`:""}><i style="background:${cc(x.cat)}"></i>
-  <div class="main"><div class="lab">${esc(x.lab)}</div><div class="meta">${esc(fmtD(x.d,{day:"numeric", month:"short"}))}${x.time?" · "+esc(x.d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})):""}${x.sub?" · "+esc(x.sub):""}${x.src?" · "+esc(x.src):""}</div></div>
+const mvRow = x => `<div class="mv${x.del?" del":""}" data-mvgo="${x.k}:${x.id}" role="button" tabindex="0"><i style="background:${cc(x.cat)}"></i>
+  <div class="main"><div class="lab">${esc(x.lab)}</div><div class="meta">${x.del?`<b class="mvdel">supprimé</b> · `:""}${esc(fmtD(x.d,{day:"numeric", month:"short"}))}${x.time?" · "+esc(x.d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})):""}${x.sub?" · "+esc(x.sub):""}${x.src?" · "+esc(x.src):""}</div></div>
   <span class="num${x.v>0?" pos":""}"${x.vir?' style="color:var(--muted)"':""}>${x.vir?fmtF(-x.v):fmtF(x.v,true)}</span></div>`;
 function movesPanel(m, n=8){
   const M=movesOf(m);
@@ -2463,12 +2469,33 @@ function movesPanel(m, n=8){
 function openMoves(m){
   const M=movesOf(m), days=new Map();
   for(const x of M){ const k=isoDate(x.d); if(!days.has(k)) days.set(k, {d:x.d, items:[]}); days.get(k).items.push(x); }
-  const out=M.filter(x=>x.v<0&&!x.vir).reduce((t,x)=>t+x.v,0);
-  modal(`<h2>Mouvements</h2><div class="sub" style="text-transform:none">${esc(capF(mLabel(m)))} · ${M.length} mouvement${M.length>1?"s":""}, ${fmtF(out)} de sorties</div>
+  const L=M.filter(x=>!x.del), out=L.filter(x=>x.v<0&&!x.vir).reduce((t,x)=>t+x.v,0);
+  modal(`<h2>Mouvements</h2><div class="sub" style="text-transform:none">${esc(capF(mLabel(m)))} · ${L.length} mouvement${L.length>1?"s":""}, ${fmtF(out)} de sorties</div>
     ${[...days.values()].map(g=>`<div class="mvday">${esc(fmtD(g.d,{weekday:"long", day:"numeric", month:"long"}))}</div><div class="mvlist">${g.items.map(mvRow).join("")}</div>`).join("")}
     <div class="actions sticky"><span class="spacer"></span><button class="btn" id="mvClose">Fermer</button></div>`,
   (bd, close)=>{ bd.querySelector("#mvClose").onclick=close;
-    bd.addEventListener("click", e=>{ const r=e.target.closest(".mv[data-edit]"); if(!r) return; e.stopPropagation(); const l=S.data.lines.find(x=>x.id===r.dataset.edit); close(); if(l) setTimeout(()=>openLine(l), 60); }, true); });
+    bd.addEventListener("click", e=>{ const r=e.target.closest("[data-mvgo]"); if(!r) return; e.stopPropagation(); close(); setTimeout(()=>goToMove(r.dataset.mvgo), 60); }, true); });
+}
+const flash = el => { if(!el) return; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"), 2200); };
+/* toucher un mouvement : ramène à la ligne dans le mois (et à la dépense dans le détail de la ligne) */
+function goToMove(ref){
+  const [k,id]=ref.split(":"), rec=(k==="s"?S.data.spends:S.data.lines).find(x=>x.id===id); if(!rec) return;
+  const l = k==="s" ? S.data.lines.find(x=>x.id===rec.lineId) : rec;
+  if(rec.deleted || (l && l.deleted)){
+    const what = k==="s" ? (rec.merchant||"Dépense") : (rec.label||"Ligne");
+    return toast(`« ${what} » a été supprimé`, {label:"Restaurer", fn:()=>{ const now=Date.now();
+      if(l && l.deleted){ l.deleted=false; l.updatedAt=now; }
+      if(k==="s" && rec.deleted){ rec.deleted=false; rec.updatedAt=now;
+        const p=S.data.pending.find(x=>!x.deleted && (x.id===rec.src || (x.merchant===rec.merchant && x.at===rec.at && Math.abs(xpf(x)-xpf(rec))<1))); if(p){ p.deleted=true; p.updatedAt=now; } }
+      touch(); render(); toast("Restauré"); }});
+  }
+  if(!l) return;
+  ui.month=l.m; if(l.done) ui.filter="all"; ui.closed[l.cat]=false; saveUI();
+  setTab("month");
+  setTimeout(()=>{ const row=document.querySelector(`#monthBody .ln [data-edit="${l.id}"]`)?.closest(".ln");
+    if(row){ row.scrollIntoView({block:"center", behavior:"smooth"}); flash(row); }
+    if(k==="s") setTimeout(()=>{ openLine(l); setTimeout(()=>{ const sp=document.querySelector(`.sheet [data-unspend="${id}"]`)?.closest(".sp"); if(sp){ sp.scrollIntoView({block:"center", behavior:"smooth"}); flash(sp); } }, 120); }, row?700:50);
+  }, 80);
 }
 
 /* ================= RECHERCHE ================= */
@@ -2854,6 +2881,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-close]")) return openClose(el.dataset.close);
   if(el=t.closest("[data-closeskip]")){ setPref("close:"+el.dataset.closeskip, {skip:true}); touch(); render(); return; }
   if(el=t.closest("[data-moves]")) return openMoves(el.dataset.moves);
+  if(el=t.closest("[data-mvgo]")) return goToMove(el.dataset.mvgo);
   if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
   if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
   if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; if(!l.done && l.mode==="prelevement") l.noAuto=true; l.updatedAt=Date.now(); touch();
