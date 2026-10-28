@@ -50,7 +50,7 @@ button{-webkit-tap-highlight-color:transparent}
 header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--paper) 88%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);padding:calc(8px + env(safe-area-inset-top)) 16px 8px}
 header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:4px}
 .ptitle{flex:1;min-width:0;display:flex;align-items:center;gap:2px}
-.ptitle h1{font:700 clamp(20px,6.2vw,26px)/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptitle h1{font:700 clamp(19px,5.6vw,26px)/1.1 var(--display);letter-spacing:-.02em;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ptitle h1 button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .ptitle h1 button::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg) translateY(-3px);margin-left:2px}
 .arr{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:transparent;color:var(--link);font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -60,6 +60,7 @@ header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;ga
 .dot.ok{background:var(--pos)}.dot.busy{background:var(--warn)}.dot.err{background:var(--neg)}
 .iconbtn{border:0;background:transparent;padding:7px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex}
 .iconbtn.on{color:var(--link)}
+@media (max-width:430px){.iconbtn{padding:6px 5px}header.top{padding-left:10px;padding-right:10px}}
 .iconbtn:active{background:var(--accent-soft)}
 
 /* ---------- reste à vivre (élément central) ---------- */
@@ -251,7 +252,7 @@ select.field{appearance:none;-webkit-appearance:none;background-image:linear-gra
 .card{background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--lift)}
 .card strong{font:700 17px/1.2 var(--display);display:block}
 .err{color:var(--neg);font-size:14px;margin-top:10px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(158px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:11px 8px 11px 16px;border-radius:14px;font-size:14.5px;z-index:30;max-width:92vw;display:flex;align-items:center;gap:6px;animation:fade .2s;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(158px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:11px 8px 11px 16px;border-radius:14px;font-size:14.5px;z-index:30;width:max-content;max-width:92vw;display:flex;align-items:center;gap:6px;animation:fade .2s;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
 .toast:not(:has(button)){padding-right:16px}
 .toast button{border:0;background:transparent;color:var(--c-free);font-weight:700;padding:4px 10px;cursor:pointer;font-size:14.5px}
 @media (prefers-color-scheme: dark){.toast button{color:var(--accent)}}
@@ -276,6 +277,54 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .mlist button.on{color:var(--accent);font-weight:600}
 .mlist .hint{text-transform:none;margin:0}
 .desk{display:none}
+
+
+/* ---------- solde banque, fin de mois, mouvements, recherche ---------- */
+.bankcard{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;cursor:pointer;background:var(--surface);color:var(--ink);border-radius:16px;padding:12px 14px;margin:2px 0 16px;box-shadow:var(--lift);font:inherit}
+.bankcard .bk-ic{flex:none;width:36px;height:36px;border-radius:11px;background:var(--accent-soft);color:var(--link);display:grid;place-items:center}
+.bankcard .bk-ic svg{width:20px;height:20px}
+.bankcard .bk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bankcard .bk-t span{font-size:13px;color:var(--muted)}
+.bankcard .bk-go{flex:none;font-size:14px;font-weight:600;color:var(--link)}
+.bkend{display:flex;flex-direction:column;align-items:flex-start;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
+.bkend span{font-size:14px;color:var(--muted)}
+.bkend b{font:800 28px/1.15 var(--display);letter-spacing:-.02em;color:var(--ink)}
+.bkend.neg b{color:var(--neg)}
+.bkend small{font-size:12.5px;color:var(--muted)}
+.warnsec{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--warn) 55%,transparent)}
+.spends .sp .chk{width:30px;height:30px;flex:none}
+.closebar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border-radius:18px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--lift);border-left:4px solid var(--pos)}
+.closebar .cb-t{flex:1 1 220px;display:flex;flex-direction:column;gap:2px}
+.closebar .cb-t span{font-size:13.5px;color:var(--muted)}
+.closebar .cb-b{display:flex;gap:6px;align-items:center;margin-left:auto}
+.mvlist{display:flex;flex-direction:column}
+.mv{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);cursor:pointer}
+.mv:first-child{border-top:0}
+.mv > i{flex:none;width:9px;height:9px;border-radius:3px}
+.mv .main{flex:1;min-width:0}
+.mv .lab{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv .meta{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv .num{flex:none;font-weight:600}
+.mvday{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 2px}
+.mvday:first-letter{text-transform:uppercase}
+.sheet .mvlist{background:var(--paper);border-radius:14px;padding:0 12px}
+.searchbox{display:flex;align-items:center;gap:8px;background:var(--paper);border-radius:14px;padding:0 12px;margin-top:12px;box-shadow:inset 0 0 0 1px var(--rule)}
+.searchbox svg{width:20px;height:20px;color:var(--muted);flex:none}
+.searchbox input{flex:1;border:0;background:transparent;font:inherit;font-size:17px;padding:13px 0;color:var(--ink);outline:none;min-width:0}
+.kgrid.srch{margin:14px 0 4px}
+.kgrid.srch .kt{background:var(--paper);box-shadow:none}
+@media (min-width:1000px){.kgrid.srch{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* ---------- Réglages ---------- */
+.setwrap{display:flex;flex-direction:column;gap:22px}
+.setsec .seth{display:flex;align-items:center;gap:12px;margin:0 2px 10px}
+.setsec .seth h2{font:700 20px/1.2 var(--display);margin:0;letter-spacing:-.01em}
+.seti{flex:none;width:38px;height:38px;border-radius:12px;background:var(--accent-soft);color:var(--link);display:grid;place-items:center}
+.seti svg{width:21px;height:21px}
+.setop{background:linear-gradient(135deg,var(--accent-soft),var(--surface) 70%)}
+.setop .actions{flex-wrap:wrap;justify-content:flex-start}
+@media (min-width:1000px){.setwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px 20px;align-items:start}.setop{grid-column:1/-1}}
 
 /* ---------- ordinateur : deux colonnes comme dans l'Excel ---------- */
 @media (min-width:1000px){
@@ -486,6 +535,7 @@ nav.tabs button{font-size:10.5px}
         <button class="arr" id="nextP" aria-label="Mois suivant">›</button>
       </div>
       <div class="sync" id="syncBox" title=""><span class="dot" id="syncDot"></span><span id="syncTxt" class="hidden"></span></div>
+      <button class="iconbtn" id="searchBtn" title="Rechercher" aria-label="Rechercher"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
       <button class="iconbtn" id="gearBtn" title="Réglages" aria-label="Réglages">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
@@ -503,42 +553,52 @@ nav.tabs button{font-size:10.5px}
     <section id="tab-indic" class="hidden"><div id="indicBody"></div></section>
 
     <section id="tab-settings" class="hidden">
-      <div class="stack">
-        <div class="card">
-          <strong>Mode d'emploi</strong>
-          <div class="hint">Le fonctionnement de l'app, rubrique par rubrique : mois de paie, enveloppes, Apple Pay, épargne, alertes…</div>
-          <button class="btn ghost" id="guideBtn" style="margin-top:12px">Comment fonctionne l'app</button>
+      <div class="setwrap">
+        <div class="card setop">
+          <div class="st-l"><strong>Mon Budget</strong><div class="hint" id="setInfo"></div></div>
+          <div class="actions" style="margin-top:12px"><button class="btn" id="guideBtn">Mode d'emploi</button><button class="btn ghost" id="syncNow">Synchroniser maintenant</button></div>
         </div>
-        <div class="card">
-          <strong>Enveloppes</strong>
-          <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
-          <div class="chips" id="envChips"></div>
-        </div>
-        <div class="card">
+        <section class="setsec">
+          <div class="seth"><span class="seti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6h18v12H3z"/><path d="M3 10h18M7 15h4"/></svg></span><div><h2>Mon budget</h2><div class="hint" style="margin:0">Paie, enveloppes et calculs</div></div></div>
+          <div class="stack">
+            <div class="card">
           <strong>Jour de paie habituel</strong>
           <label for="payIn">Ma paie arrive en général le</label>
           <div style="display:flex;gap:8px;align-items:center"><input class="field" id="payIn" inputmode="numeric" style="max-width:110px"><span class="hint" style="margin:0">du mois précédent</span></div>
           <div class="hint">Le budget de novembre commence alors le jour de la paie de fin octobre. Comme la date change, tu peux la corriger pour chaque mois (touche les dates sous « Reste à vivre »). Mets 1 pour des mois du 1er au 30/31.</div>
         </div>
-        <div class="card">
+            <div class="card">
+          <strong>Enveloppes</strong>
+          <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
+          <div class="chips" id="envChips"></div>
+        </div>
+            <div class="card">
+          <strong>Automatismes</strong>
+          <label class="switch"><span>Cocher les prélèvements passés<br><span class="hint" style="margin:0">Le lendemain de leur date. Si tu en décoches un, l'app ne le recoche plus.</span></span><input type="checkbox" id="autoToggle"></label>
+        </div>
+            <div class="card">
           <strong>Taux de change</strong>
           <label for="rateIn">Valeur de 1 € en francs (XPF)</label>
           <input class="field" id="rateIn" inputmode="decimal">
           <div class="hint">Les montants saisis en € sont convertis avec ce taux, comme la cellule C45 de ton Excel.</div>
         </div>
-        <div class="card">
+          </div>
+        </section>
+        <section class="setsec">
+          <div class="seth"><span class="seti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 9.5 12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg></span><div><h2>Comptes</h2><div class="hint" style="margin:0">Banques, espèces et épargne</div></div></div>
+          <div class="stack">
+            <div class="card">
           <strong>Comptes et moyens de paiement</strong>
           <div class="hint" style="margin-bottom:10px">Touche un compte pour le renommer, changer sa couleur ou le supprimer.</div>
           <div class="chips" id="accChips"></div>
           <button class="btn ghost small" id="addAcc" style="margin-top:12px">Ajouter un compte</button>
         </div>
-        <div class="card">
-          <strong>Importer mon fichier Excel</strong>
-          <div class="hint">Chaque onglet de mois (par exemple « 06-26_JUIN ») et l'onglet Épargne sont repris. Le fichier est lu sur l'appareil, il n'est envoyé nulle part.</div>
-          <button class="btn ghost" id="xlsBtn" style="margin-top:12px">Choisir le fichier Excel</button>
-          <input type="file" id="xlsFile" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
-        </div>
-        <div class="card">
+          </div>
+        </section>
+        <section class="setsec">
+          <div class="seth"><span class="seti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg></span><div><h2>iPhone</h2><div class="hint" style="margin:0">Apple Pay et Calendrier</div></div></div>
+          <div class="stack">
+            <div class="card">
           <strong>Paiements Apple Pay</strong>
           <div class="hint">Le raccourci de ton iPhone dépose chaque paiement dans ton dépôt privé. L'app les récupère à l'ouverture et te propose de les classer.</div>
           <label>Adresse à coller dans le raccourci</label>
@@ -546,19 +606,24 @@ nav.tabs button{font-size:10.5px}
           <div class="hint" id="inboxInfo"></div>
           <button class="btn ghost" id="checkInbox" style="margin-top:12px">Vérifier les nouveaux paiements</button>
         </div>
-        <div class="card">
-          <strong>Synchronisation</strong>
-          <div class="hint" id="setInfo"></div>
-          <button class="btn ghost" id="syncNow" style="margin-top:12px">Synchroniser maintenant</button>
+            <div class="card">
+          <strong>Alertes dans le Calendrier</strong>
+          <div class="hint">Une alerte par jour au maximum, dans ton calendrier « Budget » : virements à faire, gros prélèvements, paie, échéances des projets.</div>
+          <button class="btn ghost" id="setAlerts" style="margin-top:12px">Préparer les alertes du mois</button>
         </div>
-        <div class="card">
+          </div>
+        </section>
+        <section class="setsec">
+          <div class="seth"><span class="seti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><div><h2>Données et sécurité</h2><div class="hint" style="margin:0">Mot de passe, sauvegarde, import</div></div></div>
+          <div class="stack">
+            <div class="card">
           <strong>Sécurité</strong>
           <div class="hint">Tes données sont chiffrées sur l'appareil avant d'être envoyées sur GitHub.</div>
           <label class="switch"><span>Rester connecté sur cet appareil</span><input type="checkbox" id="remToggle"></label>
           <div class="hint">Désactivé : l'app se verrouille après 10 minutes sans utilisation.</div>
           <button class="btn ghost" id="chgPw" style="margin-top:12px">Changer le mot de passe</button>
         </div>
-        <div class="card">
+            <div class="card">
           <strong>Sauvegarde</strong>
           <div class="hint">Copie lisible de tes données. Elle n'est pas chiffrée : garde-la en lieu sûr.</div>
           <div class="actions" style="margin-top:12px">
@@ -567,11 +632,19 @@ nav.tabs button{font-size:10.5px}
           </div>
           <input type="file" id="importFile" accept="application/json" class="hidden">
         </div>
-        <div class="card">
+            <div class="card">
+          <strong>Importer mon fichier Excel</strong>
+          <div class="hint">Chaque onglet de mois (par exemple « 06-26_JUIN ») et l'onglet Épargne sont repris. Le fichier est lu sur l'appareil, il n'est envoyé nulle part.</div>
+          <button class="btn ghost" id="xlsBtn" style="margin-top:12px">Choisir le fichier Excel</button>
+          <input type="file" id="xlsFile" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+        </div>
+            <div class="card">
           <strong>Cet appareil</strong>
           <div class="hint">Efface la connexion de ce téléphone ou de cet ordinateur. Tes données sur GitHub restent intactes.</div>
           <div class="actions" style="margin-top:10px"><button class="btn danger" id="forgetBtn2">Oublier cet appareil</button></div>
         </div>
+          </div>
+        </section>
       </div>
     </section>
   </main>
@@ -893,7 +966,7 @@ let lastAct = Date.now(), busyLong=false;
 ["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev, ()=>lastAct=Date.now(), {passive:true}));
 setInterval(()=>{ if(S.pw && !busyLong && !isRemembered() && Date.now()-lastAct > 10*60*1000) lock(); }, 30000);
 document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState==="visible" && S.pw){ S.checkInbox=true; if(!busyLong && !isRemembered() && Date.now()-lastAct > 10*60*1000) lock(); else sync(); }
+  if(document.visibilityState==="visible" && S.pw){ S.checkInbox=true; if(!busyLong && !isRemembered() && Date.now()-lastAct > 10*60*1000) lock(); else { autoCheck(); sync(); } }
 });
 
 /* ================= OUTILS ================= */
@@ -1011,6 +1084,7 @@ function startApp(){
   if(!ui.month){ const ms=allMonths(), t=thisMonth(); ui.month = ms.includes(t) ? t : (ms[ms.length-1] || t); }
   if(!ui.year) ui.year = Number(ui.month.slice(0,4));
   show("appView"); lastAct=Date.now(); setTab(ui.tab||"month"); setSync(S.dirty?"busy":"ok", "");
+  setTimeout(()=>autoCheck(), 400);
 }
 const isDesk = () => matchMedia("(min-width:1000px)").matches;
 function setTab(t){
@@ -1248,10 +1322,10 @@ function renderMonth(){
   const m=ui.month;
   if(!monthExists(m) || (!monthLines(m).length && prevExisting(m) && !(live(S.data.months).find(x=>x.id===m)||{}).blank)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
   const C = calc(m);
-  $("monthBody").innerHTML = pendingBanner() + `
+  $("monthBody").innerHTML = pendingBanner() + closeBannerHTML() + `
     <div class="topgrid">
-      <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${envCardsHTML(m)}${filterHTML()}</div>
-      <div class="desk">${accountsPanel(C)}</div>
+      <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
+      <div class="desk">${accountsPanel(C)}${movesPanel(m)}</div>
     </div>
     <div class="mgrid">
       <div>${CATS.filter(c=>c.col==="L").map(c=>groupHTML(c,C)).join("")}</div>
@@ -1265,14 +1339,18 @@ function monthOptions(m){
   modal(`<h2>Options du mois</h2><div class="sub">${esc(mLabel(m))}</div>
     <div class="mlist" style="margin-top:12px">
       <button id="oAlerts">Alertes dans le Calendrier<span class="hint">rappels de paiements</span></button>
+      <button id="oClose">Fin du mois<span class="hint">mettre le reste de côté</span></button>
+      <button id="oBank">Comparer avec ma banque<span class="hint">solde réel</span></button>
       <button id="oPeriod">Date de paie<span class="hint">${esc(fmtD(monthStart(m)))}</span></button>
       <button id="oUncheck">Tout décocher<span class="hint">remet toutes les lignes « à passer »</span></button>
       <button id="oDelete" style="color:var(--neg)">Supprimer ce mois<span class="hint">efface toutes ses lignes</span></button>
     </div>`, (bd, close)=>{
     bd.querySelector("#oAlerts").onclick=()=>{ close(); setTimeout(()=>openAlerts(m), 50); };
+    bd.querySelector("#oClose").onclick=()=>{ close(); setTimeout(()=>openClose(m), 50); };
+    bd.querySelector("#oBank").onclick=()=>{ close(); setTimeout(()=>openBank(), 50); };
     bd.querySelector("#oPeriod").onclick=()=>{ close(); setTimeout(()=>openPeriod(m), 50); };
     bd.querySelector("#oUncheck").onclick=()=>{ const now=Date.now(), ch=monthLines(m).filter(l=>l.done);
-      ch.forEach(l=>{ l.done=false; l.updatedAt=now; }); touch(); close(); render();
+      ch.forEach(l=>{ l.done=false; if(l.mode==="prelevement") l.noAuto=true; l.updatedAt=now; }); touch(); close(); render();
       toast("Lignes décochées", {label:"Annuler", fn:()=>{ const t=Date.now(); ch.forEach(l=>{ l.done=true; l.updatedAt=t; }); touch(); render(); }}); };
     bd.querySelector("#oDelete").onclick=()=>{ if(!confirm("Supprimer tout le budget de "+mLabel(m)+" ?")) return;
       const now=Date.now(), ls_=monthLines(m), mo=S.data.months.find(x=>x.id===m);
@@ -1311,7 +1389,7 @@ function synthHTML(m, C){
   if(!monthExists(m)) return `<div class="empty">Pas de budget pour ${esc(mLabel(m))}.</div>`;
   C = C || calc(m);
   const A=viewAcc(m), CA=A?calc(m,A):C;
-  return accSelHTML(m) + heroHTML(m, CA, A) + progressHTML(CA) + `<div style="height:10px"></div>` + catsPanel(C) + accountsPanel(C);
+  return accSelHTML(m) + heroHTML(m, CA, A) + progressHTML(CA) + bankCardHTML(m) + `<div style="height:10px"></div>` + movesPanel(m, 6) + catsPanel(C) + accountsPanel(C);
 }
 function renderSynthTab(){ $("synthTab").innerHTML = synthHTML(ui.month); }
 
@@ -2153,6 +2231,221 @@ function openAlerts(m){
   });
 }
 
+/* ================= PRÉLÈVEMENTS COCHÉS AUTOMATIQUEMENT ================= */
+const prefVal = (id, def) => { const p=S.data && S.data.prefs.find(x=>x.id===id && !x.deleted); return p ? p.value : def; };
+const autoOn = () => !!prefVal("autodone", true);
+/* un prélèvement dont la date est passée (la veille ou avant) est coché tout seul, sauf si tu l'as décoché toi-même */
+function autoCheck(silent){
+  if(!S.data || !autoOn()) return [];
+  const t=dayStart(new Date()), cur=thisMonth(), from=mShift(cur,-1), done=[], now=Date.now();
+  for(const l of live(S.data.lines)){
+    if(l.done || l.noAuto || l.mode!=="prelevement" || l.cat==="vir" || l.m>cur || l.m<from || isEnv(l)) continue;
+    const d=lineDate(l); if(!d || d>=t) continue;
+    l.done=true; l.autoDone=true; l.updatedAt=now; done.push(l);
+  }
+  if(done.length){ touch(); if(!silent){ render();
+    toast(done.length===1 ? `Prélèvement passé coché : ${done[0].label}` : `${done.length} prélèvements passés cochés`,
+      {label:"Annuler", fn:()=>{ const n=Date.now(); done.forEach(l=>{ l.done=false; l.noAuto=true; l.updatedAt=n; }); touch(); render(); }}); } }
+  return done;
+}
+
+/* ================= SOLDE DE LA BANQUE ================= */
+const bankAccDefault = m => viewAcc(m) || (monthAccounts(m).includes("BNC") ? "BNC" : monthAccounts(m)[0] || (accounts()[0]||{}).name || "");
+/* ce qui doit encore passer sur le compte A d'ici la fin de la période m */
+function bankItems(A, m){
+  const t=dayStart(new Date()), out=[];
+  for(const l of monthLines(m)){
+    if(l.done) continue;
+    let v=0;
+    if(l.cat==="vir"){ if(l.acc===A) v=-Math.abs(xpf(l)); else if(l.to===A) v=Math.abs(xpf(l)); else continue; }
+    else { if(l.acc!==A) continue; const plan=xpf(l);
+      v = plan<0 ? Math.min(0, plan - spentOf(l.id)) : plan; }      // enveloppe : seulement ce qui reste à dépenser
+    if(!v) continue;
+    const d = l.cat==="sal" ? monthStart(m) : lineDate(l);          // la paie arrive au début de la période
+    out.push({l, v, late: !!d && d<t, env: isEnv(l)});
+  }
+  return out;
+}
+function bankCardHTML(m){
+  if(m!==thisMonth() || !monthLines(m).length) return "";
+  const A=bankAccDefault(m); if(!A) return "";
+  const b=prefVal("bal:"+A, null), en=monthEnd(m);
+  if(b && b.at && new Date(b.at)>=monthStart(m)){
+    const old = (Date.now()-new Date(b.at))/86400000 > 4;
+    return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
+      <span class="bk-t"><b>${esc(A)} : ${fmtF(b.end)} le ${esc(fmtD(en))}</b><span>Calculé avec ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
+  }
+  return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
+    <span class="bk-t"><b>Comparer avec ma banque</b><span>Tape ton solde ${esc(A)} : l'app te dit ce qu'il restera le ${esc(fmtD(en))} et ce qui n'est pas encore coché.</span></span><span class="bk-go">Vérifier</span></button>`;
+}
+const BANK_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>`;
+function openBank(A0){
+  const m = monthExists(thisMonth()) ? thisMonth() : ui.month;
+  let A = A0 || bankAccDefault(m);
+  const accs = [...new Set([...monthAccounts(m), ...accounts().filter(a=>!a.savings).map(a=>a.name)])];
+  const prev = () => prefVal("bal:"+A, null);
+  modal(`<h2>Comparer avec ma banque</h2><div class="sub" style="text-transform:none">Budget de ${esc(mLabel(m))}, jusqu'au ${esc(fmtD(monthEnd(m)))}</div>
+    <section class="sec"><div class="sh">Compte</div>
+      <div class="chips" id="bkAcc">${accs.map(a=>`<button class="chip${a===A?" on":""}" data-v="${esc(a)}"><i style="background:${esc(accColor(a))}"></i>${esc(a)}</button>`).join("")}</div>
+    </section>
+    <section class="sec"><div class="sh">Solde affiché par ta banque aujourd'hui</div>
+      <div class="amtbox" style="margin-top:0"><input id="bkAmt" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Solde"><span class="unit">F</span></div>
+      <div class="seg" id="bkSign" style="margin-top:8px"><button data-v="1" class="on">Positif</button><button data-v="-1">À découvert</button></div>
+    </section>
+    <div id="bkOut"></div>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="bkCancel">Fermer</button><button class="btn" id="bkOk">Enregistrer</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x), sign=segBind(bd,"bkSign");
+    const fill=()=>{ const p=prev(); q("#bkAmt").value = p ? fmtInput(p.v) : ""; const s=p&&p.v<0?"-1":"1";
+      q("#bkSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===s)); q("#bkSign").dataset.v=s; };
+    const val=()=>{ const n=parseNum(q("#bkAmt").value); return isNaN(n) ? NaN : Math.abs(n)*Number(sign()||1); };
+    function draw(){
+      const it=bankItems(A, m), late=it.filter(x=>x.late), up=it.filter(x=>!x.late);
+      const inc=up.filter(x=>x.v>0&&!x.env).reduce((t,x)=>t+x.v,0), out=up.filter(x=>x.v<0&&!x.env).reduce((t,x)=>t+x.v,0), env=it.filter(x=>x.env).reduce((t,x)=>t+x.v,0);
+      const lateNoEnv=late.filter(x=>!x.env), lateSum=lateNoEnv.reduce((t,x)=>t+x.v,0), n=val(), end = isNaN(n) ? null : n+inc+out+env+lateSum;
+      const row=(k,v,cnt)=>`<div class="srow"><span class="k">${k}${cnt?` <span class="hint" style="margin:0">(${cnt})</span>`:""}</span><span class="v num${v>0?" pos":""}">${fmtF(v,true)}</span></div>`;
+      q("#bkOut").innerHTML = `
+        ${lateNoEnv.length?`<section class="sec warnsec"><div class="sh">Pas encore coché, alors que la date est passée</div>
+          <div class="hint" style="margin-top:0">Regarde ton relevé : si l'opération y figure, coche-la. Elle est alors déjà dans ton solde et n'est plus comptée en plus.</div>
+          <div class="spends" style="margin-top:8px">${lateNoEnv.map(x=>`<div class="sp"><button class="chk" style="--cc:${cc(x.l.cat)}" data-bkdone="${x.l.id}" aria-label="Cocher ${esc(x.l.label)}">${CHECK}</button><div class="main"><div>${esc(x.l.label||"Ligne")}</div><div class="hint" style="margin:0">prévu le ${esc(fmtD(x.l.cat==="sal"?monthStart(m):lineDate(x.l)))}</div></div><span class="num">${fmtF(x.v,true)}</span></div>`).join("")}</div></section>`:""}
+        <section class="sec"><div class="sh">D'ici le ${esc(fmtD(monthEnd(m)))}</div>
+          ${row("Rentrées à venir", inc, up.filter(x=>x.v>0&&!x.env).length)}
+          ${row("Sorties et virements à venir", out, up.filter(x=>x.v<0&&!x.env).length)}
+          ${env?row("Reste dans tes enveloppes", env):""}
+          ${lateNoEnv.length?row("Pas encore coché", lateSum, lateNoEnv.length):""}
+          ${end==null?`<div class="hint">Tape ton solde pour voir ce qu'il restera.</div>`:`<div class="bkend${end<0?" neg":""}"><span>Il restera sur ${esc(A)}</span><b class="num">${fmtF(end)}</b><small>la veille de la prochaine paie, si tout se passe comme prévu</small></div>`}
+        </section>`;
+      return end;
+    }
+    q("#bkAcc").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; A=b.dataset.v; q("#bkAcc").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); fill(); draw(); });
+    q("#bkOut").addEventListener("click", e=>{ const b=e.target.closest("[data-bkdone]"); if(!b) return; const l=S.data.lines.find(x=>x.id===b.dataset.bkdone); if(!l) return;
+      l.done=true; l.updatedAt=Date.now(); touch(); render(); draw(); });
+    q("#bkAmt").oninput=draw; q("#bkSign").addEventListener("click", ()=>setTimeout(draw));
+    q("#bkCancel").onclick=close;
+    q("#bkOk").onclick=()=>{ const n=val(); if(isNaN(n)){ q("#bkAmt").focus(); return toast("Tape le solde de ta banque"); }
+      const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
+    fill(); draw(); setTimeout(()=>q("#bkAmt").focus(), 80);
+  });
+}
+
+/* ================= FIN DE MOIS : METTRE LE RESTE DE CÔTÉ ================= */
+function monthLeft(m){
+  const env=[]; for(const l of monthLines(m)) if(l.cat!=="vir" && xpf(l)<0 && isEnv(l)){ const left=-xpf(l)+spentOf(l.id); if(left>0) env.push({l, left}); }
+  const C=calc(m); return {env, envTot:env.reduce((t,x)=>t+x.left,0), free:Math.max(0, C.restant)};
+}
+function closeBannerHTML(){
+  const cur=thisMonth(), m=mShift(cur,-1);
+  if(ui.month!==cur || !monthLines(m).length || prefVal("close:"+m, null)) return "";
+  if((dayStart(new Date())-monthStart(cur))/86400000 > 12) return "";
+  const L=monthLeft(m); if(L.envTot+L.free<=0) return "";
+  return `<div class="closebar"><div class="cb-t"><b>${esc(capF(monthName(m)))} est terminé</b><span>${L.envTot?`${fmtF(L.envTot)} non dépensés dans tes enveloppes. `:""}Tu veux mettre le reste de côté ?</span></div>
+    <div class="cb-b"><button class="linkbtn" data-closeskip="${m}">Non merci</button><button class="btn small" data-close="${m}">Voir</button></div></div>`;
+}
+function openClose(m){
+  const L=monthLeft(m), P=projectsList().filter(p=>!p.paid);
+  const both=L.envTot+L.free;
+  const choices=[[L.envTot,"Enveloppes non dépensées"],[L.free,"Reste à vivre prévu"],[both,"Les deux"]].filter(([v],i,a)=>v>0 && a.findIndex(x=>x[0]===v)===i);
+  const def = choices.length ? choices[0][0] : 0;
+  modal(`<h2>Fin ${/^[aeiou]/.test(norm(monthName(m)))?"d'":"de "}${esc(monthName(m))}</h2><div class="sub" style="text-transform:none">Mettre de côté ce qu'il reste</div>
+    <section class="sec"><div class="sh">Ce qu'il reste</div>
+      ${L.env.length?L.env.map(x=>`<div class="srow"><span class="k">${esc(x.l.label)}</span><span class="v num">${fmtF(x.left)}</span></div>`).join("")+`<div class="srow total"><span class="k">Enveloppes non dépensées</span><span class="v num">${fmtF(L.envTot)}</span></div>`:""}
+      <div class="srow total"><span class="k">Reste à vivre prévu</span><span class="v num">${fmtF(L.free)}</span></div>
+      <div class="hint">Le reste à vivre n'est qu'une prévision : vérifie avec ton solde avant de le mettre de côté.</div>
+    </section>
+    <section class="sec"><div class="sh">Je mets de côté</div>
+      ${choices.length>1?`<div class="chips" id="clCh" style="margin-bottom:10px">${choices.map(([v,t],i)=>`<button class="chip${i?"":" on"}" data-v="${Math.round(v)}">${t} · ${fmtF(v)}</button>`).join("")}</div>`:""}
+      <div class="amtbox" style="margin-top:0"><input id="clAmt" inputmode="decimal" value="${esc(fmtInput(Math.round(def)))}" autocomplete="off" aria-label="Montant"><span class="unit">F</span></div>
+      <label for="clProj">Dans</label>
+      ${P.length?`<select class="field" id="clProj">${P.map(p=>`<option value="${p.id}">${esc(p.name)}${isRes(p)?" (réserve)":""}</option>`).join("")}</select>`
+        :`<div class="hint">Crée d'abord un projet ou une réserve dans l'onglet Épargne.</div>`}
+      <div class="hint">L'argent part sur ${esc(savAccounts()[0]||"ton compte d'épargne")} : pense à faire le virement depuis ta banque.</div>
+    </section>
+    <div class="actions sticky"><button class="linkbtn" id="clSkip">Ne rien mettre</button><span class="spacer"></span><button class="linkbtn" id="clCancel">Plus tard</button><button class="btn" id="clOk"${P.length?"":" disabled"}>Mettre de côté</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    if(q("#clCh")) q("#clCh").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; q("#clAmt").value=fmtInput(Number(b.dataset.v)); q("#clCh").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); });
+    q("#clCancel").onclick=close;
+    q("#clSkip").onclick=()=>{ setPref("close:"+m, {skip:true}); touch(); close(); render(); };
+    q("#clOk").onclick=()=>{ const n=parseNum(q("#clAmt").value); if(!(n>0)){ q("#clAmt").focus(); return toast("Indique le montant"); }
+      const p=projById(q("#clProj").value); if(!p) return; const now=Date.now();
+      const rec={id:uid(), label:"Reste de "+monthName(m), amt:n, cur:"XPF", date:new Date().toLocaleDateString("fr-FR"), at:new Date().toISOString(), acc:savAccounts()[0]||"", proj:p.id, ord:now, updatedAt:now};
+      S.data.savings.push(rec); setPref("close:"+m, {done:true, amt:n, proj:p.id}); touch(); close(); render();
+      toast(`${fmtF(n)} mis de côté pour « ${p.name} »`, {label:"Annuler", fn:()=>{ rec.deleted=true; rec.updatedAt=Date.now(); const c=S.data.prefs.find(x=>x.id==="close:"+m); if(c){ c.deleted=true; c.updatedAt=Date.now(); } touch(); render(); }}); };
+  });
+}
+
+/* ================= MOUVEMENTS ================= */
+function movesOf(m){
+  const out=[];
+  for(const s of live(S.data.spends)) if(s.m===m){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted);
+    out.push({d:new Date(s.at||monthStart(m)), time:!!s.at, lab:s.merchant||"Dépense", sub:l?l.label:"", v:xpf(s), l, cat:l?l.cat:"sor", src:s.src==="manuel"?"saisie":"Apple Pay"}); }
+  for(const l of monthLines(m)) if(l.done && !(isEnv(l) && lineSpends(l.id).length)){
+    const d=lineDate(l)||monthStart(m);
+    out.push({d, time:false, lab:l.label||"Ligne", sub:l.cat==="vir"?`${l.acc||"?"} → ${l.to||"?"}`:CAT[l.cat].name, v:l.cat==="vir"?-Math.abs(xpf(l)):xpf(l), vir:l.cat==="vir", l, cat:l.cat, src:l.mode?modeLabel(l.mode).toLowerCase():""}); }
+  return out.sort((a,b)=>b.d-a.d || (b.time-a.time));
+}
+const mvRow = x => `<div class="mv"${x.l?` data-edit="${x.l.id}"`:""}><i style="background:${cc(x.cat)}"></i>
+  <div class="main"><div class="lab">${esc(x.lab)}</div><div class="meta">${esc(fmtD(x.d,{day:"numeric", month:"short"}))}${x.time?" · "+esc(x.d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})):""}${x.sub?" · "+esc(x.sub):""}${x.src?" · "+esc(x.src):""}</div></div>
+  <span class="num${x.v>0?" pos":""}"${x.vir?' style="color:var(--muted)"':""}>${x.vir?fmtF(-x.v):fmtF(x.v,true)}</span></div>`;
+function movesPanel(m, n=8){
+  const M=movesOf(m);
+  return `<div class="panel"><h3>Derniers mouvements</h3>
+    ${M.length?`<div class="mvlist">${M.slice(0,n).map(mvRow).join("")}</div>${M.length>n?`<button class="linkbtn" data-moves="${m}" style="padding-left:0;margin-top:4px">Tout voir (${M.length})</button>`:""}`
+      :`<div class="hint">Les paiements Apple Pay, tes dépenses saisies et les lignes cochées apparaîtront ici.</div>`}</div>`;
+}
+function openMoves(m){
+  const M=movesOf(m), days=new Map();
+  for(const x of M){ const k=isoDate(x.d); if(!days.has(k)) days.set(k, {d:x.d, items:[]}); days.get(k).items.push(x); }
+  const out=M.filter(x=>x.v<0&&!x.vir).reduce((t,x)=>t+x.v,0);
+  modal(`<h2>Mouvements</h2><div class="sub" style="text-transform:none">${esc(capF(mLabel(m)))} · ${M.length} mouvement${M.length>1?"s":""}, ${fmtF(out)} de sorties</div>
+    ${[...days.values()].map(g=>`<div class="mvday">${esc(fmtD(g.d,{weekday:"long", day:"numeric", month:"long"}))}</div><div class="mvlist">${g.items.map(mvRow).join("")}</div>`).join("")}
+    <div class="actions sticky"><span class="spacer"></span><button class="btn" id="mvClose">Fermer</button></div>`,
+  (bd, close)=>{ bd.querySelector("#mvClose").onclick=close;
+    bd.addEventListener("click", e=>{ const r=e.target.closest(".mv[data-edit]"); if(!r) return; e.stopPropagation(); const l=S.data.lines.find(x=>x.id===r.dataset.edit); close(); if(l) setTimeout(()=>openLine(l), 60); }, true); });
+}
+
+/* ================= RECHERCHE ================= */
+function searchAll(q){
+  const n=norm(q), byM=new Map(), seen=new Set();
+  const add=(m, row)=>{ if(!byM.has(m)) byM.set(m, []); byM.get(m).push(row); };
+  for(const l of live(S.data.lines)) if(norm(l.label).includes(n)){
+    const sp=lineSpends(l.id), sign=l.cat==="vir"?-1:1, amt=l.cat==="vir"?-Math.abs(xpf(l)):xpf(l);
+    let real=0, plan=0, sub;
+    if(sp.length){ real=spentOf(l.id); sp.forEach(s=>seen.add(s.id)); sub=`${sp.length} paiement${sp.length>1?"s":""}, ${fmtF(-real)} sur ${fmtF(-xpf(l))}`; }
+    else if(l.done){ real=amt; sub="passé"; }
+    else if(monthEnd(l.m) < dayStart(new Date())){ real=amt; sub="prévu (mois terminé)"; }
+    else { plan=amt; sub="prévu, pas encore passé"; }
+    add(l.m, {l, lab:l.label, sub:(l.cat==="vir"?`${l.acc||"?"} → ${l.to||"?"} · `:"")+sub, real, plan, sign});
+  }
+  for(const s of live(S.data.spends)) if(!seen.has(s.id) && norm(s.merchant).includes(n)){
+    const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted);
+    add(s.m, {l, lab:s.merchant, sub:(l?l.label+" · ":"")+fmtWhen(s.at), real:xpf(s), plan:0}); }
+  return [...byM.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+}
+function openSearch(){
+  modal(`<h2>Rechercher</h2><div class="sub" style="text-transform:none">Dans tous les mois : lignes, dépenses et paiements</div>
+    <div class="searchbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="sQ" type="search" placeholder="Essence, Casino, Traite…" autocomplete="off" enterkeyhint="search" aria-label="Rechercher"></div>
+    <div id="sRes"></div>
+    <div class="actions sticky"><span class="spacer"></span><button class="btn" id="sClose">Fermer</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    const draw=()=>{ const v=q("#sQ").value.trim(); if(v.length<2){ q("#sRes").innerHTML=`<div class="hint" style="padding:10px 2px">Tape au moins deux lettres. Exemple : « essence » pour savoir combien tu y as mis depuis le début.</div>`; return; }
+      const R=searchAll(v); if(!R.length){ q("#sRes").innerHTML=`<div class="empty">Rien trouvé pour « ${esc(v)} ».</div>`; return; }
+      const real=R.reduce((t,[,rs])=>t+rs.reduce((s,r)=>s+r.real,0),0), plan=R.reduce((t,[,rs])=>t+rs.reduce((s,r)=>s+r.plan,0),0);
+      q("#sRes").innerHTML = `<div class="kgrid srch">
+          <div class="kt"><div class="kk">Passé ou dépensé</div><div class="kv num">${fmtF(real)}</div><div class="ks">sur ${R.length} mois</div></div>
+          ${plan?`<div class="kt"><div class="kk">Encore prévu</div><div class="kv num">${fmtF(plan)}</div><div class="ks">pas encore passé</div></div>`:""}
+        </div>
+        ${R.map(([m,rs])=>{ const t=rs.reduce((s,r)=>s+r.real+r.plan,0); return `<div class="mvday" style="display:flex;justify-content:space-between"><span>${esc(capF(mLabel(m)))}</span><span class="num">${fmtF(t)}</span></div>
+          <div class="mvlist">${rs.map(r=>`<div class="mv" data-go="${m}"${r.l?` data-ln="${r.l.id}"`:""}><i style="background:${cc(r.l?r.l.cat:"sor")}"></i><div class="main"><div class="lab">${esc(r.lab||"Sans motif")}</div><div class="meta">${esc(r.sub)}</div></div><span class="num"${r.plan?' style="opacity:.6"':""}>${fmtF(r.real+r.plan)}</span></div>`).join("")}</div>`; }).join("")}`;
+    };
+    q("#sQ").oninput=draw; draw();
+    q("#sRes").addEventListener("click", e=>{ const r=e.target.closest("[data-go]"); if(!r) return; e.stopPropagation(); const l=r.dataset.ln && S.data.lines.find(x=>x.id===r.dataset.ln);
+      close(); ui.month=r.dataset.go; setTab("month"); if(l) setTimeout(()=>openLine(l), 80); }, true);
+    q("#sClose").onclick=close; setTimeout(()=>q("#sQ").focus(), 80);
+  });
+}
+
 /* ---------- Mode d'emploi ---------- */
 const GUIDE = [
  ["Le principe", `<p>Mon Budget reprend ton fichier Excel : chaque mois, tu notes ce qui est <b>prévu</b> (salaire, charges, épargne, sorties), et l'app calcule ton <b>reste à vivre</b>.</p>
@@ -2162,6 +2455,7 @@ const GUIDE = [
   <p><b>Nouveau mois</b> : passe au mois suivant avec la flèche ›, puis « Créer le budget ». Tu choisis les catégories à reprendre du mois précédent (montants, jours et comptes sont copiés, tout repart « à passer »).</p>`],
  ["Les lignes", `<p>Chaque ligne a une catégorie : Salaire, Aide, Charges fixes, Épargne, Sorties / Activités, Exceptionnel ou Virement entre comptes. Touche une ligne pour la modifier, ou le bouton + pour en ajouter une.</p>
   <p>Indique le <b>jour</b>, le <b>compte</b> et le <b>mode</b> (prélèvement, virement, carte…). Coche la ligne quand l'opération est passée sur ton compte.</p>
+  <p>Les <b>prélèvements</b> se cochent tout seuls le lendemain de leur date (réglable dans Réglages → Automatismes). Si tu en décoches un, l'app ne le recoche plus.</p>
   <p>Un montant en <b>€</b> est converti en francs avec le taux des Réglages.</p>`],
  ["Comptes et virements", `<p>Ton salaire arrive sur la BNC, puis tu fais des virements vers tes autres comptes. Un <b>virement entre comptes</b> ne change pas ton reste à vivre total : l'argent change seulement de compte.</p>
   <p>Le sélecteur au-dessus du reste à vivre montre ce qui reste <b>sur un compte</b> (BNC par défaut), en tenant compte des virements qui en sortent ou qui y arrivent. « Tous les comptes » donne le total.</p>`],
@@ -2174,13 +2468,21 @@ const GUIDE = [
   <p>Un <b>projet</b> a un montant et, si tu veux, une date (impôts, meubles…) : l'app calcule combien mettre de côté par mois. Le <b>simulateur</b> marche dans les deux sens : « combien par mois ? » ou « quand j'aurai assez ? ».</p>
   <p>Une <b>réserve</b> n'a ni objectif ni date (réparations de voiture, aléas) : tu y mets de côté et tu y puises quand il faut.</p>
   <p>« + Mettre de côté » ajoute un versement (en F ou en €). Touche un versement pour le supprimer.</p>`],
+ ["Comparer avec ma banque", `<p>Sous le reste à vivre, « Comparer avec ma banque » : tape le solde affiché par ta banque aujourd'hui.</p>
+  <p>L'app ajoute tout ce qui doit encore passer sur ce compte (rentrées, prélèvements, virements, et ce qui reste dans tes enveloppes) et te donne le <b>solde prévu la veille de la paie</b>.</p>
+  <p>Elle liste aussi les lignes dont la date est passée mais <b>pas encore cochées</b> : si elles sont sur ton relevé, coche-les, sinon c'est un oubli à vérifier.</p>`],
+ ["Fin du mois", `<p>Au début d'un nouveau mois, l'app te propose de <b>mettre de côté ce qu'il reste</b> du mois précédent : l'argent non dépensé dans tes enveloppes, et/ou le reste à vivre prévu.</p>
+  <p>Tu choisis le montant et le projet ou la réserve. Ensuite, fais le virement vers ton compte d'épargne depuis ta banque. Tu peux aussi le faire plus tard depuis « Options du mois » → « Fin du mois ».</p>`],
+ ["Mouvements et recherche", `<p><b>Derniers mouvements</b> (onglet Synthèse sur iPhone, à droite sur ordinateur) : tes paiements Apple Pay, tes dépenses saisies et les lignes cochées, du plus récent au plus ancien.</p>
+  <p>La <b>loupe</b> en haut cherche dans tous les mois : « essence » te donne tout ce que tu y as mis depuis le début, mois par mois, avec le total. Touche un résultat pour l'ouvrir.</p>`],
  ["Synthèse, Année, Indicateurs", `<p><b>Synthèse</b> : le résumé du mois par catégorie. <b>Année</b> : tous les mois côte à côte, comme ton Excel.</p>
   <p><b>Indicateurs</b> : graphiques interactifs (évolution du reste à vivre, sorties par catégorie, enveloppes, épargne). Touche un point ou une barre pour voir le détail.</p>`],
  ["Alertes Calendrier", `<p>En bas du mois, « Alertes Calendrier » crée un fichier avec <b>une alerte par jour au maximum</b> : virements et paiements à faire toi-même, gros prélèvements (au-dessus du seuil), jour de paie et échéances des projets.</p>
   <p>Ouvre le fichier, choisis le calendrier <b>Budget</b>, puis « Tout ajouter ». Refaire l'ajout pour le même mois met à jour les alertes sans les doubler.</p>`],
  ["Sécurité et sauvegarde", `<p>Tes données sont <b>chiffrées sur l'appareil</b> avec ton mot de passe avant d'être envoyées dans ton dépôt GitHub privé. Personne ne peut les lire sans lui, pas même GitHub.</p>
   <p>Garde bien ce mot de passe : sans lui, les données ne peuvent pas être récupérées. Une <b>sauvegarde</b> (Réglages) de temps en temps est une bonne précaution.</p>
-  <p>Le point vert en haut indique que tout est synchronisé entre ton iPhone et ton ordinateur.</p>`],
+  <p>Le point vert en haut indique que tout est synchronisé entre ton iPhone et ton ordinateur.</p>
+  <p>Sur ordinateur, la page s'affiche en deux colonnes, avec les comptes et les derniers mouvements à droite.</p>`],
 ];
 function openGuide(){
   modal(`<h2>Mode d'emploi</h2><div class="sub" style="text-transform:none">Comment fonctionne Mon Budget</div>
@@ -2195,13 +2497,18 @@ function renderSettings(){
   $("payIn").value = payday();
   { const seen=new Map(); for(const l of live(S.data.lines).filter(l=>l.cat!=="vir" && xpf(l)<0 && l.label).sort((a,b)=>b.m.localeCompare(a.m))) if(!seen.has(norm(l.label))) seen.set(norm(l.label), l);
     const L=[...seen.values()].sort((a,b)=>(isEnv(b)-isEnv(a)) || a.label.localeCompare(b.label,"fr"));
-    $("envChips").innerHTML = L.length ? L.map(l=>`<button class="tog${isEnv(l)?" on":""}" style="--cc:${cc(l.cat)}" data-envtog="${esc(l.label)}" aria-pressed="${isEnv(l)}"><i></i>${esc(l.label)}</button>`).join("") : `<span class="hint">Aucune ligne de sortie pour l'instant.</span>`; }
+    const chip = l=>`<button class="tog${isEnv(l)?" on":""}" style="--cc:${cc(l.cat)}" data-envtog="${esc(l.label)}" aria-pressed="${isEnv(l)}"><i></i>${esc(l.label)}</button>`;
+    const on=L.filter(isEnv), off=L.filter(l=>!isEnv(l)), wasOpen=!!document.querySelector("#envMore[open]");
+    $("envChips").innerHTML = !L.length ? `<span class="hint">Aucune ligne de sortie pour l'instant.</span>`
+      : (on.length ? on.map(chip).join("") : `<span class="hint" style="margin:0">Aucune enveloppe pour l'instant.</span>`)
+        + (off.length ? `<details id="envMore" style="flex-basis:100%;margin-top:6px"${wasOpen||!on.length?" open":""}><summary>Ajouter une enveloppe (${off.length} lignes)</summary><div class="chips" style="margin-top:10px">${off.map(chip).join("")}</div></details>` : ""); }
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
   $("accChips").innerHTML = accounts().map(a=>`<button class="chip" data-accedit="${a.id}"><i style="background:${esc(a.color)}"></i>${esc(a.name)}</button>`).join("");
   $("remToggle").checked = isRemembered();
-  $("setInfo").textContent = `Dépôt : ${S.cfg.owner}/${S.cfg.repo} · ${allMonths().length} mois · ${live(S.data.lines).length} lignes`+(S.lastSync?` · dernière synchro ${S.lastSync.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}`:"");
+  $("autoToggle").checked = autoOn();
+  $("setInfo").textContent = (S.lastSync?`Synchronisé à ${S.lastSync.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} · `:"")+`${allMonths().length} mois · ${live(S.data.lines).length} lignes · dépôt ${S.cfg.owner}/${S.cfg.repo}`;
 }
 function openAccount(a){
   const isNew=!a; a = a || {name:"", color:PALETTE[live(S.data.accounts).length%PALETTE.length]};
@@ -2433,6 +2740,7 @@ $("unlockBtn").onclick=()=>doUnlock();
 $("lPw").addEventListener("keydown", e=>{ if(e.key==="Enter") doUnlock(); });
 $("forgetBtn").onclick=forget; $("forgetBtn2").onclick=forget;
 $("lockNow").onclick=()=>lock(true);
+$("searchBtn").onclick=()=>openSearch();
 $("gearBtn").onclick=()=>setTab(ui.tab==="settings"?"month":"settings");
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else openLine(null, "fix"); };
@@ -2462,6 +2770,8 @@ $("syncNow").onclick=()=>{ S.checkInbox=true; sync(); };
 $("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.pw); toast("Cet appareil restera connecté"); } else { forgetDevice(); toast("Le mot de passe sera demandé à chaque ouverture"); } };
 $("chgPw").onclick=changePassword;
 $("guideBtn").onclick=openGuide;
+$("setAlerts").onclick=()=>openAlerts(monthExists(thisMonth())?thisMonth():ui.month);
+$("autoToggle").onchange=e=>{ setPref("autodone", e.target.checked); touch(); if(e.target.checked) autoCheck(); toast(e.target.checked?"Les prélèvements passés seront cochés tout seuls":"Prélèvements à cocher toi-même"); };
 $("exportBtn").onclick=exportData;
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
@@ -2473,9 +2783,13 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-sharecat]")){ ui.indCat = ui.indCat===el.dataset.sharecat ? "" : el.dataset.sharecat; render(); return; }
   if(!t.closest(".ich")) { if(typeof hideTip==="function") hideTip(); }
   if(el=t.closest("[data-accview]")){ ui.accView=el.dataset.accview; saveUI(); lastAnim=null; render(); return; }
+  if(el=t.closest("[data-bank]")) return openBank(el.dataset.bank);
+  if(el=t.closest("[data-close]")) return openClose(el.dataset.close);
+  if(el=t.closest("[data-closeskip]")){ setPref("close:"+el.dataset.closeskip, {skip:true}); touch(); render(); return; }
+  if(el=t.closest("[data-moves]")) return openMoves(el.dataset.moves);
   if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
   if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
-  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; l.updatedAt=Date.now(); touch();
+  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; if(!l.done && l.mode==="prelevement") l.noAuto=true; l.updatedAt=Date.now(); touch();
       if(ui.filter==="todo" && l.done){ el.classList.add("on"); setTimeout(render, 380); } else render(); } return; }
   if(el=t.closest("[data-edit]")){ const l=S.data.lines.find(x=>x.id===el.dataset.edit); if(l) openLine(l); return; }
   if(el=t.closest("[data-add]")) return openLine(null, el.dataset.add);
