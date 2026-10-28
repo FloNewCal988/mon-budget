@@ -1581,7 +1581,10 @@ const fmtWhen = iso => { const d=new Date(iso); if(isNaN(d)) return ""; return d
 const monthOfIso = iso => { const d=new Date(iso); return isNaN(d) ? ui.month : periodOf(d); };
 const ruleOf = merchant => S.data.prefs.find(p=>p.id==="rule:"+norm(merchant) && !p.deleted);
 const cardAcc = card => { const p=S.data.prefs.find(x=>x.id==="card:"+norm(card) && !x.deleted); if(p) return p.value;
-  const n=norm(card); if(/nouvelle.?caledonie|bnc/.test(n)) return (accounts().find(a=>a.name==="BNC")||{}).name||""; if(/populaire|banque ?pop/.test(n)) return (accounts().find(a=>a.name==="Banque Pop")||{}).name||""; if(/revolut/.test(n)) return (accounts().find(a=>a.name==="Revolut")||{}).name||""; return ""; };
+  const n=norm(card); if(!n) return "";
+  const ex=accounts().find(a=>{ const k=norm(a.name); return k===n || k===n.replace(/s$/,"") || n.replace(/s$/,"")===k.replace(/s$/,""); }); if(ex) return ex.name;   // « Espèces » → Espèce
+  if(/^especes?$|^liquide|^cash/.test(n)) return (accounts().find(a=>/^espece/.test(norm(a.name)))||{}).name||"";
+  if(/nouvelle.?caledonie|bnc/.test(n)) return (accounts().find(a=>a.name==="BNC")||{}).name||""; if(/populaire|banque ?pop/.test(n)) return (accounts().find(a=>a.name==="Banque Pop")||{}).name||""; if(/revolut/.test(n)) return (accounts().find(a=>a.name==="Revolut")||{}).name||""; return ""; };
 const envKey = label => "env:"+norm(label);
 const isEnv = l => { const p=S.data.prefs.find(x=>x.id===envKey(l.label) && !x.deleted); return !!(p && p.value); };
 const setEnv = (label, on) => setPref(envKey(label), !!on);
