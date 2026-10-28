@@ -577,6 +577,32 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 @keyframes flashIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.92)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1}100%{opacity:0}}
 #pFlash.on{animation:flashIn .9s ease-out forwards}
 @media (prefers-reduced-motion:reduce){main.slide-l,main.slide-r{animation:none}#pFlash.on{animation:flashIn .9s steps(1) forwards}}
+.tokwarn{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;cursor:pointer;background:var(--surface);color:var(--ink);border-radius:16px;padding:12px 14px;margin-bottom:14px;box-shadow:inset 0 0 0 1.5px var(--warn);font:inherit}
+.tokwarn.bad{box-shadow:inset 0 0 0 1.5px var(--neg)}
+.todo .tokwarn{margin:0}
+.tokwarn .tw-ic{flex:none;width:30px;height:30px;border-radius:50%;background:var(--warn);color:#000;font-weight:900;display:grid;place-items:center}
+.tokwarn.bad .tw-ic{background:var(--neg);color:#fff}
+.tokwarn .tw-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.tokwarn .tw-t span{font-size:13px;color:var(--muted)}
+.toklist{display:flex;flex-direction:column;margin-top:8px}
+.tokrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.tokrow:first-child{border-top:0}
+.tokrow .tk-t{display:flex;flex-direction:column;min-width:0}
+.tokrow .tk-t span{font-size:12.5px;color:var(--muted)}
+.tokrow input{width:auto;padding-top:8px;padding-bottom:8px}
+.tokrow .tk-s{grid-column:1/-1;font-size:12.5px;font-weight:600;color:var(--muted)}
+.tokrow .tk-s.pos{color:var(--pos)} .tokrow .tk-s.warn{color:var(--warn)} .tokrow .tk-s.neg{color:var(--neg)}
+.steps{margin:0;padding-left:20px;font-size:14.5px;line-height:1.5}
+.steps li{margin:4px 0}
+.copy{display:flex;gap:8px;align-items:center;margin-top:8px}
+.copy code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;background:var(--paper);border-radius:10px;padding:9px 10px}
+.hlist{display:flex;flex-direction:column;margin-top:10px;background:var(--paper);border-radius:14px;padding:2px 12px}
+.hrow2{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--rule)}
+.hrow2:first-child{border-top:0}
+.hrow2 .hv-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.hrow2 .hv-t span{font-size:12.5px;color:var(--muted)}
+.hrow2 .hv-s{color:var(--ink)!important}
+.hv-cur{font-size:12.5px;font-weight:700;color:var(--pos)}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -825,6 +851,11 @@ nav.tabs button{font-size:10.5px}
           <div class="seth"><span class="seti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg></span><div><h2>Données et sécurité</h2><div class="hint" style="margin:0">Mot de passe, sauvegarde, import</div></div></div>
           <div class="stack">
             <div class="card">
+          <strong>Jetons GitHub</strong>
+          <div class="hint">Un jeton expire à la date choisie lors de sa création. Indique-la ici : l'app te préviendra deux semaines avant, pour que rien ne s'arrête.</div>
+          <div id="tokList" class="toklist"></div>
+        </div>
+            <div class="card">
           <strong>Sécurité</strong>
           <div class="hint">Tes données sont chiffrées sur l'appareil avant d'être envoyées sur GitHub.</div>
           <label class="switch"><span>Rester connecté sur cet appareil</span><input type="checkbox" id="remToggle"></label>
@@ -833,7 +864,9 @@ nav.tabs button{font-size:10.5px}
         </div>
             <div class="card">
           <strong>Sauvegarde</strong>
-          <div class="hint">Copie lisible de tes données. Elle n'est pas chiffrée : garde-la en lieu sûr.</div>
+          <div class="hint">GitHub garde automatiquement chaque version de tes données, chiffrée. Tu peux revenir à l'état d'un des 14 derniers jours.</div>
+          <button class="btn" id="histBtn" style="margin-top:12px">Revenir à une version précédente</button>
+          <div class="hint" style="margin-top:14px">Tu peux aussi exporter une copie lisible de tes données. Elle n'est pas chiffrée : garde-la en lieu sûr.</div>
           <div class="actions" style="margin-top:12px">
             <button class="btn ghost" id="exportBtn">Exporter une sauvegarde</button>
             <button class="btn ghost" id="importBtn">Restaurer une sauvegarde</button>
@@ -1081,11 +1114,13 @@ async function sync(){
         S.dirty=false; break;
       }catch(e){ if(!e.conflict || attempt===2) throw e; }
     }
+    if(S.tokenBad){ S.tokenBad=false; }
     await cacheLocal(); render();
     setSync("ok","À jour"); S.lastSync=new Date();
     if(inbox.length){ clearInbox(inbox); const n=pendingList().length; if(n && ui.tab!=="month") toast(`${n} paiement${n>1?"s":""} Apple Pay à classer`, {label:"Classer", fn:openInbox}); }
   }catch(e){
     setSync("err", navigator.onLine===false ? "Hors ligne" : "Erreur");
+    if(/Jeton GitHub refusé/.test(e.message||"") && !S.tokenBad){ S.tokenBad=true; render(); }
     if(navigator.onLine!==false) toast(e.message);
   }finally{ syncing=false; }
 }
@@ -1569,7 +1604,7 @@ function renderMonth(){
   const m=ui.month;
   if(!monthExists(m) || (!monthLines(m).length && prevExisting(m) && !(live(S.data.months).find(x=>x.id===m)||{}).blank)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
   const C = calc(m);
-  $("monthBody").innerHTML = (()=>{ const L=[pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
+  $("monthBody").innerHTML = (()=>{ const L=[tokenWarnHTML(), pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
     <div class="topgrid">
       <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}${movesPanel(m)}</div>
@@ -2534,6 +2569,7 @@ function alertItems(m){
     add(d, `${l.label} ${fmtF(v)} (${what.trim()})`, v);
   }
   if(P.paie){ const nx=monthStart(mShift(m,1)); if(nx>=today) add(nx, `Paie prévue : crée le budget de ${monthName(mShift(m,1))}${P.bilan?` et lis le bilan ${deM(m)}`:""}`, 0); }
+  for(const [k,name] of TOKENS){ const d=tokExp(k); if(!d) continue; for(const n of [14,1]){ const a=addDays(d,-n); if(a>=monthStart(m) && a<=monthEnd(m) && a>=today) add(a, `${name} expire ${n===1?"demain":"dans 14 jours"} : renouvelle-le dans Réglages`, 0); } }
   if(P.bilan) for(let d=new Date(monthStart(m)); d<=monthEnd(m); d.setDate(d.getDate()+1)) if(d.getDay()===1 && d>=today && +dayStart(d)!==+monthStart(mShift(m,1))) add(new Date(d), "Bilan de la semaine prêt dans Mon Budget", 0);
   if(P.proj) for(const p of projectsList().filter(x=>!x.paid && !isRes(x) && x.due)){
     const [y,mm,dd]=p.due.split("-").map(Number), due=new Date(y,mm-1,dd), st=projStatus(p);
@@ -2804,6 +2840,107 @@ function drawRhythm(){
     <div class="stile"><span>${p1?esc(capF(monthName(p1.m))):"Mois précédent"}</span><b class="num">${p1?fmtF(p1.total):"—"}</b><small>${p1?"au total, sur tout le mois":"pas encore de données"}</small></div>
     <div class="stile"><span>${key?"Reste":"Enveloppes"}</span><b class="num${budget&&left<0?" neg":""}">${budget?fmtF(left):"—"}</b><small>${budget?`restants pour ${daysLeft} jour${daysLeft>1?"s":""}`:"aucune enveloppe"}</small></div></div>
 `;
+}
+
+/* ================= JETONS : DATE D'EXPIRATION ET REMPLACEMENT ================= */
+const TOKENS = [["app","Jeton de l'app","sert à synchroniser ton iPhone et ton ordinateur"],["sc","Jeton des raccourcis iPhone","utilisé par les raccourcis Apple Pay et Dépense"]];
+const tokExp = k => { const v=prefVal("tokexp:"+k, ""); if(!/^\d{4}-\d{2}-\d{2}$/.test(v||"")) return null; const [y,m,d]=v.split("-").map(Number); return new Date(y,m-1,d); };
+const daysTo = d => Math.round((dayStart(d)-dayStart(new Date()))/864e5);
+function tokenWarnHTML(){
+  const W=[];
+  if(S.tokenBad) W.push(["app", -1, "GitHub refuse le jeton de l'app : la synchronisation est arrêtée."]);
+  for(const [k,name] of TOKENS){ const d=tokExp(k); if(!d) continue; const n=daysTo(d); if(n>14 || (k==="app" && S.tokenBad)) continue;
+    W.push([k, n, n<0 ? `${name} a expiré le ${fmtD(d)}.` : n===0 ? `${name} expire aujourd'hui.` : `${name} expire dans ${n} jour${n>1?"s":""} (le ${fmtD(d)}).`]); }
+  return W.map(([k,n,t])=>`<button class="tokwarn${n<=3?" bad":""}" data-tokhelp="${k}"><span class="tw-ic">!</span><span class="tw-t"><b>${esc(t)}</b><span>Touche ici pour le renouveler en 3 minutes.</span></span></button>`).join("");
+}
+function openTokenHelp(k){
+  const isApp = k!=="sc";
+  modal(`<h2>Renouveler ${isApp?"le jeton de l'app":"le jeton des raccourcis"}</h2><div class="sub" style="text-transform:none">Sur GitHub, dans Safari</div>
+    <section class="sec"><div class="sh">1. Régénérer le jeton</div>
+      <ol class="steps"><li>Ouvre <b>github.com/settings/personal-access-tokens</b>.</li><li>Touche le jeton ${isApp?"de Mon Budget":"« Raccourci Apple Pay »"}, puis <b>Regenerate token</b>.</li><li>Choisis une durée (1 an par exemple), confirme, puis <b>copie</b> le nouveau code github_pat_…</li></ol>
+      <div class="copy"><code id="tkUrl">https://github.com/settings/personal-access-tokens</code><button class="btn ghost small" id="tkCopy">Copier</button></div>
+    </section>
+    ${isApp?`<section class="sec"><div class="sh">2. Le coller ici</div>
+      <input class="field" id="tkNew" placeholder="github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:0">
+      <div class="err" id="tkErr"></div>
+      <div class="hint">Il est vérifié auprès de GitHub puis chiffré avec ton mot de passe, comme l'ancien. Sur ton autre appareil, fais la même chose dans Réglages → Sécurité.</div></section>`
+    :`<section class="sec"><div class="sh">2. Le mettre dans tes raccourcis</div>
+      <ol class="steps"><li>App Raccourcis → onglet <b>Automatisation</b> → ton automatisation Wallet → action <b>Obtenir le contenu de l'URL</b> → En-têtes.</li><li>Dans <b>Authorization</b>, garde « Bearer » et l'espace, et remplace la suite par le nouveau code.</li><li>Fais pareil dans le raccourci <b>Dépense</b>.</li></ol></section>`}
+    <section class="sec"><div class="sh">${isApp?"3":"3"}. Nouvelle date d'expiration</div>
+      <input class="field" type="date" id="tkDate" value="${(()=>{ const d=new Date(); d.setFullYear(d.getFullYear()+1); return isoDate(d); })()}" style="margin-top:0">
+      <div class="hint">GitHub l'affiche à côté du jeton. L'app te préviendra deux semaines avant.</div></section>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="tkCancel">Annuler</button><button class="btn" id="tkOk">${isApp?"Vérifier et enregistrer":"Enregistrer la date"}</button></div>`,
+  (bd, close)=>{ const q=x=>bd.querySelector(x);
+    q("#tkCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(q("#tkUrl").textContent); toast("Adresse copiée"); }catch(e){} };
+    q("#tkCancel").onclick=close;
+    q("#tkOk").onclick=async()=>{
+      const dv=q("#tkDate").value;
+      if(isApp){ const tok=q("#tkNew").value.trim(), err=q("#tkErr"); err.textContent="";
+        if(!/^(github_pat_|ghp_)/.test(tok)){ err.textContent="Colle le code complet, il commence par github_pat_."; return; }
+        q("#tkOk").disabled=true; bd.dataset.busy="1";
+        try{ await ghGetFile(S.cfg, tok, DATA_PATH); S.token=tok; S.cfg.tok=await encryptStr(S.pw, tok, S.cfg.salt); ls.set(LS_CFG, S.cfg); S.tokenBad=false; }
+        catch(e){ err.textContent = /refusé/.test(e.message) ? "GitHub refuse ce jeton : vérifie que tu l'as copié en entier et qu'il a accès au dépôt mon-budget-donnees." : e.message; q("#tkOk").disabled=false; delete bd.dataset.busy; return; }
+        delete bd.dataset.busy; }
+      if(/^\d{4}-\d{2}-\d{2}$/.test(dv)) setPref("tokexp:"+(isApp?"app":"sc"), dv);
+      touch(); close(); render(); if(isApp) sync(); toast(isApp?"Nouveau jeton enregistré ✓":"Date enregistrée ✓"); };
+  });
+}
+function tokensSettingsHTML(){
+  return TOKENS.map(([k,name,sub])=>{ const d=tokExp(k), n=d?daysTo(d):null;
+    return `<div class="tokrow"><div class="tk-t"><b>${esc(name)}</b><span>${esc(sub)}</span></div>
+      <input class="field" type="date" data-tokexp="${k}" value="${d?isoDate(d):""}" aria-label="Expiration : ${esc(name)}">
+      <span class="tk-s ${n==null?"":n<0?"neg":n<=14?"warn":"pos"}">${n==null?"date non renseignée":n<0?"expiré":n===0?"expire aujourd'hui":`encore ${n} j`}</span></div>`; }).join("")
+    + `<button class="btn ghost small" data-tokhelp="app" style="margin-top:10px">Remplacer le jeton de l'app</button>`;
+}
+
+/* ================= HISTORIQUE : REVENIR À UNE VERSION PRÉCÉDENTE ================= */
+async function fetchVersions(){
+  const since=new Date(Date.now()-14*864e5).toISOString(), out=[];
+  for(let page=1; page<=5; page++){
+    const r=await fetch(`${ghBase(S.cfg)}/commits?path=${DATA_PATH}&since=${since}&per_page=100&page=${page}`, {headers:ghHeaders(S.token), cache:"no-store"});
+    if(!r.ok) throw ghErr(r); const L=await r.json(); out.push(...L); if(L.length<100) break; }
+  const byDay=new Map();
+  for(const c of out){ const d=new Date(c.commit.committer.date), k=isoDate(d); if(!byDay.has(k)) byDay.set(k, {d, sha:c.sha, n:0}); byDay.get(k).n++; }
+  return [...byDay.values()].sort((a,b)=>b.d-a.d);        // la dernière version de chaque jour
+}
+async function loadVersion(sha){
+  const r=await fetch(`${ghBase(S.cfg)}/contents/${DATA_PATH}?ref=${sha}`, {headers:ghHeaders(S.token), cache:"no-store"}); if(!r.ok) throw ghErr(r);
+  const j=await r.json(); let content=j.content;
+  if(!content){ const r2=await fetch(`${ghBase(S.cfg)}/git/blobs/${j.sha}`, {headers:ghHeaders(S.token), cache:"no-store"}); if(!r2.ok) throw ghErr(r2); content=(await r2.json()).content; }
+  return JSON.parse(await decryptStr(S.pw, JSON.parse(td.decode(unb64(content)))));
+}
+function dataSummary(d){
+  const L=(d.lines||[]).filter(x=>!x.deleted), months=new Set(L.map(l=>l.m)), sp=(d.spends||[]).filter(x=>!x.deleted).length, pr=(d.projects||[]).filter(x=>!x.deleted).length;
+  return `${months.size} mois · ${L.length} lignes · ${sp} dépense${sp>1?"s":""} · ${pr} projet${pr>1?"s":""}`;
+}
+/* restaurer = remettre chaque élément tel qu'il était, en plus récent, pour que la synchro le garde sur tous les appareils */
+function restoreData(old){
+  const now=Date.now(), before=JSON.parse(JSON.stringify(S.data)), out=emptyData();
+  for(const k of KEYS){ const ids=new Set();
+    for(const x of (old[k]||[])){ out[k].push({...x, updatedAt:now}); ids.add(x.id); }
+    for(const x of (S.data[k]||[])) if(!ids.has(x.id)) out[k].push({...x, deleted:true, updatedAt:now}); }
+  S.data=out; seedDefaults(); touch(); render();
+  return before;
+}
+function openHistory(){
+  modal(`<h2>Revenir en arrière</h2><div class="sub" style="text-transform:none">Une version par jour, sur les 14 derniers jours</div>
+    <div class="hint" style="margin-top:10px">GitHub garde chaque enregistrement de tes données, chiffré. Choisis un jour pour voir ce qu'il contenait, puis restaure-le si besoin. Tu pourras annuler juste après.</div>
+    <div id="hList" class="hlist"><div class="hint" style="padding:12px 2px">Chargement des versions…</div></div>
+    <div class="actions sticky"><span class="spacer"></span><button class="btn" id="hClose">Fermer</button></div>`,
+  async (bd, close)=>{ const q=x=>bd.querySelector(x); q("#hClose").onclick=close;
+    let V; try{ V=await fetchVersions(); }catch(e){ q("#hList").innerHTML=`<div class="err">${esc(e.message)}</div>`; return; }
+    if(!V.length){ q("#hList").innerHTML=`<div class="hint">Aucune version sur les 14 derniers jours.</div>`; return; }
+    const today=isoDate(new Date());
+    q("#hList").innerHTML = V.map((v,i)=>`<div class="hrow2" data-i="${i}"><div class="hv-t"><b>${esc(capF(fmtD(v.d,{weekday:"long", day:"numeric", month:"long"})))}${isoDate(v.d)===today?" · aujourd'hui":""}</b><span>état à ${esc(v.d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}))} · ${v.n} enregistrement${v.n>1?"s":""} ce jour-là</span><span class="hv-s" id="hs${i}"></span></div>${i===0?`<span class="hv-cur">actuelle</span>`:`<button class="btn ghost small" data-hv="${i}">Voir</button>`}</div>`).join("");
+    q("#hList").addEventListener("click", async e=>{ const b=e.target.closest("[data-hv]"); if(!b) return; const i=Number(b.dataset.hv), v=V[i];
+      if(b.dataset.ready){ if(!confirm(`Remettre tes données comme le ${fmtD(v.d)} à ${v.d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} ? Ce que tu as fait depuis sera retiré.`)) return;
+        const before=restoreData(b._data); close();
+        toast(`Données du ${fmtD(v.d)} restaurées`, {label:"Annuler", fn:()=>{ restoreData(before); toast("Restauration annulée"); }}); return; }
+      b.disabled=true; b.textContent="…";
+      try{ const d=await loadVersion(v.sha); b._data=d; q("#hs"+i).textContent=dataSummary(d)+" (aujourd'hui : "+dataSummary(S.data)+")"; b.textContent="Restaurer"; b.classList.remove("ghost"); b.dataset.ready="1"; }
+      catch(err){ q("#hs"+i).textContent = /déchiffrer|decrypt|OperationError/i.test(err.message+err.name) ? "Cette version a un autre mot de passe." : err.message; b.textContent="Voir"; }
+      finally{ b.disabled=false; } });
+  });
 }
 
 /* ================= BILANS (semaine, mois) =================
@@ -3221,7 +3358,9 @@ const GUIDE = [
  ["Alertes Calendrier", `<p>En bas du mois, « Alertes Calendrier » crée un fichier avec <b>une alerte par jour au maximum</b> : virements et paiements à faire toi-même, gros prélèvements (au-dessus du seuil), jour de paie et échéances des projets.</p>
   <p>Ouvre le fichier, choisis le calendrier <b>Budget</b>, puis « Tout ajouter ». Refaire l'ajout pour le même mois met à jour les alertes sans les doubler.</p>`],
  ["Sécurité et sauvegarde", `<p>Tes données sont <b>chiffrées sur l'appareil</b> avec ton mot de passe avant d'être envoyées dans ton dépôt GitHub privé. Personne ne peut les lire sans lui, pas même GitHub.</p>
-  <p>Garde bien ce mot de passe : sans lui, les données ne peuvent pas être récupérées. Une <b>sauvegarde</b> (Réglages) de temps en temps est une bonne précaution.</p>
+  <p>Garde bien ce mot de passe : sans lui, les données ne peuvent pas être récupérées.</p>
+  <p><b>Revenir en arrière</b> : GitHub garde chaque version de tes données, chiffrée. Dans Réglages → Sauvegarde, « Revenir à une version précédente » montre une version par jour sur 14 jours ; touche « Voir » puis « Restaurer ». Tu peux annuler juste après.</p>
+  <p><b>Jetons</b> : indique dans Réglages la date d'expiration de tes deux jetons GitHub (celui de l'app et celui des raccourcis). L'app te prévient deux semaines avant et t'explique comment les renouveler.</p>
   <p>Le point vert en haut indique que tout est synchronisé entre ton iPhone et ton ordinateur.</p>
   <p>Sur ordinateur, la page s'affiche en deux colonnes, avec les comptes et les derniers mouvements à droite.</p>`],
 ];
@@ -3250,6 +3389,7 @@ function renderSettings(){
       $("holList").innerHTML = H.map(h=>`<label class="hrow"><input type="checkbox" data-hol="${h.k}" ${off.includes(h.k)?"":"checked"}><span class="hn">${esc(h.name)}</span><span class="hd">${esc(capF(fmtD(h.date,{weekday:"short", day:"numeric", month:"short", year:"numeric"})))}</span></label>`).join(""); }
     const W=workDays(); $("wdChips").innerHTML = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]].map(([d,n])=>`<button class="tog${W.includes(d)?" on":""}" style="--cc:var(--accent)" data-wd="${d}" aria-pressed="${W.includes(d)}"><i></i>${n}</button>`).join(""); }
   $("themeList").innerHTML = themesSettingsHTML();
+  $("tokList").innerHTML = tokensSettingsHTML();
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
@@ -3528,12 +3668,15 @@ $("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.
 $("chgPw").onclick=changePassword;
 $("guideBtn").onclick=openGuide;
 $("addTheme").onclick=()=>openTheme(null);
+$("histBtn").onclick=()=>openHistory();
 $("setAlerts").onclick=()=>openAlerts(monthExists(thisMonth())?thisMonth():ui.month);
 $("autoToggle").onchange=e=>{ setPref("autodone", e.target.checked); touch(); if(e.target.checked) autoCheck(); toast(e.target.checked?"Les prélèvements passés seront cochés tout seuls":"Prélèvements à cocher toi-même"); };
 $("exportBtn").onclick=exportData;
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
-document.addEventListener("change", e=>{ const h=e.target.closest && e.target.closest("[data-hol]");
+document.addEventListener("change", e=>{ const tk=e.target.closest && e.target.closest("[data-tokexp]");
+  if(tk && S.data){ setPref("tokexp:"+tk.dataset.tokexp, tk.value||""); touch(); render(); toast(tk.value?"Date d'expiration enregistrée":"Date effacée"); return; }
+  const h=e.target.closest && e.target.closest("[data-hol]");
   if(h && S.data){ const off=holOff().filter(k=>k!==h.dataset.hol); if(!h.checked) off.push(h.dataset.hol); setPref("holoff", off); touch(); render(); return; }
   const el=e.target.closest && e.target.closest("[data-envu]"); if(!el || !S.data) return;
   setPref("envu:"+norm(el.dataset.envu), el.value); touch(); toast(`${el.dataset.envu} : ${ENV_UNITS.find(x=>x[0]===el.value)[1].toLowerCase()}`); });
@@ -3544,6 +3687,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
   if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
     if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
+  if(el=t.closest("[data-tokhelp]")) return openTokenHelp(el.dataset.tokhelp);
   if(el=t.closest("[data-bilan]")){ const k=el.dataset.bilan, r=el.dataset.bref||""; ui.seenB=ui.seenB||{};
     if(el.classList.contains("bilcard")){ ui.seenB[k==="mois"?"m"+r:"w"+isoDate(weekStart(new Date()))]=true; saveUI(); render(); }
     return openBilan(k, r||undefined); }
