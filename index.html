@@ -2465,14 +2465,24 @@ function bankItems(A, m){
   }
   return out;
 }
+/* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
+function bankNow(A, m){
+  const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
+  if(!b.snap) return {b, now:b.v, moved:0};
+  const t0=new Date(b.at), cur=new Set(bankItems(A,m).map(x=>x.l.id)); let moved=0;
+  const passed=new Set(); for(const [id,v] of Object.entries(b.snap)) if(!cur.has(id)){ const l=S.data.lines.find(x=>x.id===id); if(l && !l.deleted && l.done){ moved+=v; passed.add(id); } }
+  for(const s of live(S.data.spends)) if(s.m===m && s.at && new Date(s.at)>t0){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(l && l.acc===A && !passed.has(l.id)) moved+=xpf(s); }
+  return {b, now:b.v+moved, moved};
+}
+const bankEnd = (A, m, now) => now + bankItems(A, m).reduce((t,x)=>t+x.v,0);
 function bankCardHTML(m){
   if(m!==thisMonth() || !monthLines(m).length) return "";
   const A=bankAccDefault(m); if(!A) return "";
-  const b=prefVal("bal:"+A, null), en=monthEnd(m);
-  if(b && b.at && new Date(b.at)>=monthStart(m)){
+  const N=bankNow(A, m), en=monthEnd(m);
+  if(N){ const b=N.b, end=bankEnd(A, m, N.now);
     const old = (Date.now()-new Date(b.at))/86400000 > 4;
     return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
-      <span class="bk-t"><b>${esc(A)} : ${fmtF(b.end)} le ${esc(fmtD(en))}</b><span>Calculé avec ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
+      <span class="bk-t"><b>${esc(A)} : <span class="${end<0?"neg":""}">${fmtF(end)}</span> le ${esc(fmtD(en))}</b><span>${Math.round(N.moved)?`Solde estimé aujourd'hui ${fmtF(N.now)}, d'après ton solde du ${esc(fmtD(new Date(b.at)))}`:`Calculé avec ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}`}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
   }
   return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
     <span class="bk-t"><b>Comparer avec ma banque</b><span>Tape ton solde ${esc(A)} : l'app te dit ce qu'il restera le ${esc(fmtD(en))} et ce qui n'est pas encore coché.</span></span><span class="bk-go">Vérifier</span></button>`;
@@ -2490,12 +2500,14 @@ function openBank(A0){
     <section class="sec"><div class="sh">Solde affiché par ta banque aujourd'hui</div>
       <div class="amtbox" style="margin-top:0"><input id="bkAmt" inputmode="decimal" placeholder="0" autocomplete="off" aria-label="Solde"><span class="unit">F</span></div>
       <div class="seg" id="bkSign" style="margin-top:8px"><button data-v="1" class="on">Positif</button><button data-v="-1">À découvert</button></div>
+      <div class="hint" id="bkEst"></div>
     </section>
     <div id="bkOut"></div>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="bkCancel">Fermer</button><button class="btn" id="bkOk">Enregistrer</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x), sign=segBind(bd,"bkSign");
-    const fill=()=>{ const p=prev(); q("#bkAmt").value = p ? fmtInput(p.v) : ""; const s=p&&p.v<0?"-1":"1";
+    const fill=()=>{ const N=bankNow(A, m), v=N?Math.round(N.now):null; q("#bkAmt").value = v!=null ? fmtInput(v) : ""; const s=v!=null&&v<0?"-1":"1";
+      q("#bkEst").innerHTML = N && Math.round(N.moved) ? `Estimé d'après ton solde du ${esc(fmtD(new Date(N.b.at)))} (${fmtF(N.b.v)}) et ce qui est passé depuis (${fmtF(N.moved,true)}). Remplace-le par ton vrai solde si tu l'as sous les yeux.` : N ? `Ton dernier solde, tapé le ${esc(fmtD(new Date(N.b.at)))}.` : "";
       q("#bkSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===s)); q("#bkSign").dataset.v=s; };
     const val=()=>{ const n=parseNum(q("#bkAmt").value); return isNaN(n) ? NaN : Math.abs(n)*Number(sign()||1); };
     const openK=new Set();
@@ -2527,10 +2539,10 @@ function openBank(A0){
     q("#bkAcc").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; A=b.dataset.v; q("#bkAcc").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); fill(); draw(); });
     q("#bkOut").addEventListener("click", e=>{ const b=e.target.closest("[data-bkdone]"); if(!b) return; const l=S.data.lines.find(x=>x.id===b.dataset.bkdone); if(!l) return;
       l.done=true; l.updatedAt=Date.now(); touch(); render(); draw(); });
-    q("#bkAmt").oninput=draw; q("#bkSign").addEventListener("click", ()=>setTimeout(draw));
+    q("#bkAmt").oninput=()=>{ q("#bkEst").textContent=""; draw(); }; q("#bkSign").addEventListener("click", ()=>setTimeout(draw));
     q("#bkCancel").onclick=close;
     q("#bkOk").onclick=()=>{ const n=val(); if(isNaN(n)){ q("#bkAmt").focus(); return toast("Tape le solde de ta banque"); }
-      const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
+      const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end, snap:Object.fromEntries(bankItems(A,m).map(x=>[x.l.id, x.v]))}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
     fill(); draw(); setTimeout(()=>q("#bkAmt").focus(), 80);
   });
 }
