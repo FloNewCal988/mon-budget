@@ -442,6 +442,13 @@ nav.tabs button{position:relative}
 .envc.over .ev{color:var(--neg)}
 .envc .es{font-size:12px;color:var(--muted);margin-bottom:8px}
 .envc .envbar{width:100%;margin-bottom:10px}
+.hollist{display:flex;flex-direction:column;margin-top:8px}
+.hrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--rule);cursor:pointer;font-size:15px}
+.hrow:first-child{border-top:0}
+.hrow input{width:20px;height:20px;accent-color:var(--accent);flex:none;margin:0}
+.hrow .hn{flex:1;min-width:0}
+.hrow .hd{color:var(--muted);font-size:13.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.hrow:has(input:not(:checked)) .hn{color:var(--muted);text-decoration:line-through}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -632,7 +639,10 @@ nav.tabs button{font-size:10.5px}
           <div id="envRh" class="envrh"></div>
           <label style="margin-top:14px">Mes jours de travail</label>
           <div class="chips" id="wdChips"></div>
-          <div class="hint">Sert au calcul « par midi ». Les jours fériés de Nouvelle-Calédonie sont retirés automatiquement.</div>
+          <div class="hint">Sert au calcul « par midi ». Les jours fériés cochés ci-dessous sont retirés automatiquement.</div>
+          <details id="holBox" style="margin-top:12px"><summary>Jours fériés de Nouvelle-Calédonie</summary>
+            <div class="hint" style="margin-top:6px">Les douze prochains. Décoche un jour férié si tu travailles ce jour-là : il comptera alors comme un midi de travail.</div>
+            <div id="holList" class="hollist"></div></details>
         </div>
             <div class="card">
           <strong>Automatismes</strong>
@@ -2324,8 +2334,14 @@ function openAlerts(m){
 /* ================= RYTHME DES ENVELOPPES ET DÉPENSES DU QUOTIDIEN ================= */
 /* jours fériés de Nouvelle-Calédonie (métropole + 24 septembre) */
 function easter(y){ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1; return new Date(y,mo-1,da); }
-const holidays = (()=>{ const cache={}; return y=>{ if(cache[y]) return cache[y]; const e=easter(y), add=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
-  return cache[y]=new Set([new Date(y,0,1),add(e,1),new Date(y,4,1),new Date(y,4,8),add(e,39),add(e,50),new Date(y,6,14),new Date(y,7,15),new Date(y,8,24),new Date(y,10,1),new Date(y,10,11),new Date(y,11,25)].map(isoDate)); }; })();
+/* liste des jours fériés d'une année : clé, nom, date */
+function holidayList(y){ const e=easter(y), add=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+  return [["an","Jour de l'an",new Date(y,0,1)],["paques","Lundi de Pâques",add(e,1)],["travail","Fête du travail",new Date(y,4,1)],["victoire","Victoire 1945",new Date(y,4,8)],
+    ["ascension","Ascension",add(e,39)],["pentecote","Lundi de Pentecôte",add(e,50)],["nationale","Fête nationale",new Date(y,6,14)],["assomption","Assomption",new Date(y,7,15)],
+    ["citoyennete","Fête de la citoyenneté",new Date(y,8,24)],["toussaint","Toussaint",new Date(y,10,1)],["armistice","Armistice 1918",new Date(y,10,11)],["noel","Noël",new Date(y,11,25)]]
+    .map(([k,name,date])=>({k,name,date})); }
+const holOff = () => { const p=S.data && S.data.prefs.find(x=>x.id==="holoff" && !x.deleted); return Array.isArray(p&&p.value) ? p.value : []; };
+const holidays = y => { const off=holOff(); return new Set(holidayList(y).filter(h=>!off.includes(h.k)).map(h=>isoDate(h.date))); };
 const workDays = () => { const p=S.data && S.data.prefs.find(x=>x.id==="workdays" && !x.deleted); return Array.isArray(p&&p.value) ? p.value : [1,2,3,4,5]; };
 const isWorkDay = d => workDays().includes(d.getDay()) && !holidays(d.getFullYear()).has(isoDate(d));
 const ENV_UNITS = [["midi","Par midi travaillé"],["semaine","Par semaine"],["jour","Par jour"],["aucun","Aucun"]];
@@ -2719,6 +2735,8 @@ function renderSettings(){
   { const E=[...new Map(live(S.data.lines).filter(l=>l.cat!=="vir" && xpf(l)<0 && l.label && isEnv(l)).map(l=>[norm(l.label), l.label])).values()].sort((a,b)=>a.localeCompare(b,"fr"));
     $("envRh").innerHTML = E.length ? E.map(lab=>`<div class="erow"><span>${esc(lab)}</span><select class="field" data-envu="${esc(lab)}" aria-label="Rythme de ${esc(lab)}">${ENV_UNITS.map(([k,n])=>`<option value="${k}"${envUnit(lab)===k?" selected":""}>${n}</option>`).join("")}</select></div>`).join("")
       : `<div class="hint">Choisis d'abord tes enveloppes ci-dessus.</div>`;
+    { const t=dayStart(new Date()), off=holOff(), H=[...holidayList(t.getFullYear()), ...holidayList(t.getFullYear()+1)].filter(h=>h.date>=t).sort((a,b)=>a.date-b.date).slice(0,12);
+      $("holList").innerHTML = H.map(h=>`<label class="hrow"><input type="checkbox" data-hol="${h.k}" ${off.includes(h.k)?"":"checked"}><span class="hn">${esc(h.name)}</span><span class="hd">${esc(capF(fmtD(h.date,{weekday:"short", day:"numeric", month:"short", year:"numeric"})))}</span></label>`).join(""); }
     const W=workDays(); $("wdChips").innerHTML = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]].map(([d,n])=>`<button class="tog${W.includes(d)?" on":""}" style="--cc:var(--accent)" data-wd="${d}" aria-pressed="${W.includes(d)}"><i></i>${n}</button>`).join(""); }
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
@@ -2993,7 +3011,9 @@ $("autoToggle").onchange=e=>{ setPref("autodone", e.target.checked); touch(); if
 $("exportBtn").onclick=exportData;
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
-document.addEventListener("change", e=>{ const el=e.target.closest && e.target.closest("[data-envu]"); if(!el || !S.data) return;
+document.addEventListener("change", e=>{ const h=e.target.closest && e.target.closest("[data-hol]");
+  if(h && S.data){ const off=holOff().filter(k=>k!==h.dataset.hol); if(!h.checked) off.push(h.dataset.hol); setPref("holoff", off); touch(); render(); return; }
+  const el=e.target.closest && e.target.closest("[data-envu]"); if(!el || !S.data) return;
   setPref("envu:"+norm(el.dataset.envu), el.value); touch(); toast(`${el.dataset.envu} : ${ENV_UNITS.find(x=>x[0]===el.value)[1].toLowerCase()}`); });
 document.addEventListener("click", e=>{
   const t=e.target; let el;
