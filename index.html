@@ -558,6 +558,25 @@ details.more > label:first-of-type{margin-top:10px}
 .bilcard .bc-go{font-weight:700;color:var(--link)}
 .bilbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-6px 0 16px}
 .bilbtns .btn{padding:10px 8px;font-size:14px}
+.pwhen{max-width:720px;margin:4px auto 0;display:flex;align-items:center;gap:10px;font-size:12.5px;min-height:22px}
+.pwhen .pw{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pwhen .pw i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pwhen .pw.now i{background:var(--pos)} .pwhen .pw.now{color:var(--pos)}
+.pwhen .pw.future i{background:var(--warn)} .pwhen .pw.future{color:var(--warn)}
+.pwhen .pback{margin-left:auto;flex:none;white-space:nowrap;border:0;border-radius:99px;padding:4px 10px;font:inherit;font-size:12.5px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}
+@media (min-width:1000px){.pwhen{max-width:1180px}}
+body[data-when="past"] header.top{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--muted) 45%,transparent)}
+body[data-when="future"] header.top{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--warn) 60%,transparent)}
+body[data-when="now"] header.top{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--pos) 50%,transparent)}
+@keyframes slideL{from{transform:translateX(36px);opacity:.25}to{transform:none;opacity:1}}
+@keyframes slideR{from{transform:translateX(-36px);opacity:.25}to{transform:none;opacity:1}}
+main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s ease-out}
+#pFlash{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:40;pointer-events:none;background:color-mix(in srgb,var(--ink) 92%,transparent);color:var(--paper);border-radius:20px;padding:16px 26px;text-align:center;opacity:0}
+#pFlash b{display:block;font:800 26px/1.15 var(--display);letter-spacing:-.02em}
+#pFlash span{font-size:13.5px;opacity:.75}
+@keyframes flashIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.92)}15%{opacity:1;transform:translate(-50%,-50%) scale(1)}70%{opacity:1}100%{opacity:0}}
+#pFlash.on{animation:flashIn .9s ease-out forwards}
+@media (prefers-reduced-motion:reduce){main.slide-l,main.slide-r{animation:none}#pFlash.on{animation:flashIn .9s steps(1) forwards}}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -713,6 +732,7 @@ nav.tabs button{font-size:10.5px}
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       </button>
     </div>
+    <div class="pwhen" id="pWhen"></div>
   </header>
 
   <main class="wrap">
@@ -1290,6 +1310,13 @@ function renderHeader(){
   const t=ui.tab, period = ["month","synth","year"].includes(t);
   $("prevP").classList.toggle("hidden", !period); $("nextP").classList.toggle("hidden", !period);
   $("periodLbl").textContent = t==="year" ? String(ui.year) : period ? capF(mLabel(ui.month)) : TITLES[t];
+  { const el=$("pWhen"), on=(t==="month"||t==="synth") && S.data; let w="";
+    if(on){ const cur=thisMonth(), m=ui.month;
+      w = m===cur ? "now" : m<cur ? "past" : "future";
+      const sd=d=>fmtD(d,{day:"numeric", month:"short"}), rng=`${sd(monthStart(m))} → ${sd(monthEnd(m))}`;
+      const back = m===cur ? "" : `<button class="pback" data-backnow="1" aria-label="Revenir au mois en cours">↩ ${esc(capF(monthName(cur)))}</button>`;
+      el.innerHTML = `<span class="pw ${w}"><i></i>${w==="now"?"Mois en cours":w==="past"?"Mois terminé":"Mois à venir"} · ${esc(rng)}</span>${back}`; }
+    el.classList.toggle("hidden", !on); document.body.dataset.when = w; }
   $("periodLbl").disabled = !period || t==="year";
   $("periodLbl").style.pointerEvents = (t==="month"||t==="synth") ? "" : "none";
   $("periodLbl").classList.toggle("nochev", !(t==="month"||t==="synth"));
@@ -3465,7 +3492,16 @@ $("searchBtn").onclick=()=>openSearch();
 $("gearBtn").onclick=()=>setTab(ui.tab==="settings"?"month":"settings");
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else quickSpend(null); };
-function shiftPeriod(d){ if(ui.tab==="year") ui.year+=d; else ui.month=mShift(ui.month,d); render(); }
+function shiftPeriod(d){ if(ui.tab==="year") ui.year+=d; else ui.month=mShift(ui.month,d); render(); periodFlash(d); }
+/* au changement de mois : glissement dans le sens du geste et grand nom du mois au centre */
+function periodFlash(d){
+  const mn=$("monthBody").closest("main"); mn.classList.remove("slide-l","slide-r"); void mn.offsetWidth; mn.classList.add(d>0?"slide-l":"slide-r");
+  let f=document.getElementById("pFlash"); if(!f){ f=document.createElement("div"); f.id="pFlash"; document.body.appendChild(f); }
+  const lab = ui.tab==="year" ? String(ui.year) : capF(mLabel(ui.month)), cur=thisMonth();
+  f.innerHTML = `<b>${esc(lab)}</b>${ui.tab==="year"?"":`<span>${ui.month===cur?"mois en cours":ui.month<cur?"mois terminé":"mois à venir"}</span>`}`;
+  f.classList.remove("on"); void f.offsetWidth; f.classList.add("on");
+  try{ navigator.vibrate && navigator.vibrate(8); }catch(e){}
+}
 $("prevP").onclick=()=>shiftPeriod(-1);
 $("nextP").onclick=()=>shiftPeriod(1);
 $("periodLbl").onclick=()=>{
@@ -3514,6 +3550,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-themeedit]")){ const th=themeById(el.dataset.themeedit); if(th) openTheme(th); return; }
   if(el=t.closest("[data-theme]")) return openThemeMonth(el.dataset.theme, el.dataset.thm);
   if(el=t.closest("[data-thtip]")) return toast(el.dataset.thtip);
+  if(t.closest("[data-backnow]")){ const c=thisMonth(), d=c>ui.month?1:-1; ui.month=c; render(); periodFlash(d); scrollTo(0,0); return; }
   if(el=t.closest("[data-goset2]")){ const tg=document.getElementById(el.dataset.goset2); if(tg) tg.scrollIntoView({behavior:"smooth", block:"start"}); return; }
   if(el=t.closest("[data-indtab]")){ ui.indTab=el.dataset.indtab; saveUI(); render(); scrollTo(0,0); return; }
   if(el=t.closest("[data-gotab]")) return setTab(el.dataset.gotab);
