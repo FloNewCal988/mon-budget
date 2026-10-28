@@ -286,6 +286,16 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .bankcard .bk-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .bankcard .bk-t span{font-size:13px;color:var(--muted)}
 .bankcard .bk-go{flex:none;font-size:14px;font-weight:600;color:var(--link)}
+.bkrow{margin:0}
+.bkrow summary{list-style:none;cursor:pointer;color:var(--ink)}
+.bkrow summary::-webkit-details-marker{display:none}
+.bkrow .bkchev{display:inline-block;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-left:8px;transition:transform .2s}
+.bkrow[open] .bkchev{transform:rotate(45deg) translate(-2px,-1px)}
+.bkdl{background:var(--surface);border-radius:12px;padding:2px 12px;margin:0 0 8px}
+.bkd{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--rule);font-size:14.5px}
+.bkd:first-child{border-top:0}
+.bkd .main{flex:1;min-width:0}
+.bkd .num{flex:none;font-weight:600}
 .bkend{display:flex;flex-direction:column;align-items:flex-start;margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
 .bkend span{font-size:14px;color:var(--muted)}
 .bkend b{font:800 28px/1.15 var(--display);letter-spacing:-.02em;color:var(--ink)}
@@ -2299,20 +2309,28 @@ function openBank(A0){
     const fill=()=>{ const p=prev(); q("#bkAmt").value = p ? fmtInput(p.v) : ""; const s=p&&p.v<0?"-1":"1";
       q("#bkSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===s)); q("#bkSign").dataset.v=s; };
     const val=()=>{ const n=parseNum(q("#bkAmt").value); return isNaN(n) ? NaN : Math.abs(n)*Number(sign()||1); };
+    const openK=new Set();
+    q("#bkOut").addEventListener("toggle", e=>{ const d=e.target; if(d.dataset && d.dataset.k){ d.open?openK.add(d.dataset.k):openK.delete(d.dataset.k); } }, true);
     function draw(){
       const it=bankItems(A, m), late=it.filter(x=>x.late), up=it.filter(x=>!x.late);
       const inc=up.filter(x=>x.v>0&&!x.env).reduce((t,x)=>t+x.v,0), out=up.filter(x=>x.v<0&&!x.env).reduce((t,x)=>t+x.v,0), env=it.filter(x=>x.env).reduce((t,x)=>t+x.v,0);
       const lateNoEnv=late.filter(x=>!x.env), lateSum=lateNoEnv.reduce((t,x)=>t+x.v,0), n=val(), end = isNaN(n) ? null : n+inc+out+env+lateSum;
-      const row=(k,v,cnt)=>`<div class="srow"><span class="k">${k}${cnt?` <span class="hint" style="margin:0">(${cnt})</span>`:""}</span><span class="v num${v>0?" pos":""}">${fmtF(v,true)}</span></div>`;
+      const det = x => { const d = x.l.cat==="sal" ? monthStart(m) : lineDate(x.l);
+        const sub = x.env ? `${fmtF(-spentOf(x.l.id))} dépensés sur ${fmtF(-xpf(x.l))}` : x.l.cat==="vir" ? `${x.l.acc||"?"} → ${x.l.to||"?"}` : (x.l.mode?modeLabel(x.l.mode).toLowerCase():CAT[x.l.cat].name);
+        return `<div class="bkd"><div class="main"><div>${esc(x.l.label||"Ligne")}</div><div class="hint" style="margin:0">${d?esc(fmtD(d))+" · ":""}${esc(sub)}</div></div><span class="num${x.v>0?" pos":""}">${fmtF(x.v,true)}</span></div>`; };
+      const row=(key,k,v,L)=>!L.length ? `<div class="srow"><span class="k">${k}</span><span class="v num">${fmtF(v,true)}</span></div>`
+        : `<details class="bkrow" data-k="${key}"${openK.has(key)?" open":""}><summary class="srow"><span class="k">${k} <span class="hint" style="margin:0">(${L.length})</span><span class="bkchev"></span></span><span class="v num${v>0?" pos":""}">${fmtF(v,true)}</span></summary>
+            <div class="bkdl">${[...L].sort((a,b)=>a.v-b.v).map(det).join("")}</div></details>`;
       q("#bkOut").innerHTML = `
         ${lateNoEnv.length?`<section class="sec warnsec"><div class="sh">Pas encore coché, alors que la date est passée</div>
           <div class="hint" style="margin-top:0">Regarde ton relevé : si l'opération y figure, coche-la. Elle est alors déjà dans ton solde et n'est plus comptée en plus.</div>
           <div class="spends" style="margin-top:8px">${lateNoEnv.map(x=>`<div class="sp"><button class="chk" style="--cc:${cc(x.l.cat)}" data-bkdone="${x.l.id}" aria-label="Cocher ${esc(x.l.label)}">${CHECK}</button><div class="main"><div>${esc(x.l.label||"Ligne")}</div><div class="hint" style="margin:0">prévu le ${esc(fmtD(x.l.cat==="sal"?monthStart(m):lineDate(x.l)))}</div></div><span class="num">${fmtF(x.v,true)}</span></div>`).join("")}</div></section>`:""}
         <section class="sec"><div class="sh">D'ici le ${esc(fmtD(monthEnd(m)))}</div>
-          ${row("Rentrées à venir", inc, up.filter(x=>x.v>0&&!x.env).length)}
-          ${row("Sorties et virements à venir", out, up.filter(x=>x.v<0&&!x.env).length)}
-          ${env?row("Reste dans tes enveloppes", env):""}
-          ${lateNoEnv.length?row("Pas encore coché", lateSum, lateNoEnv.length):""}
+          ${row("inc","Rentrées à venir", inc, up.filter(x=>x.v>0&&!x.env))}
+          ${row("out","Sorties et virements à venir", out, up.filter(x=>x.v<0&&!x.env))}
+          ${env?row("env","Reste dans tes enveloppes", env, it.filter(x=>x.env)):""}
+          ${lateNoEnv.length?row("late","Pas encore coché", lateSum, lateNoEnv):""}
+          ${it.length?`<div class="hint">Touche une ligne pour voir le détail.</div>`:""}
           ${end==null?`<div class="hint">Tape ton solde pour voir ce qu'il restera.</div>`:`<div class="bkend${end<0?" neg":""}"><span>Il restera sur ${esc(A)}</span><b class="num">${fmtF(end)}</b><small>la veille de la prochaine paie, si tout se passe comme prévu</small></div>`}
         </section>`;
       return end;
