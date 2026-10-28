@@ -527,6 +527,37 @@ details.more > label:first-of-type{margin-top:10px}
 .swind.r{justify-content:flex-start;background:color-mix(in srgb,var(--pos) 55%,var(--surface))}
 .swind.l{justify-content:flex-end;background:color-mix(in srgb,var(--neg) 55%,var(--surface))}
 .swind.r.go{background:var(--pos)} .swind.l.go{background:var(--neg)}
+.bilan{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.blead{background:var(--paper);border-radius:16px;padding:12px 14px}
+.blead .bbadge{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;margin-bottom:6px}
+.blead.ok .bbadge{background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos)}
+.blead.warn .bbadge{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.blead.bad .bbadge{background:color-mix(in srgb,var(--neg) 18%,transparent);color:var(--neg)}
+.blead .bt{font-size:16.5px;font-weight:700;line-height:1.35}
+.blead .bs{font-size:13.5px;color:var(--muted);margin-top:4px}
+.bilan .stiles{margin:0}
+.bilan .stile{background:var(--paper)}
+.bsec{background:var(--paper);border-radius:14px;padding:10px 12px}
+.bsec h3{margin:0 0 4px;font-size:14px}
+.br{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid var(--rule);font-size:14px}
+.bsec h3 + .br, .bsec summary + .br{border-top:0}
+.br .k{color:var(--muted);display:flex;align-items:center;gap:7px;min-width:0}
+.br .k i{width:8px;height:8px;border-radius:3px;flex:none}
+.br b{white-space:nowrap;font-variant-numeric:tabular-nums}
+.br b.neg{color:var(--neg)} .br b.warn{color:var(--warn)} .br b.pos{color:var(--pos)}
+.bbar{height:5px;border-radius:99px;background:var(--rule);margin:1px 0 5px;overflow:hidden}
+.bbar span{display:block;height:100%;border-radius:99px}
+.balert{border-left:3px solid var(--warn);padding:8px 11px;background:color-mix(in srgb,var(--warn) 10%,transparent);border-radius:10px;font-size:13.5px}
+.bdet summary{font-weight:700;font-size:14px;color:var(--ink)}
+.bilcard{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;cursor:pointer;background:var(--surface);color:var(--ink);border-radius:16px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--lift);font:inherit}
+.todo .bilcard{margin:0;background:var(--paper);box-shadow:none}
+.bilcard .bc-ic{flex:none;width:36px;height:36px;border-radius:11px;background:color-mix(in srgb,var(--pos) 18%,transparent);color:var(--pos);display:grid;place-items:center}
+.bilcard .bc-ic svg{width:20px;height:20px}
+.bilcard .bc-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.bilcard .bc-t span{font-size:13px;color:var(--muted)}
+.bilcard .bc-go{font-weight:700;color:var(--link)}
+.bilbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:-6px 0 16px}
+.bilbtns .btn{padding:10px 8px;font-size:14px}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -1221,7 +1252,7 @@ const accPill = name => name ? `<span class="acc"><i style="background:${esc(acc
 const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}, accView:"BNC", showZero:{}}, ls.get(LS_UI)||{});
 ui.month = null; ui.year = null;
 const TITLES = {savings:"Épargne", settings:"Réglages", indic:"Indicateurs"};
-const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||"", indN:ui.indN||6, showZero:ui.showZero||{}, indTab:ui.indTab||"mois"});
+const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||"", indN:ui.indN||6, showZero:ui.showZero||{}, indTab:ui.indTab||"mois", seenB:ui.seenB||{}});
 /* comptes utilisés dans un mois (pour le sélecteur au-dessus du reste à vivre) */
 function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc && !isSavAcc(l.acc)) set.add(l.acc); if(l.cat==="vir" && l.to && !isSavAcc(l.to)) set.add(l.to); }
   const order=n=>{ const i=accounts().findIndex(a=>a.name===n); return i<0?99:i; }; return [...set].sort((a,b)=>order(a)-order(b)); }
@@ -1243,6 +1274,7 @@ function startApp(){
   if(!ui.year) ui.year = Number(ui.month.slice(0,4));
   show("appView"); lastAct=Date.now(); setTab(ui.tab||"month"); setSync(S.dirty?"busy":"ok", "");
   setTimeout(()=>autoCheck(), 400);
+  if(/^#bilan-(semaine|mois)$/.test(location.hash)){ const k=location.hash.slice(7); try{ history.replaceState(null,"",location.pathname); }catch(e){} setTimeout(()=>openBilan(k==="mois"?"mois":"semaine"), 700); }
 }
 const isDesk = () => matchMedia("(min-width:1000px)").matches;
 function setTab(t){
@@ -1510,7 +1542,7 @@ function renderMonth(){
   const m=ui.month;
   if(!monthExists(m) || (!monthLines(m).length && prevExisting(m) && !(live(S.data.months).find(x=>x.id===m)||{}).blank)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
   const C = calc(m);
-  $("monthBody").innerHTML = (()=>{ const a=pendingBanner(), b=closeBannerHTML(); return a&&b ? `<div class="todo"><div class="todoh">À faire</div>${a}${b}</div>` : a+b; })() + `
+  $("monthBody").innerHTML = (()=>{ const L=[pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
     <div class="topgrid">
       <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}${movesPanel(m)}</div>
@@ -1528,6 +1560,7 @@ function monthOptions(m){
   modal(`<h2>Options du mois</h2><div class="sub">${esc(mLabel(m))}</div>
     <div class="mlist" style="margin-top:12px">
       <button id="oAlerts">Alertes dans le Calendrier<span class="hint">rappels de paiements</span></button>
+      <button id="oBilan">Bilan du mois<span class="hint">résumé à lire ou partager</span></button>
       <button id="oClose">Fin du mois<span class="hint">mettre le reste de côté</span></button>
       <button id="oBank">Comparer avec ma banque<span class="hint">solde réel</span></button>
       <button id="oPeriod">Date de paie<span class="hint">${esc(fmtD(monthStart(m)))}</span></button>
@@ -1535,6 +1568,7 @@ function monthOptions(m){
       <button id="oDelete" style="color:var(--neg)">Supprimer ce mois<span class="hint">efface toutes ses lignes</span></button>
     </div>`, (bd, close)=>{
     bd.querySelector("#oAlerts").onclick=()=>{ close(); setTimeout(()=>openAlerts(m), 50); };
+    bd.querySelector("#oBilan").onclick=()=>{ close(); setTimeout(()=>openBilan("mois", m), 50); };
     bd.querySelector("#oClose").onclick=()=>{ close(); setTimeout(()=>openClose(m), 50); };
     bd.querySelector("#oBank").onclick=()=>{ close(); setTimeout(()=>openBank(), 50); };
     bd.querySelector("#oPeriod").onclick=()=>{ close(); setTimeout(()=>openPeriod(m), 50); };
@@ -1584,7 +1618,8 @@ function synthHTML(m, C){
     <div class="stiles">${t("Par semaine", fmtF(CA.semaine))}${t("Par jour", fmtF(CA.jour))}${t("Passées", `${CA.nDone} / ${CA.n}`)}</div>
     <div class="stiles">${t("Rentrées", fmtF(CA.inc), "", " pos")}${t("Sorties", fmtF(-CA.exp))}${t("Exceptionnel", fmtF(-CA.tot.exc))}</div>
     <div class="after"><span>Avec l'exceptionnel</span><span class="v num${CA.restantExc<0?" neg":""}">${fmtF(CA.restantExc)}</span></div></div>`;
-  return accSelHTML(m) + tiles + bankCardHTML(m) + movesPanel(m, 6) + themesPanel(m) + catsPanel(C) + accountsPanel(C);
+  const bil = `<div class="bilbtns"><button class="btn ghost" data-bilan="semaine">Bilan de la semaine</button><button class="btn ghost" data-bilan="mois" data-bref="${m===thisMonth()?mShift(m,-1):m}">Bilan ${m===thisMonth()?esc(deM(mShift(m,-1))):"du mois"}</button></div>`;
+  return accSelHTML(m) + tiles + bil + bankCardHTML(m) + movesPanel(m, 6) + themesPanel(m) + catsPanel(C) + accountsPanel(C);
 }
 function renderSynthTab(){ $("synthTab").innerHTML = synthHTML(ui.month); }
 
@@ -2457,7 +2492,7 @@ function bindBars(el, info){
 /* ================= ALERTES CALENDRIER =================
    Un fichier .ics avec au plus une alerte par jour, à ajouter au calendrier « Budget » de l'iPhone.
    Rien ne part sur internet : le fichier est créé sur l'appareil. */
-const alertPrefs = () => Object.assign({threshold:20000, when:"veille", paie:true, proj:true}, (S.data.prefs.find(p=>p.id==="alerts" && !p.deleted)||{}).value||{});
+const alertPrefs = () => Object.assign({threshold:20000, when:"veille", paie:true, proj:true, bilan:true}, (S.data.prefs.find(p=>p.id==="alerts" && !p.deleted)||{}).value||{});
 function alertItems(m){
   const P=alertPrefs(), byDay=new Map(), today=dayStart(new Date());
   const add=(d, txt, amt)=>{ const k=isoDate(d); if(!byDay.has(k)) byDay.set(k, {d, items:[]}); byDay.get(k).items.push({txt, amt}); };
@@ -2471,7 +2506,8 @@ function alertItems(m){
     const what = l.cat==="vir" ? `virement ${l.acc||""} → ${l.to||""}` : (l.mode ? modeLabel(l.mode).toLowerCase() : "à payer");
     add(d, `${l.label} ${fmtF(v)} (${what.trim()})`, v);
   }
-  if(P.paie){ const nx=monthStart(mShift(m,1)); if(nx>=today) add(nx, `Paie prévue : crée le budget de ${monthName(mShift(m,1))}`, 0); }
+  if(P.paie){ const nx=monthStart(mShift(m,1)); if(nx>=today) add(nx, `Paie prévue : crée le budget de ${monthName(mShift(m,1))}${P.bilan?` et lis le bilan ${deM(m)}`:""}`, 0); }
+  if(P.bilan) for(let d=new Date(monthStart(m)); d<=monthEnd(m); d.setDate(d.getDate()+1)) if(d.getDay()===1 && d>=today && +dayStart(d)!==+monthStart(mShift(m,1))) add(new Date(d), "Bilan de la semaine prêt dans Mon Budget", 0);
   if(P.proj) for(const p of projectsList().filter(x=>!x.paid && !isRes(x) && x.due)){
     const [y,mm,dd]=p.due.split("-").map(Number), due=new Date(y,mm-1,dd), st=projStatus(p);
     for(const k of [30,7]){ const d=new Date(due); d.setDate(d.getDate()-k);
@@ -2492,7 +2528,7 @@ function buildIcs(m, days){
   const L=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Mon Budget//FR","CALSCALE:GREGORIAN","METHOD:PUBLISH","X-WR-CALNAME:Budget"];
   for(const day of days){ const e=new Date(day.d); e.setDate(e.getDate()+1); const title=alertTitle(day);
     L.push("BEGIN:VEVENT", `UID:mb-${ymd(day.d)}@mon-budget`, `DTSTAMP:${stamp}`, `DTSTART;VALUE=DATE:${ymd(day.d)}`, `DTEND;VALUE=DATE:${ymd(e)}`,
-      `SUMMARY:${icsEsc(title)}`, `DESCRIPTION:${icsEsc(day.items.map(i=>"• "+i.txt).join("\n")+"\n\nMon Budget : "+location.origin+location.pathname)}`, "TRANSP:TRANSPARENT");
+      `SUMMARY:${icsEsc(title)}`, `DESCRIPTION:${icsEsc(day.items.map(i=>"• "+i.txt).join("\n")+(day.items.some(i=>/[Bb]ilan/.test(i.txt))?"\n\nOuvre Mon Budget depuis ton écran d'accueil : le bilan s'affiche en haut du mois.":"")+"\n\nMon Budget : "+location.origin+location.pathname+(day.items.some(i=>/bilan de la semaine/i.test(i.txt))?"#bilan-semaine":day.items.some(i=>/lis le bilan/.test(i.txt))?"#bilan-mois":""))}`, "TRANSP:TRANSPARENT");
     const triggers = P.when==="both" ? ["-PT6H","PT8H"] : P.when==="matin" ? ["PT8H"] : ["-PT6H"];   // la veille à 18 h / le jour même à 8 h
     for(const t of triggers) L.push("BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(title)}`,`TRIGGER:${t}`,"END:VALARM");
     L.push("END:VEVENT"); }
@@ -2515,15 +2551,16 @@ function openAlerts(m){
       <div class="amtbox" style="margin-top:8px"><input id="alThr" inputmode="decimal" value="${esc(fmtInput(P.threshold))}" autocomplete="off"><span class="unit">F</span></div>
       <label class="switch"><span>Rappel le jour de la paie</span><input type="checkbox" id="alPaie" ${P.paie?"checked":""}></label>
       <label class="switch"><span>Échéances des projets (30 et 7 jours avant)</span><input type="checkbox" id="alProj" ${P.proj?"checked":""}></label>
+      <label class="switch"><span>Bilans : chaque lundi et le jour de la paie</span><input type="checkbox" id="alBilan" ${P.bilan?"checked":""}></label>
     </section>
     <section class="sec"><div class="sh">Aperçu</div><div class="spends" id="alList"></div></section>
     <div class="hint">Les enveloppes, les rentrées et les lignes déjà cochées ne déclenchent pas d'alerte. Si tu ajoutes de nouveau les alertes du même mois, l'iPhone met à jour celles du même jour.</div>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="alCancel">Fermer</button><button class="btn" id="alGo"></button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x), when=segBind(bd,"alWhen");
-    const savePrefs=()=>{ const thr=parseNum(q("#alThr").value); setPref("alerts", {threshold: thr>=0?thr:20000, when:when(), paie:q("#alPaie").checked, proj:q("#alProj").checked}); };
+    const savePrefs=()=>{ const thr=parseNum(q("#alThr").value); setPref("alerts", {threshold: thr>=0?thr:20000, when:when(), paie:q("#alPaie").checked, proj:q("#alProj").checked, bilan:q("#alBilan").checked}); };
     const upd=()=>{ savePrefs(); draw(); };
-    q("#alThr").addEventListener("input", upd); q("#alPaie").onchange=upd; q("#alProj").onchange=upd; q("#alWhen").addEventListener("click", ()=>setTimeout(upd));
+    q("#alThr").addEventListener("input", upd); q("#alPaie").onchange=upd; q("#alProj").onchange=upd; q("#alBilan").onchange=upd; q("#alWhen").addEventListener("click", ()=>setTimeout(upd));
     draw();
     q("#alCancel").onclick=()=>{ touch(); close(); };
     q("#alGo").onclick=()=>{ savePrefs(); touch(); const days=alertItems(m); if(!days.length) return;
@@ -2740,6 +2777,121 @@ function drawRhythm(){
     <div class="stile"><span>${p1?esc(capF(monthName(p1.m))):"Mois précédent"}</span><b class="num">${p1?fmtF(p1.total):"—"}</b><small>${p1?"au total, sur tout le mois":"pas encore de données"}</small></div>
     <div class="stile"><span>${key?"Reste":"Enveloppes"}</span><b class="num${budget&&left<0?" neg":""}">${budget?fmtF(left):"—"}</b><small>${budget?`restants pour ${daysLeft} jour${daysLeft>1?"s":""}`:"aucune enveloppe"}</small></div></div>
 `;
+}
+
+/* ================= BILANS (semaine, mois) =================
+   Calculés sur l'appareil à l'ouverture ; rien n'est envoyé. L'alerte du Calendrier sert de rappel. */
+const deM = m => (/^[aeiou]/.test(norm(monthName(m))) ? "d'" : "de ")+monthName(m);
+const addDays = (d, n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const weekStart = d => addDays(dayStart(d), -((d.getDay()+6)%7));           // lundi
+/* dépenses du quotidien entre deux dates (incluses), tous mois confondus */
+function spendsBetween(a, b){ const end=addDays(b,1), out=[];
+  for(const s of live(S.data.spends)){ const d=new Date(s.at||0); if(d>=a && d<end){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(l) out.push({d, v:-xpf(s), lab:s.merchant||"Dépense", env:l.label}); } }
+  for(const l of live(S.data.lines)) if(l.src && l.done && l.cat!=="vir" && xpf(l)<0){ const d=lineDate(l); if(d && d>=a && d<end) out.push({d, v:-xpf(l), lab:l.label, env:CAT[l.cat].name}); }
+  return out; }
+const sumV = L => L.reduce((t,x)=>t+x.v,0);
+function weekBilan(ref){
+  const ws=addDays(weekStart(ref||new Date()), -7), we=addDays(ws,6), t=dayStart(new Date());
+  const cur=spendsBetween(ws,we), prev=spendsBetween(addDays(ws,-7), addDays(ws,-1));
+  const m=periodOf(we), mExists=monthExists(m);
+  const ser=mExists?dailySeries(m,""):null, idx=ser?Math.max(0,Math.min(ser.len-1, Math.floor((dayStart(we)-ser.st)/864e5))):0;
+  const sinceP=ser?ser.cum[idx]:0, pm=mShift(m,-1), pser=monthExists(pm)?dailySeries(pm,""):null, pAt=pser&&pser.n?pser.cum[Math.min(idx,pser.len-1)]:null;
+  const lines=mExists?monthLines(m):[];
+  const passed=live(S.data.lines).filter(l=>l.done && !isEnv(l) && (()=>{ const d=lineDate(l); return d && d>=ws && d<=we; })());
+  const nm=thisMonth(), upcoming=[...new Set([nm, mShift(nm,1)])].filter(monthExists).flatMap(monthLines).filter(l=>!l.done && !isEnv(l) && xpf(l)<0 && (()=>{ const d=lineDate(l); return d && d>=t && d<=addDays(t,6); })()).sort((a,b)=>lineDate(a)-lineDate(b));
+  const envs=lines.filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l)).map(l=>({l, plan:-xpf(l), spent:-spentOf(l.id), left:-xpf(l)+spentOf(l.id), ahead:envAhead(l)}));
+  const A=mExists?bankAccDefault(m):"", N=A&&m===nm?bankNow(A,m):null, end=N?bankEnd(A,m,N.now):null;
+  const C=mExists?calc(m, viewAcc(m)||undefined):null;
+  const elapsed = ser ? (idx+1)/ser.len : 0;
+  const over=envs.filter(e=>e.left<0), tight=envs.filter(e=>e.left>=0 && e.plan && e.spent/e.plan>elapsed+.25 && e.spent/e.plan>.7);
+  const status = over.length || (C && C.restant<0) ? ["bad","Hors budget"] : (end!=null && end<0) || tight.length ? ["warn","À surveiller"] : ["ok","Dans les clous"];
+  const dv=sumV(cur)-sumV(prev);
+  const lead=`${fmtF(sumV(cur))} dépensés au quotidien cette semaine${prev.length?`, ${fmtF(Math.abs(dv))} de ${dv>0?"plus":"moins"} que la précédente`:""}.`;
+  const sub = pAt!=null ? (sinceP<=pAt ? `Tu as ${fmtF(pAt-sinceP)} d'avance sur ${monthName(pm)} au même jour.` : `Tu as dépensé ${fmtF(sinceP-pAt)} de plus qu'en ${monthName(pm)} au même jour.`) : "";
+  const alerts=[]; if(end!=null && end<0) alerts.push(`À ce rythme, ta ${A} finirait à ${fmtF(end)} la veille de la paie.`);
+  for(const e of over) alerts.push(`${e.l.label} est dépassée de ${fmtF(-e.left)}.`);
+  for(const e of tight) alerts.push(`${e.l.label} : ${NF0.format(e.spent/e.plan*100)} % déjà dépensés, alors que la période n'en est qu'à ${NF0.format(elapsed*100)} %.`);
+  return {kind:"semaine", ws, we, m, cur, prev, sinceP, idx, pm, pAt, passed, upcoming, envs, A, end, C, status, lead, sub, alerts};
+}
+function monthBilan(m){
+  const C=calc(m), ser=dailySeries(m,""), pm=mShift(m,-1), pser=monthExists(pm)?dailySeries(pm,""):null;
+  const envs=monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l)).map(l=>({l, plan:-xpf(l), spent:-spentOf(l.id)}));
+  const ePlan=envs.reduce((t,e)=>t+e.plan,0), eSpent=envs.reduce((t,e)=>t+e.spent,0), envLeft=envs.reduce((t,e)=>t+Math.max(0,e.plan-e.spent),0);
+  const st=monthStart(m), en=addDays(monthEnd(m),1);
+  const projSav=live(S.data.savings).filter(s=>s.proj && s.kind!=="achat" && (()=>{ const d=savTs(s); return d && d>=st && d<en; })()).reduce((t,s)=>t+xpf(s),0);
+  const saved=-C.tot.epa+Math.max(0,projSav);
+  const T=themeTotals(m).filter(x=>x.tot);
+  const P=projectsList().filter(p=>!p.paid).map(p=>({p, st:projStatus(p)}));
+  const over=envs.filter(e=>e.spent>e.plan);
+  const status = C.restant<0 ? ["bad","Mois difficile"] : over.length ? ["warn","Mois serré"] : ["ok","Mois réussi"];
+  const lead = envLeft>0 ? `${capF(monthName(m))} se termine avec ${fmtF(envLeft)} non dépensés dans tes enveloppes.` : over.length ? `${capF(monthName(m))} se termine avec ${over.length} enveloppe${over.length>1?"s":""} dépassée${over.length>1?"s":""}.` : `${capF(monthName(m))} se termine pile dans tes enveloppes.`;
+  const sub = pser && pser.n ? `Dépenses du quotidien : ${fmtF(ser.total)}, soit ${fmtF(Math.abs(ser.total-pser.total))} de ${ser.total>pser.total?"plus":"moins"} qu'en ${monthName(pm)}.` : `Dépenses du quotidien : ${fmtF(ser.total)}.`;
+  const tips=[]; const nm=mShift(m,1), nC=monthExists(nm)?calc(nm):null, nEnd=monthEnd(nm);
+  for(const {p,st:s} of P) if(!isRes(p) && p.due && s.left>0){ const [y,mo,d]=p.due.split("-").map(Number), due=new Date(y,mo-1,d); if(due<=nEnd) tips.push(`Il manque ${fmtF(s.left)} pour « ${p.name} » avant le ${fmtD(due)}${nC && s.left>nC.restant?", soit plus que ton reste à vivre de "+monthName(nm):""}.`); }
+  for(const e of over) tips.push(`${e.l.label} a dépassé de ${fmtF(e.spent-e.plan)} : prévois peut-être un peu plus en ${monthName(nm)}.`);
+  if(envLeft>0 && !prefVal("close:"+m,null)) tips.push(`Tu peux mettre de côté les ${fmtF(envLeft)} non dépensés.`);
+  return {kind:"mois", m, C, ser, pser, pm, envs, ePlan, eSpent, envLeft, saved, projSav, T, P, status, lead, sub, tips};
+}
+const bRow=(k,v,cls="")=>`<div class="br"><span class="k">${k}</span><b class="${cls}">${v}</b></div>`;
+const bTile=(k,v,s,cls="")=>`<div class="stile"><span>${k}</span><b class="num${cls}">${v}</b>${s?`<small>${s}</small>`:""}</div>`;
+function bilanHTML(B){
+  if(B.kind==="semaine"){
+    const top=[...B.cur].sort((a,b)=>b.v-a.v);
+    const byEnv={}; for(const x of B.cur) byEnv[x.env]=(byEnv[x.env]||0)+x.v;
+    return `<div class="blead ${B.status[0]}"><span class="bbadge">${B.status[1]}</span><div class="bt">${esc(B.lead)}</div>${B.sub?`<div class="bs">${esc(B.sub)}</div>`:""}</div>
+      <div class="stiles">${bTile("Cette semaine", fmtF(sumV(B.cur)), `${B.cur.length} paiement${B.cur.length>1?"s":""}`)}${bTile("Depuis la paie", fmtF(B.sinceP), `${B.idx+1} jours`)}${B.C?bTile("Reste à vivre", fmtF(B.C.restant), viewAcc(B.m)?"sur "+esc(viewAcc(B.m)):"prévu", B.C.restant<0?" neg":""):""}</div>
+      ${Object.keys(byEnv).length?`<div class="bsec"><h3>Où est parti l'argent</h3>${Object.entries(byEnv).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bRow(esc(k), fmtF(v))).join("")}</div>`:""}
+      ${B.envs.length?`<div class="bsec"><h3>Tes enveloppes</h3>${B.envs.map(e=>`${bRow(esc(e.l.label), e.left<0?`dépassée de ${fmtF(-e.left)}`:`${fmtF(e.left)} restants${e.ahead?" · "+esc(e.ahead.txt):""}`, e.left<0?"neg":e.plan&&e.spent/e.plan>.8?"warn":"")}<div class="bbar"><span style="width:${Math.min(100,e.plan?e.spent/e.plan*100:0).toFixed(0)}%;background:${e.left<0?"var(--neg)":e.plan&&e.spent/e.plan>.8?"var(--warn)":cc(e.l.cat)}"></span></div>`).join("")}</div>`:""}
+      ${B.passed.length?`<div class="bsec"><h3>Passé cette semaine</h3>${B.passed.map(l=>bRow(esc(l.label), fmtF(Math.abs(xpf(l))))).join("")}</div>`:""}
+      ${B.upcoming.length?`<div class="bsec"><h3>À venir dans les 7 jours</h3>${B.upcoming.map(l=>bRow(`${esc(l.label)} · ${esc(fmtD(lineDate(l),{weekday:"short", day:"numeric"}))}`, fmtF(Math.abs(xpf(l))))).join("")}</div>`:""}
+      ${B.alerts.map(a=>`<div class="balert"><b>À surveiller :</b> ${esc(a)}</div>`).join("")}
+      ${top.length?`<details class="bsec bdet"><summary>Les ${top.length} dépenses de la semaine</summary>${top.map(x=>bRow(`${esc(x.lab)} · ${esc(fmtD(x.d,{weekday:"short", day:"numeric"}))}`, fmtF(x.v))).join("")}</details>`:""}`;
+  }
+  const B_=B; return `<div class="blead ${B.status[0]}"><span class="bbadge">${B.status[1]}</span><div class="bt">${esc(B.lead)}</div><div class="bs">${esc(B.sub)}</div></div>
+    <div class="stiles">${bTile("Reste à vivre", fmtF(B.C.restant), "prévu sur le mois", B.C.restant<0?" neg":"")}${bTile("Épargné", fmtF(B.saved), B.projSav>0?`dont ${fmtF(B.projSav)} projets`:"")}${bTile("Enveloppes", B.ePlan?NF0.format(B.eSpent/B.ePlan*100)+" %":"—", B.ePlan?"utilisées":"aucune")}</div>
+    ${B.envs.length?`<div class="bsec"><h3>Enveloppes</h3>${B.envs.map(e=>bRow(esc(e.l.label), `${fmtF(e.spent)} / ${fmtF(e.plan)}`, e.spent>e.plan?"neg":"")).join("")}</div>`:""}
+    ${B.T.length?`<div class="bsec"><h3>Par thème</h3>${B.T.map(x=>bRow(`<i style="background:${esc(x.t.color)}"></i>${esc(x.t.name)}`, fmtF(x.tot))).join("")}</div>`:""}
+    ${B.P.length?`<div class="bsec"><h3>Projets</h3>${B.P.map(({p,st})=>isRes(p)?bRow(esc(p.name), `${fmtF(st.saved)} de côté`):`${bRow(`${esc(p.name)}${p.due?" · avant le "+esc(fmtD(new Date(p.due+"T12:00"))):""}`, `${fmtF(st.saved)} / ${fmtF(p.target)}`)}<div class="bbar"><span style="width:${st.pct.toFixed(0)}%;background:var(--c-epa)"></span></div>`).join("")}</div>`:""}
+    <div class="bsec"><h3>Le mois en chiffres</h3>${bRow("Rentrées", fmtF(B.C.inc), "pos")}${bRow("Sorties prévues", fmtF(-B.C.exp))}${bRow("Dépenses du quotidien", fmtF(B.ser.total))}${B.pser&&B.pser.n?bRow(`Quotidien en ${esc(monthName(B.pm))}`, fmtF(B.pser.total)):""}${bRow("Avec l'exceptionnel", fmtF(B.C.restantExc), B.C.restantExc<0?"neg":"")}</div>
+    ${B.tips.map(a=>`<div class="balert"><b>Pour ${esc(monthName(mShift(B.m,1)))} :</b> ${esc(a)}</div>`).join("")}`;
+}
+function bilanText(B){
+  const L=[];
+  if(B.kind==="semaine"){ L.push(`Bilan de la semaine (${fmtD(B.ws)} → ${fmtD(B.we)}) · ${B.status[1]}`, B.lead); if(B.sub) L.push(B.sub);
+    L.push("", `Cette semaine : ${fmtF(sumV(B.cur))} · Depuis la paie : ${fmtF(B.sinceP)}${B.C?` · Reste à vivre : ${fmtF(B.C.restant)}`:""}`);
+    if(B.envs.length){ L.push("", "Enveloppes :"); for(const e of B.envs) L.push(`- ${e.l.label} : ${e.left<0?"dépassée de "+fmtF(-e.left):fmtF(e.left)+" restants"}${e.ahead?" ("+e.ahead.txt+")":""}`); }
+    if(B.upcoming.length){ L.push("", "À venir :"); for(const l of B.upcoming) L.push(`- ${l.label}, ${fmtD(lineDate(l))} : ${fmtF(Math.abs(xpf(l)))}`); }
+    for(const a of B.alerts) L.push("", "À surveiller : "+a);
+  } else { L.push(`Bilan ${deM(B.m)} · ${B.status[1]}`, B.lead, B.sub, "", `Reste à vivre : ${fmtF(B.C.restant)} · Épargné : ${fmtF(B.saved)}`);
+    if(B.envs.length){ L.push("", "Enveloppes :"); for(const e of B.envs) L.push(`- ${e.l.label} : ${fmtF(e.spent)} / ${fmtF(e.plan)}`); }
+    if(B.T.length){ L.push("", "Par thème :"); for(const x of B.T) L.push(`- ${x.t.name} : ${fmtF(x.tot)}`); }
+    for(const a of B.tips) L.push("", "Pour le mois suivant : "+a); }
+  return L.join("\n").replace(/[  ]/g," ");
+}
+function openBilan(kind, ref){
+  const B = kind==="mois" ? monthBilan(ref || mShift(thisMonth(),-1)) : weekBilan(ref);
+  const title = B.kind==="mois" ? `Bilan ${deM(B.m)}` : "Bilan de la semaine", sub = B.kind==="mois" ? `${capF(fmtD(monthStart(B.m)))} → ${fmtD(monthEnd(B.m))}` : `Du lundi ${fmtD(B.ws)} au dimanche ${fmtD(B.we)}`;
+  modal(`<h2>${esc(title)}</h2><div class="sub" style="text-transform:none">${esc(sub)}</div><div class="bilan">${bilanHTML(B)}</div>
+    <div class="moreadd"><span>Autres bilans :</span><button class="linkbtn" id="bPrev">${B.kind==="mois"?"Mois précédent":"Semaine précédente"}</button><button class="linkbtn" id="bOther">${B.kind==="mois"?"Bilan de la semaine":"Bilan du mois"}</button></div>
+    <div class="actions sticky"><button class="linkbtn" id="bShare">Partager</button><span class="spacer"></span>${B.kind==="mois"&&B.envLeft>0&&!prefVal("close:"+B.m,null)?`<button class="btn ghost" id="bClose">Mettre de côté</button>`:""}<button class="btn" id="bOpen">Ouvrir le mois</button></div>`,
+  (bd, close)=>{ const q=x=>bd.querySelector(x);
+    q("#bOpen").onclick=()=>{ close(); ui.month=B.m; setTab("month"); };
+    q("#bPrev").onclick=()=>{ close(); setTimeout(()=>B.kind==="mois" ? openBilan("mois", mShift(B.m,-1)) : openBilan("semaine", addDays(B.ws,0)), 60); };
+    q("#bOther").onclick=()=>{ close(); setTimeout(()=>B.kind==="mois" ? openBilan("semaine") : openBilan("mois"), 60); };
+    if(q("#bClose")) q("#bClose").onclick=()=>{ close(); setTimeout(()=>openClose(B.m), 60); };
+    q("#bShare").onclick=async()=>{ const text=bilanText(B);
+      try{ if(navigator.share){ await navigator.share({title, text}); return; } }catch(e){ if(e && e.name==="AbortError") return; }
+      try{ await navigator.clipboard.writeText(text); toast("Bilan copié : colle-le dans Mail, Messages ou Notes"); }catch(e){ toast("Partage impossible sur cet appareil"); } };
+  });
+}
+/* carte « bilan prêt » : lundi et mardi pour la semaine, les 3 premiers jours de la période pour le mois */
+function bilanCardHTML(){
+  if(ui.month!==thisMonth()) return "";
+  const t=dayStart(new Date()), wd=(t.getDay()+6)%7, m=thisMonth(), sinceP=Math.round((t-monthStart(m))/864e5), pm=mShift(m,-1);
+  const items=[];
+  if(sinceP>=0 && sinceP<3 && monthLines(pm).length && !ui.seenB?.["m"+pm]) items.push(["mois", pm, `Bilan ${deM(pm)}`, "Comment s'est terminé le mois"]);
+  else if(wd<2 && !ui.seenB?.["w"+isoDate(weekStart(t))]) items.push(["semaine", "", "Bilan de la semaine", `Du ${fmtD(addDays(weekStart(t),-7))} au ${fmtD(addDays(weekStart(t),-1))}`]);
+  return items.map(([k,ref,ti,s])=>`<button class="bilcard" data-bilan="${k}" data-bref="${ref}"><span class="bc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span><span class="bc-t"><b>${esc(ti)}</b><span>${esc(s)}</span></span><span class="bc-go">Lire</span></button>`).join("");
 }
 
 /* ================= PRÉLÈVEMENTS COCHÉS AUTOMATIQUEMENT ================= */
@@ -3032,6 +3184,9 @@ const GUIDE = [
  ["Thèmes", `<p>Un <b>thème</b> (Maison, Voiture, Abonnements, Banque…) est une étiquette posée sur une ligne, quelle que soit sa catégorie. Une seule par ligne, mémorisée par nom : valable pour tous les mois.</p>
   <p>Dans Réglages → Thèmes, crée, renomme ou supprime un thème et touche les lignes qui en font partie. Tu peux aussi choisir le thème dans la fiche d'une ligne.</p>
   <p>La Synthèse montre le coût de chaque thème pour le mois et à l'année ; Indicateurs le montre mois par mois. Un projet lié (Réparations voiture) s'affiche pour info sans compter dans le coût : mettre de côté n'est pas une dépense. La recherche trouve aussi les lignes d'un thème.</p>`],
+ ["Bilans", `<p>Chaque <b>lundi</b>, un <b>bilan de la semaine</b> apparaît en haut du mois : ce que tu as dépensé, tes enveloppes, ce qui est passé et ce qui arrive, avec un point d'attention s'il y en a un.</p>
+  <p>Le <b>jour de la paie</b> (le début de ta période, vers le 27), c'est le <b>bilan du mois</b> qui vient de finir : enveloppes, thèmes, projets, épargne, et des conseils pour le mois suivant.</p>
+  <p>Tu les retrouves aussi dans Synthèse et dans Options du mois. « Partager » les envoie par Mail, Messages ou Notes. Pour être prévenu, ajoute les alertes du mois au Calendrier avec « Bilans » activé.</p>`],
  ["Mouvements et recherche", `<p><b>Derniers mouvements</b> (onglet Synthèse sur iPhone, à droite sur ordinateur) : tes paiements Apple Pay, tes dépenses saisies et les lignes cochées, du plus récent au plus ancien.</p>
   <p>La <b>loupe</b> en haut cherche dans tous les mois : « essence » te donne tout ce que tu y as mis depuis le début, mois par mois, avec le total. Touche un résultat pour l'ouvrir.</p>`],
  ["Synthèse, Année, Indicateurs", `<p><b>Synthèse</b> : le résumé du mois par catégorie. <b>Année</b> : tous les mois côte à côte, comme ton Excel.</p>
@@ -3353,6 +3508,9 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
   if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
     if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
+  if(el=t.closest("[data-bilan]")){ const k=el.dataset.bilan, r=el.dataset.bref||""; ui.seenB=ui.seenB||{};
+    if(el.classList.contains("bilcard")){ ui.seenB[k==="mois"?"m"+r:"w"+isoDate(weekStart(new Date()))]=true; saveUI(); render(); }
+    return openBilan(k, r||undefined); }
   if(el=t.closest("[data-themeedit]")){ const th=themeById(el.dataset.themeedit); if(th) openTheme(th); return; }
   if(el=t.closest("[data-theme]")) return openThemeMonth(el.dataset.theme, el.dataset.thm);
   if(el=t.closest("[data-thtip]")) return toast(el.dataset.thtip);
