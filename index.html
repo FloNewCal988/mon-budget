@@ -336,6 +336,31 @@ details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
 .setop .actions{flex-wrap:wrap;justify-content:flex-start}
 @media (min-width:1000px){.setwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px 20px;align-items:start}.setop{grid-column:1/-1}}
 
+
+/* ---------- Épargne ---------- */
+.savgrid{display:flex;flex-direction:column}
+.savgrid .scol{display:contents}
+.s-hero{order:1}.s-proj{order:2}.s-todo{order:3}.s-acc{order:4;margin-top:18px}.s-hist{order:5}
+.stiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 4px}
+.stile{background:color-mix(in srgb,var(--paper) 55%,transparent);border-radius:12px;padding:9px 10px;min-width:0;display:flex;flex-direction:column;gap:1px}
+.stile span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile b{font:800 16.5px/1.25 var(--display);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile small{font-size:11.5px;color:var(--muted);line-height:1.3}
+.slab{font-size:12.5px;color:var(--muted);margin:12px 0 2px}
+.sacc + .sacc{margin-top:6px;border-top:1px solid var(--rule);padding-top:4px}
+.sacc .srow{border-top:0}
+.sbar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--rule);margin:0 0 6px;gap:2px}
+.sbar span{display:block;height:100%}
+.sbar .free,.srow.sub .k i.freei{background:repeating-linear-gradient(135deg,var(--muted) 0 2px,transparent 2px 5px)}
+.srow.sub .k i{width:8px;height:8px;border-radius:3px;flex:none}
+.sacc .srow.sub .k::before{display:none}
+.proj .pv{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:2px}
+@media (min-width:1000px){
+  .savgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:start}
+  .savgrid .scol{display:block}
+  .s-acc{margin-top:0}
+}
+
 /* ---------- ordinateur : deux colonnes comme dans l'Excel ---------- */
 @media (min-width:1000px){
   header.top .row, .wrap, nav.tabs .in{max-width:1180px}
@@ -1898,42 +1923,63 @@ function budgetSavings(){
   }
   return out.sort((a,b)=>a.d-b.d);
 }
+function savTs(s){ if(s.at){ const d=new Date(s.at); if(!isNaN(d)) return d; }
+  const m=String(s.date||"").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? new Date(+m[3], +m[2]-1, +m[1]) : null; }
 function renderSavings(){
-  const L = savingsList(); let bal=0; const pts=[0];
-  const B = budgetSavings(), Bdone=B.filter(x=>x.l.done), Btodo=B.filter(x=>!x.l.done);
-  const rows = L.map(s=>{ const v=xpf(s); bal+=v; pts.push(bal); return `<div class="sv" data-sav="${s.id}">
-      <div class="main"><div class="lab">${esc(s.label||"Sans motif")}</div>
-        <div class="meta">${s.date?`<span>${esc(s.date)}</span>`:""}${accPill(s.acc)}</div></div>
-      <div class="r"><div class="num${v>0?" pos":""}" style="font-weight:600">${fmtF(v,true)}</div>${s.cur==="EUR"?`<div class="bal num">${fmtE(s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(bal)}</div></div>
-    </div>`; }).join("");
-  const autoRow = (x, counted) => { if(counted){ bal+=x.v; pts.push(bal); }
-    return `<div class="sv" data-gomonth="${x.l.m}" data-line="${x.l.id}"><div class="main"><div class="lab">${esc(x.l.label||"Épargne")}</div>
-      <div class="meta"><span>${esc(fmtD(x.d))}</span>${x.l.acc?`<span class="vir">${accPill(x.l.acc)}<span class="arrow">→</span>${accPill(x.l.to)}</span>`:accPill(x.acc)}${counted?"":`<span class="late">prévu, pas encore coché</span>`}</div></div>
-      <div class="r"><div class="num${x.v>0?" pos":""}" style="font-weight:600${counted?"":";opacity:.6"}">${fmtF(x.v,true)}</div>${counted?`<div class="bal num">solde ${fmtF(bal)}</div>`:""}</div></div>`; };
-  const autoRows = Bdone.map(x=>autoRow(x,true)).join("");
-  const todoRows = Btodo.map(x=>autoRow(x,false)).join("");
-  const byAcc = {}; for(const s of L){ byAcc[s.acc||"—"] = (byAcc[s.acc||"—"]||0) + xpf(s); } for(const x of Bdone){ byAcc[x.acc||"—"] = (byAcc[x.acc||"—"]||0) + x.v; }
-  // part de chaque projet (en cours) sur chaque compte
-  const openP = new Set(projectsList().filter(x=>!x.paid).map(x=>x.id)), byAP = {};
-  const addP = (acc, pid, v) => { if(!pid || !openP.has(pid)) return; const a=byAP[acc||"—"] ||= {}; a[pid]=(a[pid]||0)+v; };
-  for(const s of L) addP(s.acc, s.proj, xpf(s)); for(const x of Bdone) addP(x.acc, x.l.proj, x.v);
-  const accRows = Object.entries(byAcc).map(([n,v])=>{ const P=Object.entries(byAP[n]||{}).filter(([,a])=>Math.round(a)!==0);
-    const sub = P.length ? P.map(([pid,a])=>`<div class="srow sub"><span class="k">${esc(projById(pid).name)}</span><span class="v num">${fmtF(a)}</span></div>`).join("")
-      + `<div class="srow sub"><span class="k">Libre</span><span class="v num${v-P.reduce((t,[,a])=>t+a,0)<0?" neg":""}">${fmtF(v-P.reduce((t,[,a])=>t+a,0))}</span></div>` : "";
-    return `<div class="srow"><span class="k">${n==="—"?"Sans compte":accPill(n)}</span><span class="v num">${fmtF(v)}</span></div>${sub}`; }).join("");
-  $("savingsBody").innerHTML = `<div class="ydesk"><div>
-    <div class="hero">
+  const L = savingsList(), B = budgetSavings(), Bdone=B.filter(x=>x.l.done), Btodo=B.filter(x=>!x.l.done);
+  // historique : tous les mouvements dans l'ordre (les plus anciens sans date d'abord)
+  const H = [...L.map((s,i)=>({s, v:xpf(s), d:savTs(s), o:i, acc:s.acc, proj:s.proj})), ...Bdone.map((x,i)=>({x, v:x.v, d:x.d, o:1e6+i, acc:x.acc, proj:x.l.proj}))]
+    .sort((a,b)=>((a.d?+a.d:-Infinity)-(b.d?+b.d:-Infinity)) || a.o-b.o);
+  let bal=0; const pts=[0]; for(const h of H){ bal+=h.v; h.bal=bal; pts.push(bal); }
+  const open=projectsList().filter(x=>!x.paid), reserved=open.reduce((t,x)=>t+Math.max(0,projSaved(x)),0), free=bal-reserved;
+  const cm=thisMonth(), st=monthStart(cm), en=monthEnd(cm); en.setHours(23,59,59);
+  const inM=H.filter(h=>h.d && h.d>=st && h.d<=en), mIn=inM.filter(h=>h.v>0).reduce((t,h)=>t+h.v,0), mOut=inM.filter(h=>h.v<0).reduce((t,h)=>t+h.v,0);
+  const mTodo=Btodo.filter(x=>x.l.m===cm).reduce((t,x)=>t+x.v,0);
+  // par compte, avec la part de chaque projet
+  const pIdx=Object.fromEntries(open.map((x,i)=>[x.id,i])), pCol=id=>PALETTE[(pIdx[id]+1)%PALETTE.length];
+  const byAcc={}, byAP={};
+  for(const h of H){ const k=h.acc||"—"; byAcc[k]=(byAcc[k]||0)+h.v; if(h.proj && h.proj in pIdx){ const a=byAP[k] ||= {}; a[h.proj]=(a[h.proj]||0)+h.v; } }
+  const accOrder=n=>{ const i=accounts().findIndex(a=>a.name===n); return n==="—"?999:i<0?99:i; };
+  const accHTML = Object.entries(byAcc).filter(([,v])=>Math.round(v)!==0).sort((a,b)=>accOrder(a[0])-accOrder(b[0])).map(([n,v])=>{
+    const P=Object.entries(byAP[n]||{}).filter(([,a])=>Math.round(a)>0), lib=v-P.reduce((t,[,a])=>t+a,0), tot=Math.max(1, P.reduce((t,[,a])=>t+a,0)+Math.max(0,lib));
+    const bar = v>0 && P.length ? `<div class="sbar">${P.map(([pid,a])=>`<span style="width:${(a/tot*100).toFixed(1)}%;background:${pCol(pid)}"></span>`).join("")}${lib>0?`<span class="free" style="width:${(lib/tot*100).toFixed(1)}%"></span>`:""}</div>` : "";
+    const sub = P.length ? P.map(([pid,a])=>`<div class="srow sub"><span class="k"><i style="background:${pCol(pid)}"></i>${esc(projById(pid).name)}</span><span class="v num">${fmtF(a)}</span></div>`).join("")
+      + `<div class="srow sub"><span class="k"><i class="freei"></i>Libre</span><span class="v num${lib<0?" neg":""}">${fmtF(lib)}</span></div>` : "";
+    return `<div class="sacc"><div class="srow"><span class="k">${n==="—"?"Compte non précisé":accPill(n)}</span><span class="v num${v<0?" neg":""}">${fmtF(v)}</span></div>${bar}${sub}</div>`; }).join("");
+  const row = h => h.s
+    ? `<div class="sv" data-sav="${h.s.id}"><div class="main"><div class="lab">${esc(h.s.label||"Sans motif")}</div>
+        <div class="meta">${h.d?`<span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>`:h.s.date?`<span>${esc(h.s.date)}</span>`:""}${accPill(h.s.acc)}<span>saisi</span></div></div>
+        <div class="r"><div class="num${h.v>0?" pos":h.v<0?" neg":""}" style="font-weight:600">${fmtF(h.v,true)}</div>${h.s.cur==="EUR"?`<div class="bal num">${fmtE(h.s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(h.bal)}</div></div></div>`
+    : `<div class="sv" data-gomonth="${h.x.l.m}" data-line="${h.x.l.id}"><div class="main"><div class="lab">${esc(h.x.l.label||"Épargne")}</div>
+        <div class="meta"><span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>${h.x.l.acc?`<span class="vir">${accPill(h.x.l.acc)}<span class="arrow">→</span>${accPill(h.x.l.to)}</span>`:accPill(h.x.acc)}</div></div>
+        <div class="r"><div class="num${h.v>0?" pos":h.v<0?" neg":""}" style="font-weight:600">${fmtF(h.v,true)}</div><div class="bal num">solde ${fmtF(h.bal)}</div></div></div>`;
+  const hist=[...H].reverse(), N=ui.savAll?hist.length:8;
+  const todoRow = x => `<div class="sv" data-gomonth="${x.l.m}" data-line="${x.l.id}"><div class="main"><div class="lab">${esc(x.l.label||"Épargne")}</div>
+      <div class="meta"><span>${esc(fmtD(x.d))}</span>${x.l.acc?`<span class="vir">${accPill(x.l.acc)}<span class="arrow">→</span>${accPill(x.l.to)}</span>`:accPill(x.acc)}</div></div>
+      <div class="r"><div class="num" style="font-weight:600;opacity:.7">${fmtF(x.v,true)}</div><div class="bal">à cocher une fois fait</div></div></div>`;
+  const tile=(k,v,sub,cls="")=>`<div class="stile"><span>${k}</span><b class="num${cls}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`;
+  $("savingsBody").innerHTML = `<div class="savgrid"><div class="scol">
+    <div class="hero savhero s-hero">
       <div class="lead">Épargne disponible</div>
-      <div class="big${bal<0?" neg":""}">${fmtF(bal).replace(/ F$/,"")}<small>F</small></div>
-      ${(()=>{ const res=projectsList().filter(x=>!x.paid).reduce((t,x)=>t+Math.max(0,projSaved(x)),0); return res>0?`<div class="pace">dont <b class="num">${fmtF(res)}</b> réservés pour tes projets, <b class="num${bal-res<0?" neg":""}">${fmtF(bal-res)}</b> libres</div>`:""; })()}
-      ${balanceChart(pts)}
-      ${Object.keys(byAcc).length>1 || Object.keys(byAP).length ? accRows : ""}
-    </div></div>
-    <div>${projectsHTML()}<div class="gh" style="cursor:default"><span class="t">Mouvements saisis</span></div>
-    <div class="list">${rows || `<div class="empty">Aucun mouvement saisi. Ajoute ton épargne actuelle avec le bouton Mouvement.</div>`}</div>
-    ${autoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">Depuis le budget</span><span class="cnt">virements cochés</span></div><div class="list">${autoRows}</div>`:""}
-    ${todoRows?`<div class="gh" style="cursor:default;margin-top:18px"><span class="t">À venir</span></div><div class="list">${todoRows}</div>`:""}
-    <div class="hint" style="text-align:center;margin-top:10px">${savAccounts().length?`Les virements cochés vers ${esc(savAccounts().join(", "))} s'ajoutent ici automatiquement.`:`Marque ton compte d'épargne dans Réglages (Comptes) pour que tes virements s'ajoutent ici.`}</div></div></div>`;
+      <div class="big${bal<0?" neg":""}">${fmtF(bal).replace(/\s*F$/,"")}<small>F</small></div>
+      <div class="stiles">
+        ${tile("Projets", fmtF(reserved), open.length?`${open.length} projet${open.length>1?"s":""}`:"aucun projet")}
+        ${tile("Libre", fmtF(free), "non réservé", free<0?" neg":"")}
+        ${tile(capF(monthName(cm)), fmtF(mIn+mOut,true), mTodo?`+ ${fmtF(mTodo)} prévus`:mOut?`dont ${fmtF(mOut)} retirés`:"mis de côté", mIn+mOut>0?" pos":mIn+mOut<0?" neg":"")}
+      </div>
+      ${pts.length>2?`<div class="slab">Évolution du solde</div>${balanceChart(pts)}`:""}
+    </div>
+    ${accHTML?`<div class="panel s-acc"><h3>Où est ton épargne</h3>${accHTML}<div class="hint">Chaque compte montre la part réservée à chaque projet ; « Libre » est ce qui n'est pas réservé.</div></div>`:""}
+  </div><div class="scol">
+    <div class="s-proj">${projectsHTML()}</div>
+    ${Btodo.length?`<div class="s-todo"><div class="gh" style="cursor:default"><span class="t">À venir</span><span class="cnt">${fmtF(Btodo.reduce((t,x)=>t+x.v,0),true)} prévus dans ton budget</span></div><div class="list">${Btodo.map(todoRow).join("")}</div></div>`:""}
+    <div class="s-hist"><div class="gh" style="cursor:default;margin-top:18px"><span class="t">Historique</span><span class="cnt">${H.length} mouvement${H.length>1?"s":""}</span><button class="linkbtn" id="addSav" style="margin-left:auto;padding:4px 6px">+ Mouvement</button></div>
+      <div class="list">${hist.length?hist.slice(0,N).map(row).join(""):`<div class="empty">Aucun mouvement. Ajoute ton épargne actuelle avec « + Mouvement ».</div>`}</div>
+      ${hist.length>8?`<button class="linkbtn" id="savAll" style="display:block;margin:8px auto 0">${ui.savAll?"Réduire":`Tout afficher (${hist.length})`}</button>`:""}
+      <div class="hint" style="text-align:center;margin-top:10px">${savAccounts().length?`Les virements cochés vers ${esc(savAccounts().join(", "))} s'ajoutent ici automatiquement.`:`Marque ton compte d'épargne dans Réglages (Comptes) pour que tes virements s'ajoutent ici.`}</div></div>
+  </div></div>`;
+  $("addSav").onclick=()=>openSaving(null);
+  if($("savAll")) $("savAll").onclick=()=>{ ui.savAll=!ui.savAll; render(); };
 }
 function openSaving(s){
   const isNew=!s;
@@ -2482,7 +2528,7 @@ const GUIDE = [
   <p>Choisis quelles lignes sont des enveloppes dans les Réglages.</p>`],
  ["Paiements Apple Pay", `<p>Le raccourci de ton iPhone envoie chaque paiement Apple Pay dans ton dépôt privé. À l'ouverture, l'app les récupère et les met <b>« à classer »</b> (pastille sur l'onglet Mois).</p>
   <p>Pour chacun, choisis le mois puis : <b>déduire d'une enveloppe</b>, ou <b>créer une nouvelle ligne</b>. L'app retient ton choix pour ce commerçant et te le proposera la fois suivante.</p>`],
- ["Épargne et projets", `<p>Un virement vers un <b>compte d'épargne</b> (BNC épargne…) compte comme de l'épargne. L'onglet Épargne montre le total par compte.</p>
+ ["Épargne et projets", `<p>Un virement vers un <b>compte d'épargne</b> (BNC épargne…) compte comme de l'épargne. L'onglet Épargne montre en haut ton total, la part réservée à tes projets, la part libre et ce que tu as mis de côté ce mois-ci. « Où est ton épargne » détaille chaque compte, projet par projet, et l'« Historique » liste tous les mouvements, du plus récent au plus ancien.</p>
   <p>Un <b>projet</b> a un montant et, si tu veux, une date (impôts, meubles…) : l'app calcule combien mettre de côté par mois. Le <b>simulateur</b> marche dans les deux sens : « combien par mois ? » ou « quand j'aurai assez ? ».</p>
   <p>Une <b>réserve</b> n'a ni objectif ni date (réparations de voiture, aléas) : tu y mets de côté et tu y puises quand il faut.</p>
   <p>« + Mettre de côté » ajoute un versement (en F ou en €). Touche un versement pour le supprimer.</p>`],
