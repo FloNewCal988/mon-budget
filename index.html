@@ -2079,10 +2079,14 @@ function openSaving(s){
     <section class="sec"><div class="sh">Détails</div>
     <label for="gLab">Motif</label><input class="field" id="gLab" value="${esc(s.label)}" placeholder="Par exemple : Épargne de mai">
     <div class="row2">
-      <div><label for="gDate">Date</label><input class="field" id="gDate" value="${esc(s.date)}" placeholder="jj/mm"></div>
-      <div><label for="gAcc">Compte</label><select class="field" id="gAcc">${accOptions(s.acc)}</select></div>
+      <div><label for="gDate">Date</label><input class="field" type="date" id="gDate" value="${(()=>{ const d=isNew?new Date():savTs(s); return d?isoDate(d):""; })()}"></div>
+      <div><label for="gAcc">Compte</label><select class="field" id="gAcc">${accOptions(isNew ? (savAccounts()[0]||"") : s.acc)}</select></div>
     </div>
+    ${!isNew && s.date && !savTs(s) ? `<div class="hint">Date reprise de l'Excel : « ${esc(s.date)} ». Choisis une date complète pour la remplacer.</div>` : ""}
     <input class="field hidden" id="gAccNew" placeholder="Nom du nouveau compte" style="margin-top:8px">
+    ${(()=>{ const P=projectsList().filter(x=>!x.paid || x.id===s.proj); if(!P.length) return "";
+      return `<label for="gProjSel">Pour le projet</label><select class="field" id="gProjSel"><option value="">— Aucun —</option>${P.map(x=>`<option value="${x.id}"${x.id===s.proj?" selected":""}>${esc(x.name)}${isRes(x)?" (réserve)":""}${x.theme&&themeById(x.theme)?" · "+esc(themeById(x.theme).name):""}</option>`).join("")}</select>
+        <div class="hint" id="gProjHint">Le thème du mouvement est celui du projet.</div>`; })()}
     </section>
     <div class="actions sticky">${isNew?"":`<button class="linkbtn danger" id="gDel">Supprimer</button>`}<span class="spacer"></span>
       <button class="linkbtn" id="gCancel">Annuler</button><button class="btn" id="gOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
@@ -2099,7 +2103,10 @@ function openSaving(s){
       const n=parseNum(q("#gAmt").value); if(isNaN(n)){ q("#gAmt").focus(); return toast("Indique un montant"); }
       let acc=q("#gAcc").value; if(acc==="__new") acc=ensureAccount(q("#gAccNew").value);
       const rec = isNew ? {id:uid(), ord:Date.now()} : s;
-      Object.assign(rec, {label:q("#gLab").value.trim(), amt:Math.abs(n)*Number(sg()), cur:cur(), date:q("#gDate").value.trim(), acc, updatedAt:Date.now()});
+      const dv=q("#gDate").value, pj=q("#gProjSel") ? q("#gProjSel").value : (rec.proj||"");
+      if(/^\d{4}-\d{2}-\d{2}$/.test(dv)){ const [y,mo,da]=dv.split("-").map(Number), d=new Date(y,mo-1,da,12); rec.date=d.toLocaleDateString("fr-FR"); rec.at=d.toISOString(); }
+      let label=q("#gLab").value.trim(); if(!label && pj){ const pr=projById(pj); if(pr) label=(Number(sg())>0?"Pour : ":"Utilisé : ")+pr.name; }
+      Object.assign(rec, {label, amt:Math.abs(n)*Number(sg()), cur:cur(), acc, proj:pj||undefined, updatedAt:Date.now()});
       if(isNew) S.data.savings.push(rec);
       touch(); close(); render(); toast(isNew?"Mouvement ajouté":"Mouvement enregistré");
     };
