@@ -449,6 +449,36 @@ nav.tabs button{position:relative}
 .hrow .hn{flex:1;min-width:0}
 .hrow .hd{color:var(--muted);font-size:13.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .hrow:has(input:not(:checked)) .hn{color:var(--muted);text-decoration:line-through}
+.ttag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--tc) 22%,transparent);border-radius:99px;padding:1px 8px}
+.ttag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--tc)}
+.throw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;width:100%;border:0;background:transparent;color:var(--ink);text-align:left;font:inherit;padding:10px 0;border-top:1px solid var(--rule);cursor:pointer}
+.throw:first-of-type{border-top:0}
+.throw .thn{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0}
+.throw .thn i{width:10px;height:10px;border-radius:3px;flex:none}
+.throw .thn small{font-weight:400;color:var(--muted);font-size:12.5px}
+.throw .thv{text-align:right;font-weight:700}
+.throw .thv small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.throw .thb{grid-column:1/-1;height:6px;border-radius:99px;background:var(--rule);overflow:hidden}
+.throw .thb span{display:block;height:100%;border-radius:99px}
+.throw .thp{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.threws{display:flex;flex-direction:column;margin-top:8px}
+.threw{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:var(--ink);font:inherit;text-align:left;padding:10px 0;border-top:1px solid var(--rule);cursor:pointer}
+.threw:first-child{border-top:0}
+.threw > i{width:12px;height:12px;border-radius:4px;flex:none}
+.threw .tn{flex:1;min-width:0;font-weight:600}
+.threw small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.threw .tv{text-align:right;font-weight:600}
+.threw .chev{color:var(--muted);font-size:20px}
+.tog .tother{font-size:11px;color:var(--muted);margin-left:4px}
+.thind{padding:10px 0;border-top:1px solid var(--rule)}
+.thind:first-of-type{border-top:0}
+.thih{display:flex;justify-content:space-between;gap:10px;font-weight:600}
+.thih i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px}
+.thih small{font-weight:400;color:var(--muted)}
+.thibars{display:flex;gap:6px;align-items:flex-end;height:64px;margin-top:8px}
+.thibars span{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;min-width:0}
+.thibars b{display:block;width:100%;max-width:34px;border-radius:4px 4px 2px 2px}
+.thibars small{font-size:10.5px;color:var(--muted);margin-top:3px}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -632,6 +662,12 @@ nav.tabs button{font-size:10.5px}
           <strong>Enveloppes</strong>
           <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
           <div class="chips" id="envChips"></div>
+        </div>
+            <div class="card">
+          <strong>Thèmes</strong>
+          <div class="hint">Une étiquette par ligne (Maison, Voiture…) pour voir ce que coûte chaque sujet, toutes catégories confondues. Ne change pas ton reste à vivre.</div>
+          <div id="themeList" class="threws"></div>
+          <button class="btn ghost small" id="addTheme" style="margin-top:12px">Ajouter un thème</button>
         </div>
             <div class="card">
           <strong>Rythme des enveloppes</strong>
@@ -866,6 +902,7 @@ function seedDefaults(){
     for(const mid of new Set([...live(d.months).map(x=>x.id), ...live(d.lines).map(l=>l.m)])){ const r=d.months.find(x=>x.id===mid);
       if(r){ if(!r.start){ r.start=mid+"-01"; r.updatedAt=Date.now(); } } else d.months.push({id:mid, start:mid+"-01", updatedAt:Date.now()}); } }
   if(!d.prefs.find(p=>p.id==="rate")){ d.prefs.push({id:"rate", value:DEFAULT_RATE, updatedAt:1}); n++; }
+  n += seedThemes(d);
   return n;
 }
 const rate = () => Number((S.data.prefs.find(p=>p.id==="rate")||{}).value) || DEFAULT_RATE;
@@ -1319,7 +1356,7 @@ function lineHTML(l){
   else if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
     const ab = n => fmtF(Math.abs(n));
     env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>${ab(t)} dépensés sur ${ab(v)}, ${over?`<b class="neg">dépassé de ${ab(v-t)}</b>`:`<b>reste ${ab(t-v)}</b>`}</div>`; }
-  const meta = [dayInfo(l), accPill(l.acc), l.mode?`<span>${esc(modeLabel(l.mode).toLowerCase())}</span>`:"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
+  const meta = [dayInfo(l), accPill(l.acc), l.mode?`<span>${esc(modeLabel(l.mode).toLowerCase())}</span>`:"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:"", themeTag(themeOf(l))].filter(Boolean).join("");
   return `<div class="ln${l.done?" done":""}${envL?" isenv":""}">
     ${envL ? `<button class="qadd" style="--cc:${cc(l.cat)}" data-qadd="${l.id}" aria-label="Ajouter une dépense sur ${esc(l.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>`
       : `<button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>`}
@@ -1401,7 +1438,7 @@ function renderMonth(){
     </div>
     <div class="mgrid">
       <div>${CATS.filter(c=>c.col==="L").map(c=>groupHTML(c,C)).join("")}</div>
-      <div>${CATS.filter(c=>c.col==="R").map(c=>groupHTML(c,C)).join("")}<div class="desk">${catsPanel(C)}</div></div>
+      <div>${CATS.filter(c=>c.col==="R").map(c=>groupHTML(c,C)).join("")}<div class="desk">${themesPanel(m)}${catsPanel(C)}</div></div>
     </div>
     <div class="mfoot"><button class="linkbtn" id="monthAlerts">Alertes Calendrier</button><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
   $("monthAlerts").onclick = ()=>openAlerts(m);
@@ -1461,7 +1498,7 @@ function synthHTML(m, C){
   if(!monthExists(m)) return `<div class="empty">Pas de budget pour ${esc(mLabel(m))}.</div>`;
   C = C || calc(m);
   const A=viewAcc(m), CA=A?calc(m,A):C;
-  return accSelHTML(m) + heroHTML(m, CA, A) + progressHTML(CA) + bankCardHTML(m) + `<div style="height:10px"></div>` + movesPanel(m, 6) + catsPanel(C) + accountsPanel(C);
+  return accSelHTML(m) + heroHTML(m, CA, A) + progressHTML(CA) + bankCardHTML(m) + `<div style="height:10px"></div>` + movesPanel(m, 6) + themesPanel(m) + catsPanel(C) + accountsPanel(C);
 }
 function renderSynthTab(){ $("synthTab").innerHTML = synthHTML(ui.month); }
 
@@ -1488,6 +1525,7 @@ function openLine(l, catK){
     <input class="field" id="fLab" value="${esc(l.label)}" list="labelsDL" autocomplete="off" placeholder="Par exemple : Électricité">
     <label>Catégorie</label>
     <div class="catpick" id="fCat">${CATS.map(c=>`<button data-v="${c.k}" style="--cc:${cc(c.k)}" class="${c.k===cat?"on":""}"><i></i>${esc(c.name)}</button>`).join("")}</div>
+    ${themes().length?`<div id="fThemeRow"><label for="fTheme">Thème</label><select class="field" id="fTheme"><option value="">— Aucun —</option>${themes().map(t=>`<option value="${t.id}"${(themeOf(l)||{}).id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></div>`:""}
     </section>
     <section class="sec"><div class="sh">Paiement</div>
     <div class="row2">
@@ -1556,6 +1594,7 @@ function openLine(l, catK){
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
+      if(q("#fTheme") && rec.label && rec.cat!=="vir"){ const v=q("#fTheme").value, cur=themeOf(rec); if((cur?cur.id:"")!==v) setTheme(rec.label, v); }
       if(q("#fEnvU") && rec.label && q("#fEnv").checked && q("#fEnvU").dataset.v && q("#fEnvU").dataset.v!==envUnit(rec.label)) setPref("envu:"+norm(rec.label), q("#fEnvU").dataset.v);
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
       touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
@@ -2159,6 +2198,7 @@ function renderIndic(){
     <div class="panel"><h3>Où va l'argent chaque mois</h3><div class="ilegend">${IND_CATS.map(k=>`<span><i style="background:${cc(k)}"></i>${esc(CAT[k].name)}</span>`).join("")}</div><div class="ich" id="chStack"></div></div>
     <div class="panel"><h3>Répartition des sorties</h3><div class="hint" style="margin:0 0 8px">Touche une catégorie pour voir ses principales lignes.</div><div id="chShare"></div><div id="shareDetail"></div></div>
     <div class="panel"><h3>Enveloppes</h3>${E.length?`<div id="chEnv"></div>`:`<div class="hint" style="margin:0">Marque tes enveloppes (Repas midi, Courses…) dans Réglages pour suivre ici ce que tu dépenses par rapport au prévu.</div>`}</div>
+    ${themesIndicHTML(ms)}
     <div class="panel"><h3>Évolution de l'épargne</h3><div class="ich" id="chSav"></div></div>
     <details class="panel"><summary>Voir les chiffres en tableau</summary>
       <div style="overflow-x:auto;margin-top:10px"><table class="acct itab"><thead><tr><th>Mois</th><th>Rentrées</th><th>Sorties</th><th>Épargne</th><th>Reste</th></tr></thead><tbody>
@@ -2329,6 +2369,116 @@ function openAlerts(m){
       a.href=URL.createObjectURL(blob); a.download=`alertes-budget-${m}.ics`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
       toast("Ouvre le fichier, choisis le calendrier « Budget », puis Ajouter tout"); };
   });
+}
+
+/* ================= THÈMES (Maison, Voiture, Abonnements…) =================
+   Une étiquette par ligne, mémorisée par nom de ligne ; ne change rien au reste à vivre. */
+const THEME_COLORS = ["#C9862A","#2E6BB0","#8E4DB8","#24855A","#C2453B","#2A9BA8","#B5527E","#6B7A22"];
+const themes = () => (S.data ? S.data.prefs : []).filter(p=>p.id.startsWith("theme:") && !p.deleted && p.value).map(p=>({id:p.id.slice(6), ...p.value})).sort((a,b)=>(a.ord||0)-(b.ord||0));
+const themeById = id => themes().find(t=>t.id===id);
+const themeOf = l => { if(!l || !l.label) return null; const p=S.data.prefs.find(x=>x.id==="tl:"+norm(l.label) && !x.deleted); return p && p.value ? themeById(p.value) || null : null; };
+const setTheme = (label, id) => setPref("tl:"+norm(label), id||"");
+const themeTag = t => t ? `<span class="ttag" style="--tc:${esc(t.color)}">${esc(t.name)}</span>` : "";
+/* thèmes de départ, une seule fois */
+function seedThemes(d){
+  if(d.prefs.find(p=>p.id==="mig:themes") || !d.lines.some(l=>!l.deleted)) return 0;   // attendre d'avoir les lignes
+  d.prefs.push({id:"mig:themes", value:1, updatedAt:6});
+  if(d.prefs.some(p=>p.id.startsWith("theme:"))) return 1;
+  const now=Date.now(), T=[["maison","Maison","#C9862A",/traite|electricite|^eau$|assurances? ?\(maison|assurance maison|assurance emprunteur|assurance auto\/noh|meubles/],
+    ["voiture","Voiture","#2E6BB0",/essence|carburant|^voiture$|garage|assurance auto$/],
+    ["abos","Abonnements","#8E4DB8",/forfait|fibre|internet|netflix|i-?cloud|abonnement|opt mobilis|spotify|disney|deezer|canal/],
+    ["banque","Banque","#24855A",/frais (de )?tenue|tenue de compte|^bci$|^banque pop$/]];
+  T.forEach(([id,name,color],i)=>d.prefs.push({id:"theme:"+id, value:{name,color,ord:i}, updatedAt:now}));
+  const seen=new Set();
+  for(const l of d.lines){ if(l.deleted || !l.label || l.cat==="vir" || l.cat==="sal" || l.cat==="aide" || l.cat==="epa") continue; const n=norm(l.label); if(seen.has(n)) continue; seen.add(n);
+    const t=T.find(([,,,re])=>re.test(n)); if(t) d.prefs.push({id:"tl:"+n, value:t[0], updatedAt:now}); }
+  for(const p of d.projects) if(!p.deleted && /voiture|auto/.test(norm(p.name)) && !p.theme){ p.theme="voiture"; p.updatedAt=now; }
+  return 1;
+}
+/* coût d'une ligne pour son thème (enveloppe : le plus grand du prévu et du dépensé, comme le reste à vivre) */
+const lineCost = l => { if(l.cat==="vir" || xpf(l)>=0) return 0; const plan=-xpf(l), sp=-spentOf(l.id); return Math.max(plan, sp); };
+function themeTotals(m){
+  const out=themes().map(t=>({t, tot:0, lines:[]}));
+  for(const l of monthLines(m)){ const t=themeOf(l); if(!t) continue; const c=lineCost(l); if(!c) continue; const o=out.find(x=>x.t.id===t.id); o.tot+=c; o.lines.push({l,c}); }
+  return out;
+}
+function themesPanel(m){
+  const T=themeTotals(m); if(!T.length) return "";
+  const max=Math.max(1,...T.map(x=>x.tot));
+  return `<div class="panel"><h3>Par thème</h3>
+    ${T.map(x=>{ const P=projectsList().filter(p=>p.theme===x.t.id && !p.paid);
+      return `<button class="throw" data-theme="${x.t.id}" data-thm="${m}">
+        <span class="thn"><i style="background:${esc(x.t.color)}"></i>${esc(x.t.name)}<small>${x.lines.length} ligne${x.lines.length>1?"s":""}</small></span>
+        <span class="thv num">${fmtF(x.tot)}<small>≈ ${fmtF(x.tot*12)} par an</small></span>
+        <span class="thb"><span style="width:${(x.tot/max*100).toFixed(1)}%;background:${esc(x.t.color)}"></span></span>
+        ${P.map(p=>`<span class="thp">${esc(p.name)} : ${fmtF(projStatus(p).saved)} de côté</span>`).join("")}
+      </button>`; }).join("")}
+    <div class="hint">Les thèmes ne changent pas ton reste à vivre. Les enveloppes comptent le plus grand du prévu et du dépensé.</div></div>`;
+}
+function openThemeMonth(id, m){
+  const t=themeById(id); if(!t) return; const x=themeTotals(m).find(y=>y.t.id===id);
+  modal(`<h2>${esc(t.name)}</h2><div class="sub" style="text-transform:none">${esc(capF(mLabel(m)))} · ${fmtF(x.tot)}, soit ≈ ${fmtF(x.tot*12)} par an</div>
+    <div class="spends" style="margin-top:12px">${x.lines.length?x.lines.sort((a,b)=>b.c-a.c).map(({l,c})=>`<div class="sp" data-thl="${l.id}" style="cursor:pointer"><div class="main"><div>${esc(l.label)}</div><div class="hint" style="margin:0">${esc(CAT[l.cat].name)}${l.done?" · passé":""}${isEnv(l)?" · enveloppe":""}</div></div><span class="num">${fmtF(-c)}</span></div>`).join(""):`<div class="hint" style="padding:10px 0">Aucune ligne de ce thème ce mois-ci.</div>`}</div>
+    <div class="actions sticky"><button class="linkbtn" id="thEdit">Modifier le thème</button><span class="spacer"></span><button class="btn" id="thClose">Fermer</button></div>`,
+  (bd, close)=>{ bd.querySelector("#thClose").onclick=close; bd.querySelector("#thEdit").onclick=()=>{ close(); setTimeout(()=>openTheme(t), 60); };
+    bd.querySelectorAll("[data-thl]").forEach(r=>r.onclick=()=>{ const l=S.data.lines.find(z=>z.id===r.dataset.thl); close(); if(l) setTimeout(()=>openLine(l), 60); }); });
+}
+function themeLabels(){ const seen=new Map(); for(const l of live(S.data.lines).filter(l=>l.label && l.cat!=="vir" && l.cat!=="sal" && l.cat!=="aide" && xpf(l)<0).sort((a,b)=>b.m.localeCompare(a.m))) if(!seen.has(norm(l.label))) seen.set(norm(l.label), l);
+  return [...seen.values()].sort((a,b)=>a.label.localeCompare(b.label,"fr")); }
+function openTheme(t){
+  const isNew=!t; t = t || {id:uid(), name:"", color:THEME_COLORS[themes().length%THEME_COLORS.length], ord:themes().length};
+  let color=t.color; const L=themeLabels(), P=projectsList().filter(p=>!p.paid);
+  const pick=new Set(L.filter(l=>{ const x=themeOf(l); return x && x.id===t.id; }).map(l=>norm(l.label)));
+  const pp=new Set(P.filter(p=>p.theme===t.id).map(p=>p.id));
+  const chip=l=>{ const o=themeOf(l), other=o && o.id!==t.id; return `<button class="tog${pick.has(norm(l.label))?" on":""}" style="--cc:${esc(color)}" data-tl="${esc(norm(l.label))}"><i></i>${esc(l.label)}${other?`<small class="tother">${esc(o.name)}</small>`:""}</button>`; };
+  modal(`<h2>${isNew?"Nouveau thème":esc(t.name)}</h2><div class="sub" style="text-transform:none">Une étiquette pour voir ce que coûte un sujet, toutes catégories confondues</div>
+    <section class="sec"><div class="sh">Nom et couleur</div>
+      <input class="field" id="tName" value="${esc(t.name)}" placeholder="Par exemple : Voiture" style="margin-top:0">
+      <div class="swatches" style="margin-top:10px">${THEME_COLORS.map(c=>`<button class="sw${c===color?" on":""}" data-c="${c}" style="background:${c}" aria-label="Couleur"></button>`).join("")}</div>
+    </section>
+    <section class="sec"><div class="sh">Lignes de ce thème</div>
+      <div class="hint" style="margin-top:0">Touche une ligne pour l'ajouter ou la retirer. Valable pour tous les mois. Une ligne déjà dans un autre thème y est retirée.</div>
+      <div class="chips" id="tLines" style="margin-top:10px">${[...L].sort((a,b)=>{ const r=l=>pick.has(norm(l.label))?0:themeOf(l)?2:1; return r(a)-r(b); }).map(chip).join("")||`<span class="hint">Aucune ligne de dépense pour l'instant.</span>`}</div>
+    </section>
+    ${P.length?`<section class="sec"><div class="sh">Projets liés (pour info)</div>
+      <div class="hint" style="margin-top:0">Affichés avec le thème, sans compter dans son coût : mettre de côté n'est pas une dépense.</div>
+      <div class="chips" id="tProj" style="margin-top:10px">${P.map(p=>`<button class="tog${pp.has(p.id)?" on":""}" style="--cc:${esc(color)}" data-tp="${p.id}"><i></i>${esc(p.name)}</button>`).join("")}</div></section>`:""}
+    <div class="actions sticky">${isNew?"":`<button class="linkbtn danger" id="tDel">Supprimer</button>`}<span class="spacer"></span><button class="linkbtn" id="tCancel">Annuler</button><button class="btn" id="tOk">${isNew?"Créer":"Enregistrer"}</button></div>`,
+  (bd, close)=>{
+    const q=x=>bd.querySelector(x);
+    bd.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{ color=b.dataset.c; bd.querySelectorAll(".sw").forEach(x=>x.classList.toggle("on", x===b)); bd.querySelectorAll("#tLines .tog, #tProj .tog").forEach(x=>x.style.setProperty("--cc", color)); });
+    q("#tLines").addEventListener("click", e=>{ const b=e.target.closest("[data-tl]"); if(!b) return; const k=b.dataset.tl; pick.has(k)?pick.delete(k):pick.add(k); b.classList.toggle("on", pick.has(k)); });
+    if(q("#tProj")) q("#tProj").addEventListener("click", e=>{ const b=e.target.closest("[data-tp]"); if(!b) return; const k=b.dataset.tp; pp.has(k)?pp.delete(k):pp.add(k); b.classList.toggle("on", pp.has(k)); });
+    q("#tCancel").onclick=close;
+    if(q("#tDel")) q("#tDel").onclick=()=>{ if(!confirm(`Supprimer le thème « ${t.name} » ? Les lignes restent, sans thème.`)) return;
+      const now=Date.now(); const p=S.data.prefs.find(x=>x.id==="theme:"+t.id); if(p){ p.deleted=true; p.updatedAt=now; }
+      for(const x of S.data.prefs) if(x.id.startsWith("tl:") && x.value===t.id){ x.value=""; x.updatedAt=now; }
+      for(const pr of S.data.projects) if(pr.theme===t.id){ pr.theme=""; pr.updatedAt=now; }
+      touch(); close(); render(); toast("Thème supprimé"); };
+    q("#tOk").onclick=()=>{ const name=q("#tName").value.trim(); if(!name){ q("#tName").focus(); return toast("Donne un nom au thème"); }
+      if(themes().some(x=>x.id!==t.id && norm(x.name)===norm(name))) return toast("Ce thème existe déjà");
+      setPref("theme:"+t.id, {name, color, ord:t.ord??themes().length});
+      for(const l of L){ const k=norm(l.label), cur=themeOf(l); if(pick.has(k)){ if(!cur || cur.id!==t.id) setPref("tl:"+k, t.id); } else if(cur && cur.id===t.id) setPref("tl:"+k, ""); }
+      const now=Date.now(); for(const p of P){ const want=pp.has(p.id); if(want && p.theme!==t.id){ p.theme=t.id; p.updatedAt=now; } else if(!want && p.theme===t.id){ p.theme=""; p.updatedAt=now; } }
+      touch(); close(); render(); toast(isNew?`Thème « ${name} » créé`:"Thème enregistré"); };
+    if(isNew) setTimeout(()=>q("#tName").focus(), 80);
+  });
+}
+function themesSettingsHTML(){
+  const T=themes(), m=thisMonth(), tot=monthExists(m)?themeTotals(m):[];
+  return T.length ? T.map(t=>{ const x=tot.find(y=>y.t.id===t.id), n=themeLabels().filter(l=>{ const o=themeOf(l); return o && o.id===t.id; }).length;
+    return `<button class="threw" data-themeedit="${t.id}"><i style="background:${esc(t.color)}"></i><span class="tn">${esc(t.name)}<small>${n} ligne${n>1?"s":""}</small></span><span class="tv num">${x?fmtF(x.tot):""}<small>${x?"en "+esc(monthName(m)):""}</small></span><span class="chev">›</span></button>`; }).join("")
+    : `<div class="hint">Aucun thème pour l'instant.</div>`;
+}
+/* thèmes mois par mois, pour Indicateurs */
+function themesIndicHTML(ms){
+  const T=themes(); if(!T.length || !ms.length) return "";
+  const rows=T.map(t=>{ const vals=ms.map(m=>{ const x=themeTotals(m).find(y=>y.t.id===t.id); return x?x.tot:0; }); return {t, vals, avg:vals.reduce((a,b)=>a+b,0)/ms.length}; }).filter(r=>r.vals.some(Boolean));
+  if(!rows.length) return "";
+  return `<div class="panel"><h3>Par thème, mois par mois</h3>
+    ${rows.map(r=>{ const mx=Math.max(1,...r.vals); return `<div class="thind"><div class="thih"><span><i style="background:${esc(r.t.color)}"></i>${esc(r.t.name)}</span><span class="num">${fmtF(r.avg)}<small> en moyenne</small></span></div>
+      <div class="thibars">${r.vals.map((v,i)=>`<span data-thtip="${esc(r.t.name)}, ${esc(mLabel(ms[i]))} : ${esc(fmtF(v))}"><b style="height:${Math.max(v?6:0, v/mx*100).toFixed(1)}%;background:${esc(r.t.color)}"></b><small>${esc(mShort(ms[i]))}</small></span>`).join("")}</div></div>`; }).join("")}
+    <div class="hint">Moyenne sur les mois affichés. Touche une barre pour voir son montant.</div></div>`;
 }
 
 /* ================= RYTHME DES ENVELOPPES ET DÉPENSES DU QUOTIDIEN ================= */
@@ -2648,7 +2798,8 @@ function goToMove(ref){
 function searchAll(q){
   const n=norm(q), byM=new Map(), seen=new Set();
   const add=(m, row)=>{ if(!byM.has(m)) byM.set(m, []); byM.get(m).push(row); };
-  for(const l of live(S.data.lines)) if(norm(l.label).includes(n)){
+  const thHit=new Set(themes().filter(t=>norm(t.name).includes(n)).map(t=>t.id));
+  for(const l of live(S.data.lines)) if(norm(l.label).includes(n) || (thHit.size && thHit.has((themeOf(l)||{}).id) && l.cat!=="vir")){
     const sp=lineSpends(l.id), sign=l.cat==="vir"?-1:1, amt=l.cat==="vir"?-Math.abs(xpf(l)):xpf(l);
     let real=0, plan=0, sub;
     if(sp.length){ real=spentOf(l.id); sp.forEach(s=>seen.add(s.id)); sub=`${sp.length} paiement${sp.length>1?"s":""}, ${fmtF(-real)} sur ${fmtF(-xpf(l))}`; }
@@ -2715,6 +2866,9 @@ const GUIDE = [
   <p>Tu choisis le montant et le projet ou la réserve. Ensuite, fais le virement vers ton compte d'épargne depuis ta banque. Tu peux aussi le faire plus tard depuis « Options du mois » → « Fin du mois ».</p>`],
  ["Rythme de tes dépenses", `<p>Sur chaque enveloppe du mois en cours, l'app te dit ce que tu peux encore dépenser <b>par midi de travail</b> (sans week-ends ni jours fériés), <b>par semaine</b> ou <b>par jour</b> jusqu'à la paie. Le choix se fait dans la ligne de l'enveloppe ; « Aucun » n'affiche que le reste.</p>
   <p>Dans Indicateurs, « Dépenses du quotidien » cumule jour après jour tes paiements Apple Pay, le raccourci Dépense et tes saisies depuis la paie, et les compare aux mois précédents au même jour. Touche un jour pour voir ses dépenses, ou une enveloppe pour la regarder seule.</p>`],
+ ["Thèmes", `<p>Un <b>thème</b> (Maison, Voiture, Abonnements, Banque…) est une étiquette posée sur une ligne, quelle que soit sa catégorie. Une seule par ligne, mémorisée par nom : valable pour tous les mois.</p>
+  <p>Dans Réglages → Thèmes, crée, renomme ou supprime un thème et touche les lignes qui en font partie. Tu peux aussi choisir le thème dans la fiche d'une ligne.</p>
+  <p>La Synthèse montre le coût de chaque thème pour le mois et à l'année ; Indicateurs le montre mois par mois. Un projet lié (Réparations voiture) s'affiche pour info sans compter dans le coût : mettre de côté n'est pas une dépense. La recherche trouve aussi les lignes d'un thème.</p>`],
  ["Mouvements et recherche", `<p><b>Derniers mouvements</b> (onglet Synthèse sur iPhone, à droite sur ordinateur) : tes paiements Apple Pay, tes dépenses saisies et les lignes cochées, du plus récent au plus ancien.</p>
   <p>La <b>loupe</b> en haut cherche dans tous les mois : « essence » te donne tout ce que tu y as mis depuis le début, mois par mois, avec le total. Touche un résultat pour l'ouvrir.</p>`],
  ["Synthèse, Année, Indicateurs", `<p><b>Synthèse</b> : le résumé du mois par catégorie. <b>Année</b> : tous les mois côte à côte, comme ton Excel.</p>
@@ -2750,6 +2904,7 @@ function renderSettings(){
     { const t=dayStart(new Date()), off=holOff(), H=[...holidayList(t.getFullYear()), ...holidayList(t.getFullYear()+1)].filter(h=>h.date>=t).sort((a,b)=>a.date-b.date).slice(0,12);
       $("holList").innerHTML = H.map(h=>`<label class="hrow"><input type="checkbox" data-hol="${h.k}" ${off.includes(h.k)?"":"checked"}><span class="hn">${esc(h.name)}</span><span class="hd">${esc(capF(fmtD(h.date,{weekday:"short", day:"numeric", month:"short", year:"numeric"})))}</span></label>`).join(""); }
     const W=workDays(); $("wdChips").innerHTML = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]].map(([d,n])=>`<button class="tog${W.includes(d)?" on":""}" style="--cc:var(--accent)" data-wd="${d}" aria-pressed="${W.includes(d)}"><i></i>${n}</button>`).join(""); }
+  $("themeList").innerHTML = themesSettingsHTML();
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
@@ -3018,6 +3173,7 @@ $("syncNow").onclick=()=>{ S.checkInbox=true; sync(); };
 $("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.pw); toast("Cet appareil restera connecté"); } else { forgetDevice(); toast("Le mot de passe sera demandé à chaque ouverture"); } };
 $("chgPw").onclick=changePassword;
 $("guideBtn").onclick=openGuide;
+$("addTheme").onclick=()=>openTheme(null);
 $("setAlerts").onclick=()=>openAlerts(monthExists(thisMonth())?thisMonth():ui.month);
 $("autoToggle").onchange=e=>{ setPref("autodone", e.target.checked); touch(); if(e.target.checked) autoCheck(); toast(e.target.checked?"Les prélèvements passés seront cochés tout seuls":"Prélèvements à cocher toi-même"); };
 $("exportBtn").onclick=exportData;
@@ -3034,6 +3190,9 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
   if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
     if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
+  if(el=t.closest("[data-themeedit]")){ const th=themeById(el.dataset.themeedit); if(th) openTheme(th); return; }
+  if(el=t.closest("[data-theme]")) return openThemeMonth(el.dataset.theme, el.dataset.thm);
+  if(el=t.closest("[data-thtip]")) return toast(el.dataset.thtip);
   if(el=t.closest("[data-rhkey]")){ ui.rhKey=el.dataset.rhkey; render(); return; }
   if(t.closest("[data-gorh]")){ setTab("indic"); return; }
   if(el=t.closest("[data-sharecat]")){ ui.indCat = ui.indCat===el.dataset.sharecat ? "" : el.dataset.sharecat; render(); return; }
