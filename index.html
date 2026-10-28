@@ -442,6 +442,11 @@ nav.tabs button{position:relative}
 .envc.over .ev{color:var(--neg)}
 .envc .es{font-size:12px;color:var(--muted);margin-bottom:8px}
 .envc .envbar{width:100%;margin-bottom:10px}
+.envrh{display:flex;flex-direction:column;margin-top:8px}
+.envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
+.envrh .erow:first-child{border-top:0}
+.envrh .erow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.envrh select.field{width:auto;flex:none;padding-top:8px;padding-bottom:8px}
 .eah{display:flex;flex-direction:column;font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.3}
 .eah b{color:var(--ink);font-size:13px}
 .rhchips{margin:0 0 10px}
@@ -620,6 +625,14 @@ nav.tabs button{font-size:10.5px}
           <strong>Enveloppes</strong>
           <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
           <div class="chips" id="envChips"></div>
+        </div>
+            <div class="card">
+          <strong>Rythme des enveloppes</strong>
+          <div class="hint">Sous chaque enveloppe du mois en cours, ce que tu peux encore dépenser d'ici la paie.</div>
+          <div id="envRh" class="envrh"></div>
+          <label style="margin-top:14px">Mes jours de travail</label>
+          <div class="chips" id="wdChips"></div>
+          <div class="hint">Sert au calcul « par midi ». Les jours fériés de Nouvelle-Calédonie sont retirés automatiquement.</div>
         </div>
             <div class="card">
           <strong>Automatismes</strong>
@@ -2313,7 +2326,8 @@ function openAlerts(m){
 function easter(y){ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1; return new Date(y,mo-1,da); }
 const holidays = (()=>{ const cache={}; return y=>{ if(cache[y]) return cache[y]; const e=easter(y), add=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
   return cache[y]=new Set([new Date(y,0,1),add(e,1),new Date(y,4,1),new Date(y,4,8),add(e,39),add(e,50),new Date(y,6,14),new Date(y,7,15),new Date(y,8,24),new Date(y,10,1),new Date(y,10,11),new Date(y,11,25)].map(isoDate)); }; })();
-const isWorkDay = d => d.getDay()>0 && d.getDay()<6 && !holidays(d.getFullYear()).has(isoDate(d));
+const workDays = () => { const p=S.data && S.data.prefs.find(x=>x.id==="workdays" && !x.deleted); return Array.isArray(p&&p.value) ? p.value : [1,2,3,4,5]; };
+const isWorkDay = d => workDays().includes(d.getDay()) && !holidays(d.getFullYear()).has(isoDate(d));
 const ENV_UNITS = [["midi","Par midi travaillé"],["semaine","Par semaine"],["jour","Par jour"],["aucun","Aucun"]];
 function envUnit(label){ const p=S.data.prefs.find(x=>x.id==="envu:"+norm(label) && !x.deleted); if(p) return p.value;
   const n=norm(label); if(/repas|midi|dejeuner|cantine|snack/.test(n)) return "midi"; if(/course|supermarche|alimentation|marche/.test(n)) return "semaine"; return "aucun"; }
@@ -2702,6 +2716,10 @@ function renderSettings(){
     $("envChips").innerHTML = !L.length ? `<span class="hint">Aucune ligne de sortie pour l'instant.</span>`
       : (on.length ? on.map(chip).join("") : `<span class="hint" style="margin:0">Aucune enveloppe pour l'instant.</span>`)
         + (off.length ? `<details id="envMore" style="flex-basis:100%;margin-top:6px"${wasOpen||!on.length?" open":""}><summary>Ajouter une enveloppe (${off.length} lignes)</summary><div class="chips" style="margin-top:10px">${off.map(chip).join("")}</div></details>` : ""); }
+  { const E=[...new Map(live(S.data.lines).filter(l=>l.cat!=="vir" && xpf(l)<0 && l.label && isEnv(l)).map(l=>[norm(l.label), l.label])).values()].sort((a,b)=>a.localeCompare(b,"fr"));
+    $("envRh").innerHTML = E.length ? E.map(lab=>`<div class="erow"><span>${esc(lab)}</span><select class="field" data-envu="${esc(lab)}" aria-label="Rythme de ${esc(lab)}">${ENV_UNITS.map(([k,n])=>`<option value="${k}"${envUnit(lab)===k?" selected":""}>${n}</option>`).join("")}</select></div>`).join("")
+      : `<div class="hint">Choisis d'abord tes enveloppes ci-dessus.</div>`;
+    const W=workDays(); $("wdChips").innerHTML = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]].map(([d,n])=>`<button class="tog${W.includes(d)?" on":""}" style="--cc:var(--accent)" data-wd="${d}" aria-pressed="${W.includes(d)}"><i></i>${n}</button>`).join(""); }
   $("inboxUrl").value = `${ghBase(S.cfg)}/contents/${INBOX}/`;
   const np=pendingList().length; $("inboxInfo").textContent = np ? `${np} paiement${np>1?"s":""} en attente de classement.` : "Aucun paiement en attente.";
   $("rateIn").value = NF2.format(rate()).replace(/[\s ]/g," ");
@@ -2975,11 +2993,15 @@ $("autoToggle").onchange=e=>{ setPref("autodone", e.target.checked); touch(); if
 $("exportBtn").onclick=exportData;
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
+document.addEventListener("change", e=>{ const el=e.target.closest && e.target.closest("[data-envu]"); if(!el || !S.data) return;
+  setPref("envu:"+norm(el.dataset.envu), el.value); touch(); toast(`${el.dataset.envu} : ${ENV_UNITS.find(x=>x[0]===el.value)[1].toLowerCase()}`); });
 document.addEventListener("click", e=>{
   const t=e.target; let el;
   if(!S.data) return;
   if(el=t.closest("[data-indn]")){ ui.indN=Number(el.dataset.indn); saveUI(); render(); return; }
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
+  if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
+    if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
   if(el=t.closest("[data-rhkey]")){ ui.rhKey=el.dataset.rhkey; render(); return; }
   if(t.closest("[data-gorh]")){ setTab("indic"); return; }
   if(el=t.closest("[data-sharecat]")){ ui.indCat = ui.indCat===el.dataset.sharecat ? "" : el.dataset.sharecat; render(); return; }
