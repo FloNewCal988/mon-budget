@@ -256,6 +256,14 @@ select.field{appearance:none;-webkit-appearance:none;background-image:linear-gra
 .toast button{border:0;background:transparent;color:var(--c-free);font-weight:700;padding:4px 10px;cursor:pointer;font-size:14.5px}
 @media (prefers-color-scheme: dark){.toast button{color:var(--accent)}}
 details{margin-top:14px}summary{cursor:pointer;color:var(--accent)}
+.guide details{margin:0;border-bottom:1px solid var(--rule)}
+.guide summary{list-style:none;display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-weight:600;color:var(--ink);font-size:16px}
+.guide summary::-webkit-details-marker{display:none}
+.guide summary::after{content:"›";color:var(--muted);font-size:22px;transition:transform .2s}
+.guide details[open] summary::after{transform:rotate(90deg)}
+.guide .gbody{padding:0 2px 12px;color:var(--ink);font-size:15px;line-height:1.5}
+.guide .gbody p{margin:0 0 10px}
+
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:0;background:var(--paper);box-shadow:inset 0 0 0 1px var(--rule);border-radius:99px;padding:8px 13px;font-size:14px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
 .chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
@@ -496,6 +504,11 @@ nav.tabs button{font-size:10.5px}
 
     <section id="tab-settings" class="hidden">
       <div class="stack">
+        <div class="card">
+          <strong>Mode d'emploi</strong>
+          <div class="hint">Le fonctionnement de l'app, rubrique par rubrique : mois de paie, enveloppes, Apple Pay, épargne, alertes…</div>
+          <button class="btn ghost" id="guideBtn" style="margin-top:12px">Comment fonctionne l'app</button>
+        </div>
         <div class="card">
           <strong>Enveloppes</strong>
           <div class="hint" style="margin-bottom:10px">Les lignes où tu dépenses au fil du mois. Quand tu classes un paiement Apple Pay, seules elles sont proposées. Touche une ligne pour l'ajouter ou la retirer.</div>
@@ -2140,6 +2153,43 @@ function openAlerts(m){
   });
 }
 
+/* ---------- Mode d'emploi ---------- */
+const GUIDE = [
+ ["Le principe", `<p>Mon Budget reprend ton fichier Excel : chaque mois, tu notes ce qui est <b>prévu</b> (salaire, charges, épargne, sorties), et l'app calcule ton <b>reste à vivre</b>.</p>
+  <p><b>Reste à vivre</b> = rentrées − charges fixes − épargne − sorties. Il est aussi donné par semaine (÷ 4) et par jour (÷ 28). Les dépenses <b>exceptionnelles</b> sont comptées à part, dans « avec l'exceptionnel ».</p>`],
+ ["Le mois de paie", `<p>Un budget commence le <b>jour de ta paie</b>, pas le 1er. Le budget de <b>novembre</b> va de la paie de fin octobre (vers le 27) jusqu'à la veille de la paie suivante.</p>
+  <p>La date change d'un mois à l'autre : touche les dates sous « Reste à vivre » pour la corriger. Le jour habituel se règle plus bas dans les Réglages.</p>
+  <p><b>Nouveau mois</b> : passe au mois suivant avec la flèche ›, puis « Créer le budget ». Tu choisis les catégories à reprendre du mois précédent (montants, jours et comptes sont copiés, tout repart « à passer »).</p>`],
+ ["Les lignes", `<p>Chaque ligne a une catégorie : Salaire, Aide, Charges fixes, Épargne, Sorties / Activités, Exceptionnel ou Virement entre comptes. Touche une ligne pour la modifier, ou le bouton + pour en ajouter une.</p>
+  <p>Indique le <b>jour</b>, le <b>compte</b> et le <b>mode</b> (prélèvement, virement, carte…). Coche la ligne quand l'opération est passée sur ton compte.</p>
+  <p>Un montant en <b>€</b> est converti en francs avec le taux des Réglages.</p>`],
+ ["Comptes et virements", `<p>Ton salaire arrive sur la BNC, puis tu fais des virements vers tes autres comptes. Un <b>virement entre comptes</b> ne change pas ton reste à vivre total : l'argent change seulement de compte.</p>
+  <p>Le sélecteur au-dessus du reste à vivre montre ce qui reste <b>sur un compte</b> (BNC par défaut), en tenant compte des virements qui en sortent ou qui y arrivent. « Tous les comptes » donne le total.</p>`],
+ ["Les enveloppes", `<p>Une enveloppe est une ligne où tu dépenses <b>au fil du mois</b> : repas du midi, courses, essence… Tu prévois un montant, et la <b>jauge</b> montre ce que tu as déjà dépensé.</p>
+  <p>Pour noter une dépense, touche le <b>+</b> de l'enveloppe. Le reste à vivre compte le plus grand des deux : le prévu, ou le dépensé s'il le dépasse.</p>
+  <p>Choisis quelles lignes sont des enveloppes dans les Réglages.</p>`],
+ ["Paiements Apple Pay", `<p>Le raccourci de ton iPhone envoie chaque paiement Apple Pay dans ton dépôt privé. À l'ouverture, l'app les récupère et les met <b>« à classer »</b> (pastille sur l'onglet Mois).</p>
+  <p>Pour chacun, choisis le mois puis : <b>déduire d'une enveloppe</b>, ou <b>créer une nouvelle ligne</b>. L'app retient ton choix pour ce commerçant et te le proposera la fois suivante.</p>`],
+ ["Épargne et projets", `<p>Un virement vers un <b>compte d'épargne</b> (BNC épargne…) compte comme de l'épargne. L'onglet Épargne montre le total par compte.</p>
+  <p>Un <b>projet</b> a un montant et, si tu veux, une date (impôts, meubles…) : l'app calcule combien mettre de côté par mois. Le <b>simulateur</b> marche dans les deux sens : « combien par mois ? » ou « quand j'aurai assez ? ».</p>
+  <p>Une <b>réserve</b> n'a ni objectif ni date (réparations de voiture, aléas) : tu y mets de côté et tu y puises quand il faut.</p>
+  <p>« + Mettre de côté » ajoute un versement (en F ou en €). Touche un versement pour le supprimer.</p>`],
+ ["Synthèse, Année, Indicateurs", `<p><b>Synthèse</b> : le résumé du mois par catégorie. <b>Année</b> : tous les mois côte à côte, comme ton Excel.</p>
+  <p><b>Indicateurs</b> : graphiques interactifs (évolution du reste à vivre, sorties par catégorie, enveloppes, épargne). Touche un point ou une barre pour voir le détail.</p>`],
+ ["Alertes Calendrier", `<p>En bas du mois, « Alertes Calendrier » crée un fichier avec <b>une alerte par jour au maximum</b> : virements et paiements à faire toi-même, gros prélèvements (au-dessus du seuil), jour de paie et échéances des projets.</p>
+  <p>Ouvre le fichier, choisis le calendrier <b>Budget</b>, puis « Tout ajouter ». Refaire l'ajout pour le même mois met à jour les alertes sans les doubler.</p>`],
+ ["Sécurité et sauvegarde", `<p>Tes données sont <b>chiffrées sur l'appareil</b> avec ton mot de passe avant d'être envoyées dans ton dépôt GitHub privé. Personne ne peut les lire sans lui, pas même GitHub.</p>
+  <p>Garde bien ce mot de passe : sans lui, les données ne peuvent pas être récupérées. Une <b>sauvegarde</b> (Réglages) de temps en temps est une bonne précaution.</p>
+  <p>Le point vert en haut indique que tout est synchronisé entre ton iPhone et ton ordinateur.</p>`],
+];
+function openGuide(){
+  modal(`<h2>Mode d'emploi</h2><div class="sub" style="text-transform:none">Comment fonctionne Mon Budget</div>
+    <div class="guide">${GUIDE.map(([t,b],i)=>`<details${i?"":" open"}><summary>${t}</summary><div class="gbody">${b}</div></details>`).join("")}</div>
+    <div class="actions sticky"><span class="spacer"></span><button class="btn" id="gClose">Fermer</button></div>`,
+  (bd, close)=>{ bd.querySelector("#gClose").onclick=close;
+    bd.querySelectorAll(".guide details").forEach(d=>d.addEventListener("toggle", ()=>{ if(d.open) bd.querySelectorAll(".guide details").forEach(x=>{ if(x!==d) x.open=false; }); })); });
+}
+
 /* ---------- Réglages ---------- */
 function renderSettings(){
   $("payIn").value = payday();
@@ -2411,6 +2461,7 @@ $("checkInbox").onclick=()=>{ S.checkInbox=true; sync(); toast("Recherche des no
 $("syncNow").onclick=()=>{ S.checkInbox=true; sync(); };
 $("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.pw); toast("Cet appareil restera connecté"); } else { forgetDevice(); toast("Le mot de passe sera demandé à chaque ouverture"); } };
 $("chgPw").onclick=changePassword;
+$("guideBtn").onclick=openGuide;
 $("exportBtn").onclick=exportData;
 $("importBtn").onclick=()=>$("importFile").click();
 $("importFile").onchange=e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=""; };
