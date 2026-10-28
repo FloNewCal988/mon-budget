@@ -442,6 +442,14 @@ nav.tabs button{position:relative}
 .envc.over .ev{color:var(--neg)}
 .envc .es{font-size:12px;color:var(--muted);margin-bottom:8px}
 .envc .envbar{width:100%;margin-bottom:10px}
+.eah{display:flex;flex-direction:column;font-size:12px;color:var(--muted);margin:-4px 0 10px;line-height:1.3}
+.eah b{color:var(--ink);font-size:13px}
+.rhchips{margin:0 0 10px}
+.rhchips .chip.on{background:var(--accent);color:#fff;box-shadow:none}
+.rhbig{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.rhbig .num{font:800 26px/1.15 var(--display);letter-spacing:-.02em}
+.rhbig small{color:var(--muted);font-size:13px}
+
 .envc .eplus{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#fff;background:var(--cc);border-radius:99px;padding:5px 10px 5px 7px}
 .envc .eplus svg{width:13px;height:13px}
 .envc:active{transform:scale(.98)}
@@ -1299,12 +1307,12 @@ function lineHTML(l){
 function envCardsHTML(m){
   const L = monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l));
   if(!L.length) return anyEnv() ? "" : `<button class="envhint" data-goset="1"><span class="envtag">${ENV_ICON}</span><span><b>Suis tes enveloppes ici</b><br>Choisis Repas midi, Courses, Essence… pour ajouter une dépense en deux touchers.</span></button>`;
-  return `<div class="envsec"><div class="gh" style="cursor:default"><span class="envtag">${ENV_ICON}</span><span class="t">Mes enveloppes</span></div>
+  return `<div class="envsec"><div class="gh" style="cursor:default"><span class="envtag">${ENV_ICON}</span><span class="t">Mes enveloppes</span><button class="linkbtn" data-gorh="1" style="margin-left:auto;padding:4px 6px">Rythme ›</button></div>
     <div class="envgrid">${L.map(l=>{ const g=envGauge(l); return `<button class="envc${g.over?" over":""}" data-qadd="${l.id}" style="--cc:${cc(l.cat)}">
       <span class="en">${esc(l.label)}</span>
       <span class="ev num">${g.over?"−"+fmtF(g.left):fmtF(g.left)}</span>
       <span class="es">${g.over?"de dépassement":"restants sur "+g.plan}</span>
-      ${g.html}
+      ${g.html}${(()=>{ const a=envAhead(l); return a?`<span class="eah"><b>${a.txt}</b><span>${a.sub}</span></span>`:""; })()}
       <span class="eplus" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg> Dépense</span>
     </button>`; }).join("")}</div></div>`;
 }
@@ -1471,7 +1479,9 @@ function openLine(l, catK){
     </section>
     ${isNew||!lineSpends(l.id).length?"":`<section class="sec"><div class="sh">Dépenses déduites</div>${spendsHTML(l).replace("<label>Paiements déduits</label>","")}</section>`}
     <section class="sec"><div class="sh">Suivi</div>
-    ${CAT[l.cat]?.sign<0 || isNew ? `<label class="switch"><span>Enveloppe<br><span class="hint" style="margin:0">dépenses au fil du mois (repas, courses, essence…)</span></span><input type="checkbox" id="fEnv" ${!isNew && isEnv(l)?"checked":""}></label>` : ""}
+    ${CAT[l.cat]?.sign<0 || isNew ? `<label class="switch"><span>Enveloppe<br><span class="hint" style="margin:0">dépenses au fil du mois (repas, courses, essence…)</span></span><input type="checkbox" id="fEnv" ${!isNew && isEnv(l)?"checked":""}></label>
+    <div id="fEnvURow" style="${!isNew && isEnv(l)?"":"display:none"}"><label>Ce qu'il reste, affiché</label><div class="seg" id="fEnvU">${ENV_UNITS.map(([k,n])=>`<button data-v="${k}" class="${envUnit(l.label||"")===k?"on":""}">${n.replace("Par midi travaillé","Par midi")}</button>`).join("")}</div>
+      <div class="hint">« Par midi » compte les jours de travail (sans week-ends ni jours fériés) d'ici la paie.</div></div>` : ""}
     <label class="switch"><span>Déjà passé</span><input type="checkbox" id="fDone" ${l.done?"checked":""}></label>
     </section>
     <div class="actions sticky">${isNew?"":`<button class="linkbtn danger" id="fDel">Supprimer</button>`}<span class="spacer"></span>
@@ -1479,6 +1489,7 @@ function openLine(l, catK){
   (bd, close)=>{
     const q = s=>bd.querySelector(s);
     const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign"), md = segBind(bd,"fMode");
+    if(q("#fEnvU")){ segBind(bd,"fEnvU"); q("#fEnv").addEventListener("change", ()=>{ q("#fEnvURow").style.display=q("#fEnv").checked?"":"none"; }); }
     const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
     const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
     q("#fAmt").oninput=conv; q("#fCur").addEventListener("click", conv); conv();
@@ -1522,6 +1533,7 @@ function openLine(l, catK){
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
+      if(q("#fEnvU") && rec.label && q("#fEnv").checked && q("#fEnvU").dataset.v && q("#fEnvU").dataset.v!==envUnit(rec.label)) setPref("envu:"+norm(rec.label), q("#fEnvU").dataset.v);
       if(isNew){ S.data.lines.push(rec); if(!S.data.months.find(x=>x.id===ui.month)) S.data.months.push({id:ui.month, updatedAt:Date.now()}); }
       touch(); close(); render(); toast(isNew?"Ligne ajoutée":"Ligne enregistrée");
     };
@@ -2103,7 +2115,7 @@ function renderIndic(){
   const allAcc=new Set(); for(const m of ms) for(const a of monthAccounts(m)) allAcc.add(a);
   const A = allAcc.has(ui.accView) ? ui.accView : "";
   const filters = `<div class="indfilters"><div class="seg" id="indN">${[3,6,12].map(n=>`<button data-indn="${n}" class="${(ui.indN||6)===n?"on":""}">${n} mois</button>`).join("")}</div>${indAccSel()}</div>`;
-  if(!ms.length){ body.innerHTML = filters + `<div class="empty">Pas encore de budget sur cette période. Les indicateurs apparaîtront dès qu'un mois aura des lignes.</div>`; return; }
+  if(!ms.length){ body.innerHTML = rhythmPanel() + filters + `<div class="empty">Pas encore de budget sur cette période. Les indicateurs apparaîtront dès qu'un mois aura des lignes.</div>`; return; }
   const D = ms.map(m=>({m, C:calc(m, A||undefined)}));
   const n=D.length, sum=f=>D.reduce((t,d)=>t+f(d),0);
   const inc=sum(d=>d.C.inc), out=-sum(d=>d.C.exp), epa=-sum(d=>d.C.tot.epa), rest=sum(d=>d.C.restant);
@@ -2112,7 +2124,7 @@ function renderIndic(){
   const env={}; for(const {m} of D) for(const l of monthLines(m)) if(l.cat!=="vir" && xpf(l)<0 && isEnv(l) && (!A || l.acc===A)){ const e=env[norm(l.label)] ||= {label:l.label, cat:l.cat, plan:0, spent:0}; e.plan+=-xpf(l); e.spent+=-spentOf(l.id); }
   const E=Object.values(env).sort((a,b)=>b.plan-a.plan), ePlan=E.reduce((t,e)=>t+e.plan,0), eSpent=E.reduce((t,e)=>t+e.spent,0);
   const per = ms.length>1 ? `sur ${n} mois (${esc(mLabel(ms[0]))} → ${esc(mLabel(ms[n-1]))})` : `en ${esc(mLabel(ms[0]))}`;
-  body.innerHTML = filters + `
+  body.innerHTML = rhythmPanel() + filters + `
     <div class="hint" style="margin:8px 2px 12px">${A?`Compte ${esc(A)}, `:""}${per}. Touche un graphique pour voir le détail.</div>
     <div class="kgrid">
       <div class="kt"><div class="kk">Reste à vivre moyen</div><div class="kv num${rest<0?" neg":""}">${fmtF(rest/n)}</div><div class="ks">par mois</div></div>
@@ -2129,7 +2141,7 @@ function renderIndic(){
       <div style="overflow-x:auto;margin-top:10px"><table class="acct itab"><thead><tr><th>Mois</th><th>Rentrées</th><th>Sorties</th><th>Épargne</th><th>Reste</th></tr></thead><tbody>
       ${D.map(d=>`<tr><td style="text-transform:capitalize">${esc(monthName(d.m))}</td><td class="num">${fmtF(d.C.inc)}</td><td class="num">${fmtF(-d.C.exp)}</td><td class="num">${fmtF(-d.C.tot.epa)}</td><td class="num${d.C.restant<0?" neg":""}">${fmtF(d.C.restant)}</td></tr>`).join("")}
       </tbody></table></div></details>`;
-  drawRest(D); drawStack(D); drawShare(D, A); if(E.length) drawEnv(E); drawSav();
+  drawRhythm(); drawRest(D); drawStack(D); drawShare(D, A); if(E.length) drawEnv(E); drawSav();
 }
 const W_ = el => Math.max(280, Math.round(el.clientWidth || 320));
 /* 1. reste à vivre par mois : barres, moyenne en pointillé */
@@ -2294,6 +2306,98 @@ function openAlerts(m){
       a.href=URL.createObjectURL(blob); a.download=`alertes-budget-${m}.ics`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 60000);
       toast("Ouvre le fichier, choisis le calendrier « Budget », puis Ajouter tout"); };
   });
+}
+
+/* ================= RYTHME DES ENVELOPPES ET DÉPENSES DU QUOTIDIEN ================= */
+/* jours fériés de Nouvelle-Calédonie (métropole + 24 septembre) */
+function easter(y){ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1; return new Date(y,mo-1,da); }
+const holidays = (()=>{ const cache={}; return y=>{ if(cache[y]) return cache[y]; const e=easter(y), add=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+  return cache[y]=new Set([new Date(y,0,1),add(e,1),new Date(y,4,1),new Date(y,4,8),add(e,39),add(e,50),new Date(y,6,14),new Date(y,7,15),new Date(y,8,24),new Date(y,10,1),new Date(y,10,11),new Date(y,11,25)].map(isoDate)); }; })();
+const isWorkDay = d => d.getDay()>0 && d.getDay()<6 && !holidays(d.getFullYear()).has(isoDate(d));
+const ENV_UNITS = [["midi","Par midi travaillé"],["semaine","Par semaine"],["jour","Par jour"],["aucun","Aucun"]];
+function envUnit(label){ const p=S.data.prefs.find(x=>x.id==="envu:"+norm(label) && !x.deleted); if(p) return p.value;
+  const n=norm(label); if(/repas|midi|dejeuner|cantine|snack/.test(n)) return "midi"; if(/course|supermarche|alimentation|marche/.test(n)) return "semaine"; return "aucun"; }
+/* ce qu'il reste par midi / semaine / jour jusqu'à la paie (période en cours uniquement) */
+function envAhead(l){
+  if(l.m!==thisMonth()) return null;
+  const u=envUnit(l.label); if(u==="aucun") return null;
+  const left=-xpf(l)+spentOf(l.id); if(left<=0) return null;
+  const t=dayStart(new Date()), en=monthEnd(l.m); if(t>en) return null;
+  const days=Math.round((en-t)/864e5)+1;
+  if(u==="midi"){ let n=0; for(let d=new Date(t); d<=en; d.setDate(d.getDate()+1)) if(isWorkDay(d)) n++;
+    return n ? {per:left/n, txt:`${fmtF(roundUp(left/n,10))} par midi`, sub:`${n} midi${n>1?"s":""} de travail d'ici la paie`} : null; }
+  if(u==="semaine"){ const w=Math.max(1, days/7); return {per:left/w, txt:`${fmtF(roundUp(left/w,100))} par semaine`, sub:`${NF2.format(Math.round(w*10)/10)} semaine${w>=2?"s":""} d'ici la paie`}; }
+  return {per:left/days, txt:`${fmtF(roundUp(left/days,10))} par jour`, sub:`${days} jour${days>1?"s":""} d'ici la paie`};
+}
+
+/* dépenses du quotidien d'une période : paiements et dépenses déduits des lignes, et paiements Apple Pay classés en nouvelle ligne */
+function dailyItems(m, key){
+  const out=[];
+  for(const s of live(S.data.spends)) if(s.m===m){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(!l) continue;
+    if(key && norm(l.label)!==key) continue; out.push({d:new Date(s.at||monthStart(m)), v:-xpf(s), lab:s.merchant||"Dépense", sub:l.label, cat:l.cat}); }
+  if(!key) for(const l of monthLines(m)) if(l.src && l.done && l.cat!=="vir" && xpf(l)<0) out.push({d:lineDate(l)||monthStart(m), v:-xpf(l), lab:l.label, sub:CAT[l.cat].name, cat:l.cat});
+  return out;
+}
+function dailySeries(m, key){
+  const st=monthStart(m), len=Math.round((monthEnd(m)-st)/864e5)+1, per=Array(len).fill(0), byDay=Array.from({length:len},()=>[]);
+  for(const it of dailyItems(m, key)){ let i=Math.floor((dayStart(it.d)-st)/864e5); i=Math.max(0,Math.min(len-1,i)); per[i]+=it.v; byDay[i].push(it); }
+  let t=0; const cum=per.map(v=>t+=v);
+  return {m, st, len, per, cum, byDay, total:t, n:byDay.reduce((a,b)=>a+b.length,0)};
+}
+function rhythmPanel(){
+  const m=thisMonth(); if(!monthExists(m)) return "";
+  const envs=monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l));
+  const key=envs.some(l=>norm(l.label)===ui.rhKey) ? ui.rhKey : "";
+  return `<div class="panel"><h3>Dépenses du quotidien en ${esc(monthName(m))}</h3>
+    <div class="hint" style="margin:0 0 8px">Paiements Apple Pay, raccourci Dépense et dépenses saisies, cumulés jour après jour depuis la paie. Comparés à tes mois précédents au même jour.</div>
+    ${envs.length?`<div class="chips rhchips">${[["","Tout"],...[...new Map(envs.map(l=>[norm(l.label), l.label])).entries()]].map(([k,t])=>`<button class="chip${k===key?" on":""}" data-rhkey="${esc(k)}">${esc(t)}</button>`).join("")}</div>`:""}
+    <div id="rhHead"></div><div class="ich" id="chRh"></div><div id="rhTiles"></div></div>`;
+}
+function drawRhythm(){
+  const el=$("chRh"); if(!el) return;
+  const m=thisMonth(), key=ui.rhKey||"";
+  const cur=dailySeries(m, key), prevs=[mShift(m,-1), mShift(m,-2)].filter(monthExists).map(x=>dailySeries(x, key)).filter(s=>s.n);
+  const t=Math.max(0, Math.min(cur.len-1, Math.floor((dayStart(new Date())-cur.st)/864e5)));
+  const now=cur.cum[t], p1=prevs[0];
+  const at = s => s.cum[Math.min(t, s.len-1)];
+  const envL=key ? monthLines(m).find(l=>norm(l.label)===key && isEnv(l)) : null;
+  const budget = key ? (envL?-xpf(envL):0) : monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l)).reduce((s,l)=>s-xpf(l),0);
+  const dateTxt = fmtD(new Date(cur.st.getFullYear(), cur.st.getMonth(), cur.st.getDate()+t), {day:"numeric", month:"long"});
+  let cmp="";
+  if(p1){ const d=now-at(p1); cmp = Math.abs(d)<500 ? `comme en ${monthName(p1.m)} au même jour` : `<b class="${d>0?"neg":"pos"}">${fmtF(Math.abs(d))} ${d>0?"de plus":"de moins"}</b> qu'en ${monthName(p1.m)} au même jour (${fmtF(at(p1))})`; }
+  $("rhHead").innerHTML = `<div class="rhbig"><span class="num">${fmtF(now)}</span><small>au ${esc(dateTxt)}, ${t+1} jour${t?"s":""} depuis la paie</small></div>
+    <div class="hint" style="margin:2px 0 10px">${cur.n?cmp||"Pas encore de mois précédent à comparer : la comparaison apparaîtra le mois prochain.":"Aucune dépense notée pour l'instant sur cette période."}</div>`;
+  const W=W_(el), H=200, L=36, R=10, T=12, B=24, N=Math.max(cur.len, ...prevs.map(s=>s.len));
+  const max=Math.max(1000, now, ...prevs.map(s=>s.total), budget*0.25);
+  const step = [1000,2000,5000,10000,20000,25000,50000,100000,200000].find(s=>max/s<=4) || 500000, top=Math.ceil(max/step)*step;
+  const x=i=>L+(W-L-R)*i/Math.max(1,N-1), y=v=>T+(H-T-B)*(1-v/top);
+  const line=(cum,n)=>cum.slice(0,n).map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const grid=[]; for(let v=0; v<=top; v+=step) grid.push(`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--rule)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" class="ilab">${esc(kF(v))}</text>`);
+  const ticks=[0, ...[7,14,21,28].filter(i=>i<N-5), N-1].map(i=>{ const d=new Date(cur.st); d.setDate(d.getDate()+i); return `<text x="${x(i)}" y="${H-6}" text-anchor="${i===0?"start":i===N-1?"end":"middle"}" class="ilab">${esc(fmtD(d,{day:"numeric", month:i===0||d.getDate()<8?"short":undefined}).replace(/ $/,""))}</text>`; }).join("");
+  const greys=["var(--muted)","var(--rule)"];
+  el.innerHTML = `<div class="ilegend"><span><i style="background:var(--accent)"></i>${esc(capF(monthName(m)))}</span>${prevs.map((s,i)=>`<span><i style="background:${greys[i]}"></i>${esc(capF(monthName(s.m)))}</span>`).join("")}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Dépenses cumulées jour après jour">
+    ${grid.join("")}${ticks}
+    ${prevs.map((s,i)=>`<path d="${line(s.cum,s.len)}" fill="none" stroke="${greys[i]}" stroke-width="${i?1.5:2}" stroke-linejoin="round"/>`).reverse().join("")}
+    <path d="${line(cur.cum,t+1)}L${x(t).toFixed(1)},${y(0)}L${x(0)},${y(0)}Z" fill="color-mix(in srgb, var(--accent) 16%, transparent)"/>
+    <path d="${line(cur.cum,t+1)}" fill="none" stroke="var(--accent)" stroke-width="2.8" stroke-linejoin="round"/>
+    <circle cx="${x(t)}" cy="${y(now)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    ${Array.from({length:N},(_,i)=>`<g class="ibar" data-i="${i}"><rect x="${x(i)-(W-L-R)/N/2}" y="${T}" width="${(W-L-R)/N}" height="${H-T-B}" fill="transparent"/>
+      <line class="m" x1="${x(i)}" x2="${x(i)}" y1="${T}" y2="${H-B}" stroke="transparent"/></g>`).join("")}
+    </svg>`;
+  bindBars(el, i=>{ const d=new Date(cur.st); d.setDate(d.getDate()+i);
+    const items=i<cur.len?cur.byDay[i]:[], rows=items.slice(0,6).map(it=>[it.lab, fmtF(it.v), cc(it.cat)]);
+    if(items.length>6) rows.push([`et ${items.length-6} autre${items.length>7?"s":""}`, ""]);
+    const out=[["Ce jour-là", fmtF(items.reduce((s,it)=>s+it.v,0)), "var(--accent)", true], ...rows];
+    if(i<=t) out.push([`Cumul ${monthName(m)}`, fmtF(cur.cum[i])]);
+    for(const s of prevs) if(i<s.len) out.push([`Cumul ${monthName(s.m)}`, fmtF(s.cum[i])]);
+    return [capF(fmtD(d,{weekday:"long", day:"numeric", month:"long"})), out]; });
+  const left = key ? budget-now : monthLines(m).filter(l=>l.cat!=="vir" && xpf(l)<0 && isEnv(l)).reduce((s,l)=>s-xpf(l)+spentOf(l.id),0), daysLeft=cur.len-t-1;
+  $("rhTiles").innerHTML = `<div class="stiles" style="margin-top:12px">
+    <div class="stile"><span>Par jour</span><b class="num">${fmtF(now/(t+1))}</b><small>en moyenne depuis la paie</small></div>
+    <div class="stile"><span>${p1?esc(capF(monthName(p1.m))):"Mois précédent"}</span><b class="num">${p1?fmtF(p1.total):"—"}</b><small>${p1?"au total, sur tout le mois":"pas encore de données"}</small></div>
+    <div class="stile"><span>${key?"Reste":"Enveloppes"}</span><b class="num${budget&&left<0?" neg":""}">${budget?fmtF(left):"—"}</b><small>${budget?`restants pour ${daysLeft} jour${daysLeft>1?"s":""}`:"aucune enveloppe"}</small></div></div>
+`;
 }
 
 /* ================= PRÉLÈVEMENTS COCHÉS AUTOMATIQUEMENT ================= */
@@ -2567,6 +2671,8 @@ const GUIDE = [
   <p>Elle liste aussi les lignes dont la date est passée mais <b>pas encore cochées</b> : si elles sont sur ton relevé, coche-les, sinon c'est un oubli à vérifier.</p>`],
  ["Fin du mois", `<p>Au début d'un nouveau mois, l'app te propose de <b>mettre de côté ce qu'il reste</b> du mois précédent : l'argent non dépensé dans tes enveloppes, et/ou le reste à vivre prévu.</p>
   <p>Tu choisis le montant et le projet ou la réserve. Ensuite, fais le virement vers ton compte d'épargne depuis ta banque. Tu peux aussi le faire plus tard depuis « Options du mois » → « Fin du mois ».</p>`],
+ ["Rythme de tes dépenses", `<p>Sur chaque enveloppe du mois en cours, l'app te dit ce que tu peux encore dépenser <b>par midi de travail</b> (sans week-ends ni jours fériés), <b>par semaine</b> ou <b>par jour</b> jusqu'à la paie. Le choix se fait dans la ligne de l'enveloppe ; « Aucun » n'affiche que le reste.</p>
+  <p>Dans Indicateurs, « Dépenses du quotidien » cumule jour après jour tes paiements Apple Pay, le raccourci Dépense et tes saisies depuis la paie, et les compare aux mois précédents au même jour. Touche un jour pour voir ses dépenses, ou une enveloppe pour la regarder seule.</p>`],
  ["Mouvements et recherche", `<p><b>Derniers mouvements</b> (onglet Synthèse sur iPhone, à droite sur ordinateur) : tes paiements Apple Pay, tes dépenses saisies et les lignes cochées, du plus récent au plus ancien.</p>
   <p>La <b>loupe</b> en haut cherche dans tous les mois : « essence » te donne tout ce que tu y as mis depuis le début, mois par mois, avec le total. Touche un résultat pour l'ouvrir.</p>`],
  ["Synthèse, Année, Indicateurs", `<p><b>Synthèse</b> : le résumé du mois par catégorie. <b>Année</b> : tous les mois côte à côte, comme ton Excel.</p>
@@ -2874,6 +2980,8 @@ document.addEventListener("click", e=>{
   if(!S.data) return;
   if(el=t.closest("[data-indn]")){ ui.indN=Number(el.dataset.indn); saveUI(); render(); return; }
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
+  if(el=t.closest("[data-rhkey]")){ ui.rhKey=el.dataset.rhkey; render(); return; }
+  if(t.closest("[data-gorh]")){ setTab("indic"); return; }
   if(el=t.closest("[data-sharecat]")){ ui.indCat = ui.indCat===el.dataset.sharecat ? "" : el.dataset.sharecat; render(); return; }
   if(!t.closest(".ich")) { if(typeof hideTip==="function") hideTip(); }
   if(el=t.closest("[data-accview]")){ ui.accView=el.dataset.accview; saveUI(); lastAnim=null; render(); return; }
