@@ -1825,14 +1825,14 @@ function projectsHTML(){
   const card = p => { const st=projStatus(p);
     if(isRes(p)){ const mth=projPlanned(p);
       return `<div class="proj res" data-proj="${p.id}">
-        <div class="ph"><span class="pn">${esc(p.name)}</span><span class="ptag">réserve</span></div>
+        <div class="ph"><span class="pn">${esc(p.name)}</span><span class="ptag">réserve</span>${themeTag(themeById(p.theme))}</div>
         <div class="pv num${st.saved<0?" neg":""}">${fmtF(st.saved)}<small> disponibles</small></div>
         <div class="pa">${(()=>{ const L=monthLines(budgetMonth()).filter(l=>l.proj===p.id), dn=L.filter(l=>l.done).reduce((t,l)=>t+Math.abs(xpf(l)),0), pv=L.filter(l=>!l.done).reduce((t,l)=>t+Math.abs(xpf(l)),0), mn=esc(monthName(budgetMonth()));
           return dn||pv ? [dn?`${fmtF(dn)} mis de côté en ${mn}`:"", pv?`${fmtF(pv)} prévus en ${mn}`:""].filter(Boolean).join(", ")+"." : "Mets de côté quand tu peux, utilise-la pour les imprévus."; })()}</div>
         <div class="pbtns"><button class="btn small" data-contrib="${p.id}">+ Mettre de côté</button><button class="btn ghost small" data-use="${p.id}">Utiliser</button></div>
       </div>`; }
     return `<div class="proj${p.paid?" paid":""}" data-proj="${p.id}">
-      <div class="ph"><span class="pn">${esc(p.name)}</span>${p.due&&!p.paid?`<span class="pdue">avant le ${esc(fmtDY(new Date(p.due+"T12:00")))}</span>`:""}</div>
+      <div class="ph"><span class="pn">${esc(p.name)}</span>${p.due&&!p.paid?`<span class="pdue">avant le ${esc(fmtDY(new Date(p.due+"T12:00")))}</span>`:""}${themeTag(themeById(p.theme))}</div>
       <div class="pv num">${p.paid?fmtF(p.target):st.left>0?fmtF(st.left):"Prêt"}<small>${p.paid?"payés":st.left>0?" à mettre de côté":""}</small></div>
       <div class="envbar"><div style="width:${st.pct.toFixed(1)}%;background:${p.paid?"var(--muted)":"var(--c-epa)"}"></div></div>
       <div class="ps">${fmtF(st.saved)} de côté sur ${fmtF(p.target)}</div>
@@ -1856,6 +1856,7 @@ function openProject(p, simFocus){
       <div class="seg" id="pKind"><button data-v="goal" class="${isRes(p)?"":"on"}">Objectif à atteindre</button><button data-v="reserve" class="${isRes(p)?"on":""}">Réserve libre</button></div>
       <div class="hint" id="pKindHint"></div>
       <label for="pName">Nom</label><input class="field" id="pName" value="${esc(p.name)}" placeholder="Par exemple : Impôts 2026" autocomplete="off">
+      ${themes().length?`<label for="pTheme">Thème</label><select class="field" id="pTheme"><option value="">— Aucun —</option>${themes().map(t=>`<option value="${t.id}"${p.theme===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select><div class="hint">Affiché avec le thème, sans compter dans son coût.</div>`:""}
       <div id="goalFields">
       <label for="pTarget">Montant total</label>
       <div class="amtbox" style="margin-top:0"><input id="pTarget" inputmode="decimal" value="${esc(fmtInput(p.target))}" placeholder="0" autocomplete="off"><span class="unit">F</span></div>
@@ -1919,7 +1920,7 @@ function openProject(p, simFocus){
       if(!name){ q("#pName").focus(); toast("Donne un nom au projet"); return null; }
       if(!res && !(target>0)){ q("#pTarget").focus(); toast("Indique le montant total"); return null; }
       const now=Date.now(); if(isNew){ p={id:uid(), ord:now}; S.data.projects.push(p); }
-      Object.assign(p,{name, target, kind:res?"reserve":"goal", due:res?"":(q("#pDue").value||""), updatedAt:now}); return p; };
+      Object.assign(p,{name, target, kind:res?"reserve":"goal", due:res?"":(q("#pDue").value||""), updatedAt:now}); if(q("#pTheme")) p.theme=q("#pTheme").value; return p; };
     q("#rPlan").onclick=()=>{ const n=parseNum(q("#rAmt").value); if(!(n>0)){ q("#rAmt").focus(); return toast("Indique le montant mensuel"); } planAmt=n; q("#simPlan").onclick(); };
     if(q("#pUse")) q("#pUse").onclick=()=>{ close(); setTimeout(()=>openUse(p), 60); };
     q("#pCancel").onclick=close;
@@ -2031,14 +2032,14 @@ function renderSavings(){
     return `<div class="sacc"><div class="srow"><span class="k">${n==="—"?"Compte non précisé":accPill(n)}</span><span class="v num${v<0?" neg":""}">${fmtF(v)}</span></div>${bar}${sub}</div>`; }).join("");
   const row = h => h.s
     ? `<div class="sv" data-sav="${h.s.id}"><div class="main"><div class="lab">${esc(h.s.label||"Sans motif")}</div>
-        <div class="meta">${h.d?`<span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>`:h.s.date?`<span>${esc(h.s.date)}</span>`:""}${accPill(h.s.acc)}<span>saisi</span></div></div>
+        <div class="meta">${h.d?`<span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>`:h.s.date?`<span>${esc(h.s.date)}</span>`:""}${accPill(h.s.acc)}<span>saisi</span>${themeTag(themeById((projById(h.s.proj)||{}).theme))}</div></div>
         <div class="r"><div class="num${h.v>0?" pos":h.v<0?" neg":""}" style="font-weight:600">${fmtF(h.v,true)}</div>${h.s.cur==="EUR"?`<div class="bal num">${fmtE(h.s.amt)}</div>`:""}<div class="bal num">solde ${fmtF(h.bal)}</div></div></div>`
     : `<div class="sv" data-gomonth="${h.x.l.m}" data-line="${h.x.l.id}"><div class="main"><div class="lab">${esc(h.x.l.label||"Épargne")}</div>
-        <div class="meta"><span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>${h.x.l.acc?`<span class="vir">${accPill(h.x.l.acc)}<span class="arrow">→</span>${accPill(h.x.l.to)}</span>`:accPill(h.x.acc)}</div></div>
+        <div class="meta"><span>${esc(fmtD(h.d,{day:"numeric",month:"short",year:"numeric"}))}</span>${h.x.l.acc?`<span class="vir">${accPill(h.x.l.acc)}<span class="arrow">→</span>${accPill(h.x.l.to)}</span>`:accPill(h.x.acc)}${themeTag(themeOf(h.x.l)||themeById((projById(h.x.l.proj)||{}).theme))}</div></div>
         <div class="r"><div class="num${h.v>0?" pos":h.v<0?" neg":""}" style="font-weight:600">${fmtF(h.v,true)}</div><div class="bal num">solde ${fmtF(h.bal)}</div></div></div>`;
   const hist=[...H].reverse(), N=ui.savAll?hist.length:8;
   const todoRow = x => `<div class="sv" data-gomonth="${x.l.m}" data-line="${x.l.id}"><div class="main"><div class="lab">${esc(x.l.label||"Épargne")}</div>
-      <div class="meta"><span>${esc(fmtD(x.d))}</span>${x.l.acc?`<span class="vir">${accPill(x.l.acc)}<span class="arrow">→</span>${accPill(x.l.to)}</span>`:accPill(x.acc)}</div></div>
+      <div class="meta"><span>${esc(fmtD(x.d))}</span>${x.l.acc?`<span class="vir">${accPill(x.l.acc)}<span class="arrow">→</span>${accPill(x.l.to)}</span>`:accPill(x.acc)}${themeTag(themeOf(x.l)||themeById((projById(x.l.proj)||{}).theme))}</div></div>
       <div class="r"><div class="num" style="font-weight:600;opacity:.7">${fmtF(x.v,true)}</div><div class="bal">à cocher une fois fait</div></div></div>`;
   const tile=(k,v,sub,cls="")=>`<div class="stile"><span>${k}</span><b class="num${cls}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`;
   $("savingsBody").innerHTML = `<div class="savgrid"><div class="scol">
