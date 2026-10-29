@@ -604,6 +604,19 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 .hrow2 .hv-s{color:var(--ink)!important}
 .hv-cur{font-size:12.5px;font-weight:700;color:var(--pos)}
 .vinfo{color:var(--muted)} .vinfo b{font-weight:600}
+.bk-two{display:flex;gap:18px}
+.bk-two > span{display:flex;flex-direction:column}
+.bk-two small{font-size:12px;color:var(--muted)}
+.bk-two b{font-size:17px}
+.bkcmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.bkcmp > div{background:var(--paper);border-radius:12px;padding:9px 10px;display:flex;flex-direction:column}
+.bkcmp small{font-size:12px;color:var(--muted)} .bkcmp b{font-size:16px}
+.bkcmp b.pos{color:var(--pos)} .bkcmp b.neg{color:var(--neg)} .bkcmp b.warn{color:var(--warn)}
+#bkLogBox summary{list-style:none;cursor:pointer} #bkLogBox summary::-webkit-details-marker{display:none}
+.bklog{margin-top:8px}
+.bkl{display:grid;grid-template-columns:1fr 1.2fr 1.2fr 1fr;gap:6px;padding:6px 0;border-top:1px solid var(--rule);font-size:13.5px}
+.bkl.h{border-top:0;color:var(--muted);font-size:12px} .bkl span:not(:first-child){text-align:right}
+.bkl .pos{color:var(--pos)} .bkl .neg{color:var(--neg)}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -3174,7 +3187,7 @@ function bankCardHTML(m){
   if(N){ const b=N.b, end=bankEnd(A, m, N.now);
     const old = (Date.now()-new Date(b.at))/86400000 > 4;
     return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
-      <span class="bk-t"><b>${esc(A)} : <span class="${end<0?"neg":""}">${fmtF(end)}</span> le ${esc(fmtD(en))}</b><span>${Math.round(N.moved)?`Solde estimé aujourd'hui ${fmtF(N.now)}, d'après ton solde du ${esc(fmtD(new Date(b.at)))}`:`Calculé avec ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}`}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
+      <span class="bk-t"><span class="bk-two"><span><small>${esc(A)} aujourd'hui</small><b class="num${N.now<0?" neg":""}">≈ ${fmtF(N.now)}</b></span><span><small>le ${esc(fmtD(en))}</small><b class="num${end<0?" neg":""}">${fmtF(end)}</b></span></span><span>D'après ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}${Math.round(N.moved)?` et ${fmtF(N.moved,true)} passés depuis`:""}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
   }
   return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
     <span class="bk-t"><b>Comparer avec ma banque</b><span>Tape ton solde ${esc(A)} : l'app te dit ce qu'il restera le ${esc(fmtD(en))} et ce qui n'est pas encore coché.</span></span><span class="bk-go">Vérifier</span></button>`;
@@ -3194,12 +3207,19 @@ function openBank(A0){
       <div class="seg" id="bkSign" style="margin-top:8px"><button data-v="1" class="on">Positif</button><button data-v="-1">À découvert</button></div>
       <div class="hint" id="bkEst"></div>
     </section>
+    <div id="bkCmp"></div>
     <div id="bkOut"></div>
+    <details class="sec" id="bkLogBox"><summary><span class="sh" style="margin:0">Suivi de mes comparaisons</span></summary><div id="bkLog"></div></details>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="bkCancel">Fermer</button><button class="btn" id="bkOk">Enregistrer</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x), sign=segBind(bd,"bkSign");
-    const fill=()=>{ const N=bankNow(A, m), v=N?Math.round(N.now):null; q("#bkAmt").value = v!=null ? fmtInput(v) : ""; const s=v!=null&&v<0?"-1":"1";
-      q("#bkEst").innerHTML = N && Math.round(N.moved) ? `Estimé d'après ton solde du ${esc(fmtD(new Date(N.b.at)))} (${fmtF(N.b.v)}) et ce qui est passé depuis (${fmtF(N.moved,true)}). Remplace-le par ton vrai solde si tu l'as sous les yeux.` : N ? `Ton dernier solde, tapé le ${esc(fmtD(new Date(N.b.at)))}.` : "";
+    let EST=null;
+    const cmpDraw=()=>{ const n=val(); if(EST==null){ q("#bkCmp").innerHTML=""; return; }
+      const d=isNaN(n)?null:n-EST;
+      q("#bkCmp").innerHTML = `<div class="bkcmp"><div><small>L'app estime</small><b class="num">${fmtF(EST)}</b></div><div><small>Ta banque</small><b class="num">${isNaN(n)?"—":fmtF(n)}</b></div><div><small>Écart</small><b class="num ${d==null?"":Math.abs(d)<100?"pos":d<0?"neg":"warn"}">${d==null?"—":Math.abs(d)<100?"✓ OK":fmtF(d,true)}</b></div></div>
+        ${d!=null && Math.abs(d)>=100 ? `<div class="hint">${d<0?`Ta banque a ${fmtF(-d)} de moins que prévu : une dépense pas notée dans l'app (carte sans Apple Pay, retrait…) ou un prélèvement passé plus tôt.`:`Ta banque a ${fmtF(d)} de plus que prévu : une ligne cochée qui n'est pas encore passée, ou une rentrée non notée.`}</div>` : ""}`; };
+    const fill=()=>{ const N=bankNow(A, m); EST=N?Math.round(N.now):null; q("#bkAmt").value=""; const s="1";
+      q("#bkEst").innerHTML = N ? `Estimation de l'app : ton solde du ${esc(fmtD(new Date(N.b.at)))} (${fmtF(N.b.v)})${Math.round(N.moved)?` et ce qui est passé depuis (${fmtF(N.moved,true)})`:""}. Tape le solde affiché par ta banque pour comparer.` : "";
       q("#bkSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===s)); q("#bkSign").dataset.v=s; };
     const val=()=>{ const n=parseNum(q("#bkAmt").value); return isNaN(n) ? NaN : Math.abs(n)*Number(sign()||1); };
     const openK=new Set();
@@ -3228,14 +3248,19 @@ function openBank(A0){
         </section>`;
       return end;
     }
-    q("#bkAcc").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; A=b.dataset.v; q("#bkAcc").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); fill(); draw(); });
+    q("#bkAcc").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; A=b.dataset.v; q("#bkAcc").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); fill(); draw(); cmpDraw(); logDraw(); });
     q("#bkOut").addEventListener("click", e=>{ const b=e.target.closest("[data-bkdone]"); if(!b) return; const l=S.data.lines.find(x=>x.id===b.dataset.bkdone); if(!l) return;
       if(isVar(l)) return askReal(l, ()=>{ draw(); }); l.done=true; l.updatedAt=Date.now(); touch(); render(); draw(); });
-    q("#bkAmt").oninput=()=>{ q("#bkEst").textContent=""; draw(); }; q("#bkSign").addEventListener("click", ()=>setTimeout(draw));
+    const logDraw=()=>{ const L=(prefVal("ballog:"+A, null)||[]).slice().reverse();
+      q("#bkLog").innerHTML = L.length ? `<div class="bklog"><div class="bkl h"><span>Date</span><span>Banque</span><span>App</span><span>Écart</span></div>${L.map(x=>{ const d=x.app==null?null:x.bank-x.app;
+        return `<div class="bkl"><span>${esc(fmtD(new Date(x.at),{day:"numeric", month:"short"}))}</span><span class="num">${fmtF(x.bank)}</span><span class="num">${x.app==null?"—":fmtF(x.app)}</span><span class="num ${d==null?"":Math.abs(d)<100?"pos":"neg"}">${d==null?"—":Math.abs(d)<100?"✓":fmtF(d,true)}</span></div>`; }).join("")}</div>`
+        : `<div class="hint">Chaque solde que tu enregistres est gardé ici avec l'estimation de l'app à ce moment-là, pour suivre les écarts dans le temps.</div>`; };
+    q("#bkAmt").oninput=()=>{ draw(); cmpDraw(); }; q("#bkSign").addEventListener("click", ()=>setTimeout(()=>{ draw(); cmpDraw(); }));
     q("#bkCancel").onclick=close;
     q("#bkOk").onclick=()=>{ const n=val(); if(isNaN(n)){ q("#bkAmt").focus(); return toast("Tape le solde de ta banque"); }
+      const log=(prefVal("ballog:"+A, null)||[]).concat([{at:new Date().toISOString(), bank:n, app:EST}]).slice(-30); setPref("ballog:"+A, log);
       const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end, snap:Object.fromEntries(bankItems(A,m).map(x=>[x.l.id, x.v]))}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
-    fill(); draw(); setTimeout(()=>q("#bkAmt").focus(), 80);
+    fill(); draw(); cmpDraw(); logDraw(); setTimeout(()=>q("#bkAmt").focus(), 80);
   });
 }
 
