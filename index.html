@@ -603,6 +603,7 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 .hrow2 .hv-t span{font-size:12.5px;color:var(--muted)}
 .hrow2 .hv-s{color:var(--ink)!important}
 .hv-cur{font-size:12.5px;font-weight:700;color:var(--pos)}
+.vinfo{color:var(--muted)} .vinfo b{font-weight:600}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -1028,6 +1029,9 @@ function seedDefaults(){
       const parts=norm(l.label).split(/\bvers\b/); const to = l.acc || (parts[1] && find(parts[1])) || ""; let from = parts[0] && find(parts[0].replace(/^vir(ement)?/,""));
       if(!from || from===to) from = names.find(nm=>nm==="BNC" && nm!==to) || "";
       Object.assign(l, {cat:"vir", acc:from, to, amt:-Math.abs(Number(l.amt)), updatedAt:now}); } }
+  if(!d.prefs.find(p=>p.id==="mig:var") && d.lines.some(l=>!l.deleted)){ d.prefs.push({id:"mig:var", value:1, updatedAt:7}); n++; const now=Date.now();
+    const labs=new Set(d.lines.filter(l=>!l.deleted && /^(electricite|eau)$/.test(norm(l.label))).map(l=>norm(l.label)));
+    for(const k of labs){ const e=d.prefs.find(p=>p.id==="env:"+k); if(e){ e.value=false; e.updatedAt=now; } const v=d.prefs.find(p=>p.id==="var:"+k); if(v){ v.value=true; v.deleted=false; v.updatedAt=now; } else d.prefs.push({id:"var:"+k, value:true, updatedAt:now}); } }
   if(!d.prefs.find(p=>p.id==="mig:sav")){ d.prefs.push({id:"mig:sav", value:1, updatedAt:5}); n++;
     for(const a of live(d.accounts)) if(/epargne|livret/.test(norm(a.name)) && !a.savings){ a.savings=true; a.updatedAt=Date.now(); } }
   if(!d.prefs.find(p=>p.id==="payday")){ d.prefs.push({id:"payday", value:27, updatedAt:2}); n++;
@@ -1500,7 +1504,7 @@ function lineHTML(l){
   else if(sp.length && v<0){ const t=spentOf(l.id), pct=Math.min(100, t/v*100), over=t<v;
     const ab = n => fmtF(Math.abs(n));
     env=`<div class="env"><div class="envbar"><div style="width:${pct.toFixed(1)}%;${over?"background:var(--neg)":`background:${cc(l.cat)}`}"></div></div>${ab(t)} dépensés sur ${ab(v)}, ${over?`<b class="neg">dépassé de ${ab(v-t)}</b>`:`<b>reste ${ab(t-v)}</b>`}</div>`; }
-  const meta = [dayInfo(l), accPill(l.acc), themeTag(themeOf(l)), l.mode?modeIcon(l.mode):"", sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
+  const meta = [dayInfo(l), accPill(l.acc), themeTag(themeOf(l)), l.mode?modeIcon(l.mode):"", varInfo(l), sp.length?`<span>${sp.length} paiement${sp.length>1?"s":""}</span>`:""].filter(Boolean).join("");
   return `<div class="ln${l.done?" done":""}${envL?" isenv":""}">
     ${envL ? `<button class="qadd" style="--cc:${cc(l.cat)}" data-qadd="${l.id}" aria-label="Ajouter une dépense sur ${esc(l.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></button>`
       : `<button class="chk${l.done?" on":""}" style="--cc:${cc(l.cat)}" data-done="${l.id}" aria-pressed="${l.done}" aria-label="${esc(l.label||"Ligne")} : ${l.done?"passé":"à passer"}">${CHECK}</button>`}
@@ -1604,7 +1608,7 @@ function renderMonth(){
   const m=ui.month;
   if(!monthExists(m) || (!monthLines(m).length && prevExisting(m) && !(live(S.data.months).find(x=>x.id===m)||{}).blank)){ $("monthBody").innerHTML = pendingBanner() + createMonthHTML(m); return; }
   const C = calc(m);
-  $("monthBody").innerHTML = (()=>{ const L=[tokenWarnHTML(), pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
+  $("monthBody").innerHTML = (()=>{ const L=[tokenWarnHTML(), varPendingHTML(), pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
     <div class="topgrid">
       <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}${movesPanel(m)}</div>
@@ -1664,7 +1668,9 @@ function createMonth(m, src){
   const cats = new Set([...document.querySelectorAll("[data-copycat].on")].map(x=>x.dataset.copycat));
   const ex = S.data.months.find(x=>x.id===m);
   if(ex){ ex.deleted=false; ex.blank=!src; ex.updatedAt=now; } else S.data.months.push({id:m, blank:!src, updatedAt:now});
-  if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>S.data.lines.push({...l, id:uid(), m, done:false, ord:i, updatedAt:now}));
+  if(src) monthLines(src).filter(l=>cats.has(l.cat)).forEach((l,i)=>{ const x={...l, id:uid(), m, done:false, ord:i, updatedAt:now}; delete x.noAuto; delete x.autoDone;
+    if(isVar(l)){ delete x.est; const a=varAvg(l.label, m); if(a){ x.amt=-a; x.cur="XPF"; } else if(l.est!=null) x.amt=l.est; }
+    S.data.lines.push(x); });
   const ns=document.getElementById("newStart"); if(ns && /^\d{4}-\d{2}-\d{2}$/.test(ns.value)) setMonthStart(m, ns.value);
   touch(); render(); toast("Budget de "+monthName(m)+" créé");
 }
@@ -1724,6 +1730,7 @@ function openLine(l, catK){
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     ${themes().length?`<div id="fThemeRow"><label for="fTheme">Thème</label><select class="field" id="fTheme"><option value="">— Aucun —</option>${themes().map(t=>`<option value="${t.id}"${(themeOf(l)||{}).id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></div>`:""}
     ${CAT[l.cat]?.sign<0 || isNew ? `<label class="switch"><span>Enveloppe<br><span class="hint" style="margin:0">dépenses au fil du mois (repas, courses, essence…)</span></span><input type="checkbox" id="fEnv" ${!isNew && isEnv(l)?"checked":""}></label>
+    <label class="switch"><span>Montant variable<br><span class="hint" style="margin:0">facture qui change chaque mois (électricité, eau…) : montant estimé, puis réel quand elle passe</span></span><input type="checkbox" id="fVar" ${!isNew && isVar(l)?"checked":""}></label>
     <div id="fEnvURow" style="${!isNew && isEnv(l)?"":"display:none"}"><label>Ce qu'il reste, affiché</label><div class="seg" id="fEnvU">${ENV_UNITS.map(([k,n])=>`<button data-v="${k}" class="${envUnit(l.label||"")===k?"on":""}">${n.replace("Par midi travaillé","Par midi")}</button>`).join("")}</div>
       <div class="hint">« Par midi » compte les jours de travail (sans week-ends ni jours fériés) d'ici la paie.</div></div>` : ""}
     </details>
@@ -1764,6 +1771,7 @@ function openLine(l, catK){
     <div class="seg" id="fMode"><button data-v="" class="${!l.mode?"on":""}">Aucun</button>${MODES.map(([k,n])=>`<button data-v="${k}" class="${l.mode===k?"on":""}">${n}</button>`).join("")}</div>
     ${themes().length?`<div id="fThemeRow"><label for="fTheme">Thème</label><select class="field" id="fTheme"><option value="">— Aucun —</option>${themes().map(t=>`<option value="${t.id}"${(themeOf(l)||{}).id===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></div>`:""}
     ${CAT[l.cat]?.sign<0 || isNew ? `<label class="switch"><span>Enveloppe<br><span class="hint" style="margin:0">dépenses au fil du mois (repas, courses, essence…)</span></span><input type="checkbox" id="fEnv" ${!isNew && isEnv(l)?"checked":""}></label>
+    <label class="switch"><span>Montant variable<br><span class="hint" style="margin:0">facture qui change chaque mois (électricité, eau…) : montant estimé, puis réel quand elle passe</span></span><input type="checkbox" id="fVar" ${!isNew && isVar(l)?"checked":""}></label>
     <div id="fEnvURow" style="${!isNew && isEnv(l)?"":"display:none"}"><label>Ce qu'il reste, affiché</label><div class="seg" id="fEnvU">${ENV_UNITS.map(([k,n])=>`<button data-v="${k}" class="${envUnit(l.label||"")===k?"on":""}">${n.replace("Par midi travaillé","Par midi")}</button>`).join("")}</div>
       <div class="hint">« Par midi » compte les jours de travail (sans week-ends ni jours fériés) d'ici la paie.</div></div>` : ""}
     </details>
@@ -1779,6 +1787,8 @@ ${isNew ? secNew() : secEdit()}
     const q = s=>bd.querySelector(s);
     const cur = segBind(bd,"fCur"), sg = segBind(bd,"fSign"), md = segBind(bd,"fMode");
     const sWhenF = q("#sWhen") ? whenBind(bd,"sWhen") : null;
+    if(q("#fVar") && q("#fEnv")){ q("#fVar").addEventListener("change", ()=>{ if(q("#fVar").checked && q("#fEnv").checked){ q("#fEnv").checked=false; q("#fEnv").dispatchEvent(new Event("change")); } });
+      q("#fEnv").addEventListener("change", ()=>{ if(q("#fEnv").checked) q("#fVar").checked=false; }); }
     if(q("#fEnvU")){ segBind(bd,"fEnvU"); q("#fEnv").addEventListener("change", ()=>{ q("#fEnvURow").style.display=q("#fEnv").checked?"":"none"; }); }
     const setSign = s=>{ q("#fSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", Number(b.dataset.v)===s)); q("#fSign").dataset.v=String(s); };
     const conv = ()=>{ const n=parseNum(q("#fAmt").value); q("#fConv").textContent = cur()==="EUR" && !isNaN(n) ? "soit "+fmtF(n*rate())+" au taux de "+NF2.format(rate())+" F" : ""; };
@@ -1828,6 +1838,7 @@ ${isNew ? secNew() : secEdit()}
       rec.proj = cat==="epa" ? (q("#fProj").value || undefined) : undefined;
       Object.assign(rec, {cat, label:q("#fLab").value.trim(), amt:cat==="vir" ? -Math.abs(n) : Math.abs(n)*Number(sg()), cur:cur(),
         day:(day>=1&&day<=31)?day:null, acc, mode:md()||"", done:q("#fDone").checked, updatedAt:Date.now()});
+      if(q("#fVar") && rec.label && q("#fVar").checked!==isVar(rec)){ setVar(rec.label, q("#fVar").checked); if(q("#fVar").checked && q("#fEnv")) q("#fEnv").checked=false; }
       if(q("#fEnv") && rec.label && q("#fEnv").checked!==isEnv(rec)) setEnv(rec.label, q("#fEnv").checked);
       if(q("#fTheme") && rec.label && rec.cat!=="vir"){ const v=q("#fTheme").value, cur=themeOf(rec); if((cur?cur.id:"")!==v) setTheme(rec.label, v); }
       if(q("#fEnvU") && rec.label && q("#fEnv").checked && q("#fEnvU").dataset.v && q("#fEnvU").dataset.v!==envUnit(rec.label)) setPref("envu:"+norm(rec.label), q("#fEnvU").dataset.v);
@@ -1903,6 +1914,38 @@ const cardAcc = card => { const p=S.data.prefs.find(x=>x.id==="card:"+norm(card)
 const envKey = label => "env:"+norm(label);
 const isEnv = l => { const p=S.data.prefs.find(x=>x.id===envKey(l.label) && !x.deleted); return !!(p && p.value); };
 const setEnv = (label, on) => setPref(envKey(label), !!on);
+/* factures à montant variable (électricité, eau…) : montant estimé, puis montant réel quand la facture passe */
+const isVar = l => { const p=S.data.prefs.find(x=>x.id==="var:"+norm(l.label) && !x.deleted); return !!(p && p.value); };
+const setVar = (label, on) => setPref("var:"+norm(label), !!on);
+/* moyenne des montants réels des 3 derniers mois pour ce motif */
+function varAvg(label, beforeM){ const L=live(S.data.lines).filter(x=>norm(x.label)===norm(label) && x.m<beforeM && x.done).sort((a,b)=>b.m.localeCompare(a.m)).slice(0,3);
+  return L.length ? Math.round(L.reduce((t,x)=>t+Math.abs(xpf(x)),0)/L.length/10)*10 : null; }
+function varInfo(l){ if(!isVar(l)) return ""; if(l.done && l.est!=null){ const d=Math.abs(xpf(l))-Math.abs(l.est); return `<span class="vinfo">estimé ${fmtF(Math.abs(l.est))}${Math.round(d)?` · <b class="${d>0?"neg":"pos"}">${fmtF(d,true)}</b>`:""}</span>`; }
+  return l.done ? "" : `<span class="vinfo">montant estimé</span>`; }
+/* cocher une facture variable : demander le montant réel */
+function askReal(l, after){
+  const est = l.est!=null ? Math.abs(l.est) : Math.abs(xpf(l));
+  modal(`<h2>${esc(l.label)}</h2><div class="sub" style="text-transform:none">Montant réel de la facture</div>
+    <section class="sec"><div class="sh">Montant prélevé</div>
+      <div class="amtbox" style="margin-top:0"><input id="rAmtV" inputmode="decimal" value="${esc(fmtInput(est))}" autocomplete="off" aria-label="Montant réel"><span class="unit">F</span></div>
+      <div class="conv" id="rDiff"></div>
+      <div class="hint">Estimé : ${fmtF(est)}. Regarde ton relevé ou la facture ; c'est ce montant qui compte dans ton reste à vivre.</div></section>
+    <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="rCancel">Annuler</button><button class="btn" id="rOk">Valider</button></div>`,
+  (bd, close)=>{ const q=x=>bd.querySelector(x);
+    const diff=()=>{ const n=parseNum(q("#rAmtV").value); if(!(n>=0)){ q("#rDiff").textContent=""; return; } const d=n-est; q("#rDiff").innerHTML = Math.round(d) ? `<span class="${d>0?"neg":"pos"}">${fmtF(d,true)} par rapport à l'estimation</span>` : "Pile l'estimation"; };
+    q("#rAmtV").oninput=diff; diff(); q("#rCancel").onclick=close;
+    const ok=()=>{ const n=parseNum(q("#rAmtV").value); if(!(n>=0)){ q("#rAmtV").focus(); return toast("Indique le montant"); }
+      if(l.est==null) l.est=xpf(l); l.amt=-Math.abs(n); l.cur="XPF"; l.done=true; l.updatedAt=Date.now(); touch(); close(); render(); if(after) after();
+      toast(`${l.label} : ${fmtF(n)}${Math.round(n-est)?` (${fmtF(n-est,true)})`:""}`); };
+    q("#rOk").onclick=ok; q("#rAmtV").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); ok(); } });
+    setTimeout(()=>{ q("#rAmtV").focus(); q("#rAmtV").select(); }, 80); });
+}
+/* décocher une facture variable : revenir au montant estimé */
+function unsetReal(l){ if(l.est!=null){ l.amt=l.est; l.cur="XPF"; delete l.est; } l.done=false; l.noAuto=true; l.updatedAt=Date.now(); }
+/* factures passées non confirmées (pour la carte « À faire ») */
+function varPendingHTML(){ const cur=thisMonth(), t=dayStart(new Date());
+  const L=[mShift(cur,-1),cur].filter(monthExists).flatMap(monthLines).filter(l=>isVar(l) && !l.done && (()=>{ const d=lineDate(l); return d && d<t; })());
+  return L.map(l=>`<button class="tokwarn" data-askreal="${l.id}" style="box-shadow:inset 0 0 0 1.5px var(--accent)"><span class="tw-ic" style="background:var(--accent);color:#fff">F</span><span class="tw-t"><b>Facture à confirmer : ${esc(l.label)}</b><span>Prélevée vers le ${esc(fmtD(lineDate(l)))} · estimée ${fmtF(Math.abs(xpf(l)))}. Touche pour saisir le montant réel.</span></span></button>`).join(""); }
 const anyEnv = () => S.data.prefs.some(x=>x.id.startsWith("env:") && !x.deleted && x.value);
 function setPref(id, value){ const now=Date.now(); const p=S.data.prefs.find(x=>x.id===id); if(p){ p.value=value; p.deleted=false; p.updatedAt=now; } else S.data.prefs.push({id, value, updatedAt:now}); }
 
@@ -2456,6 +2499,9 @@ function renderIndic(){
     <div class="panel"><h3>Reste à vivre par mois</h3>${n>1?`<div class="ilegend"><span><i style="background:var(--accent)"></i>Reste à vivre</span><span><i class="dash"></i>Moyenne : ${esc(fmtF(rest/n))}</span></div>`:""}<div class="ich" id="chRest"></div></div>
     <div class="panel"><h3>Où va l'argent chaque mois</h3><div class="ilegend">${IND_CATS.map(k=>`<span><i style="background:${cc(k)}"></i>${esc(CAT[k].name)}</span>`).join("")}</div><div class="ich" id="chStack"></div></div>
     <div class="panel"><h3>Répartition des sorties</h3><div class="hint" style="margin:0 0 8px">Touche une catégorie pour voir ses principales lignes.</div><div id="chShare"></div><div id="shareDetail"></div></div>
+    ${(()=>{ const labs=[...new Map(D.flatMap(d=>monthLines(d.m)).filter(isVar).map(l=>[norm(l.label), l.label])).values()]; if(!labs.length) return "";
+      return `<div class="panel"><h3>Factures variables</h3>${labs.map(lab=>{ const vals=D.map(d=>{ const l=monthLines(d.m).find(x=>norm(x.label)===norm(lab)); return l?{v:Math.abs(xpf(l)), real:l.done}:null; }); const mx=Math.max(1,...vals.map(v=>v?v.v:0)), R=vals.filter(v=>v&&v.real), avg=R.length?R.reduce((t,v)=>t+v.v,0)/R.length:0;
+        return `<div class="thind"><div class="thih"><span>${esc(lab)}</span><span class="num">${R.length?fmtF(avg):"—"}<small> en moyenne (réel)</small></span></div><div class="thibars">${vals.map((v,i)=>`<span data-thtip="${esc(lab)}, ${esc(mLabel(D[i].m))} : ${v?esc(fmtF(v.v))+(v.real?"":" (estimé)"):"—"}"><b style="height:${v?Math.max(6,v.v/mx*100).toFixed(1):0}%;background:var(--c-fix);${v&&!v.real?"opacity:.4":""}"></b><small>${esc(mShort(D[i].m))}</small></span>`).join("")}</div></div>`; }).join("")}<div class="hint">Barres pâles : montant encore estimé.</div></div>`; })()}
     <div class="panel"><h3>Enveloppes</h3>${E.length?`<div id="chEnv"></div>`:`<div class="hint" style="margin:0">${envMsg}</div>`}</div>
     <details class="panel"><summary>Voir les chiffres en tableau</summary>
       <div style="overflow-x:auto;margin-top:10px"><table class="acct itab"><thead><tr><th>Mois</th><th>Rentrées</th><th>Sorties</th><th>Épargne</th><th>Reste</th></tr></thead><tbody>
@@ -3084,7 +3130,7 @@ function autoCheck(silent){
   if(!S.data || !autoOn()) return [];
   const t=dayStart(new Date()), cur=thisMonth(), from=mShift(cur,-1), done=[], now=Date.now();
   for(const l of live(S.data.lines)){
-    if(l.done || l.noAuto || l.mode!=="prelevement" || l.cat==="vir" || l.m>cur || l.m<from || isEnv(l)) continue;
+    if(l.done || l.noAuto || l.mode!=="prelevement" || l.cat==="vir" || l.m>cur || l.m<from || isEnv(l) || isVar(l)) continue;
     const d=lineDate(l); if(!d || d>=t) continue;
     l.done=true; l.autoDone=true; l.updatedAt=now; done.push(l);
   }
@@ -3184,7 +3230,7 @@ function openBank(A0){
     }
     q("#bkAcc").addEventListener("click", e=>{ const b=e.target.closest(".chip"); if(!b) return; A=b.dataset.v; q("#bkAcc").querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b)); fill(); draw(); });
     q("#bkOut").addEventListener("click", e=>{ const b=e.target.closest("[data-bkdone]"); if(!b) return; const l=S.data.lines.find(x=>x.id===b.dataset.bkdone); if(!l) return;
-      l.done=true; l.updatedAt=Date.now(); touch(); render(); draw(); });
+      if(isVar(l)) return askReal(l, ()=>{ draw(); }); l.done=true; l.updatedAt=Date.now(); touch(); render(); draw(); });
     q("#bkAmt").oninput=()=>{ q("#bkEst").textContent=""; draw(); }; q("#bkSign").addEventListener("click", ()=>setTimeout(draw));
     q("#bkCancel").onclick=close;
     q("#bkOk").onclick=()=>{ const n=val(); if(isNaN(n)){ q("#bkAmt").focus(); return toast("Tape le solde de ta banque"); }
@@ -3345,6 +3391,8 @@ const GUIDE = [
   <p>Indique le <b>jour</b>, le <b>compte</b> et le <b>mode</b> (prélèvement, virement, carte…). Coche la ligne quand l'opération est passée sur ton compte.</p>
   <p>Les <b>prélèvements</b> se cochent tout seuls le lendemain de leur date (réglable dans Réglages → Automatismes). Si tu en décoches un, l'app ne le recoche plus.</p>
   <p>Un montant en <b>€</b> est converti en francs avec le taux des Réglages.</p>`],
+ ["Factures variables", `<p>Pour une facture dont le montant change chaque mois (électricité, eau…), active <b>Montant variable</b> dans « Plus d'options » de la ligne. Elle garde un <b>montant estimé</b> ; quand tu la coches (ou quand sa date est passée, via la carte « À faire »), l'app te demande le <b>montant réel</b>, qui remplace l'estimation dans ton reste à vivre. L'écart s'affiche sur la ligne.</p>
+  <p>En créant le mois suivant, l'estimation devient la moyenne de tes 3 derniers montants réels. Indicateurs → Tendances montre l'évolution de chaque facture.</p>`],
  ["Comptes et virements", `<p>Ton salaire arrive sur la BNC, puis tu fais des virements vers tes autres comptes. Un <b>virement entre comptes</b> ne change pas ton reste à vivre total : l'argent change seulement de compte.</p>
   <p>Le sélecteur au-dessus du reste à vivre montre ce qui reste <b>sur un compte</b> (BNC par défaut), en tenant compte des virements qui en sortent ou qui y arrivent. « Tous les comptes » donne le total.</p>`],
  ["Les enveloppes", `<p>Une enveloppe est une ligne où tu dépenses <b>au fil du mois</b> : repas du midi, courses, essence… Tu prévois un montant, et la <b>jauge</b> montre ce que tu as déjà dépensé.</p>
@@ -3728,7 +3776,8 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-mvgo]")) return goToMove(el.dataset.mvgo);
   if(el=t.closest("[data-qadd]")){ const l=S.data.lines.find(x=>x.id===el.dataset.qadd); if(l) quickSpend(l); return; }
   if(t.closest("[data-goset]")){ setTab("settings"); setTimeout(()=>$("envChips").scrollIntoView({block:"center"}), 60); return; }
-  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l){ l.done=!l.done; if(!l.done && l.mode==="prelevement") l.noAuto=true; l.updatedAt=Date.now(); touch();
+  if(el=t.closest("[data-askreal]")){ const l=S.data.lines.find(x=>x.id===el.dataset.askreal); if(l) askReal(l); return; }
+  if(el=t.closest("[data-done]")){ const l=S.data.lines.find(x=>x.id===el.dataset.done); if(l && isVar(l)){ if(l.done){ unsetReal(l); touch(); render(); } else askReal(l); return; } if(l){ l.done=!l.done; if(!l.done && l.mode==="prelevement") l.noAuto=true; l.updatedAt=Date.now(); touch();
       if(ui.filter==="todo" && l.done){ el.classList.add("on"); setTimeout(render, 380); } else render(); } return; }
   if(el=t.closest("[data-edit]")){ const l=S.data.lines.find(x=>x.id===el.dataset.edit); if(l) openLine(l); return; }
   if(el=t.closest("[data-add]")) return openLine(null, el.dataset.add);
@@ -3769,6 +3818,7 @@ document.addEventListener("click", e=>{
       if(!l){ if(S.pendingRender){ S.pendingRender=false; render(); } return; }
       S.pendingRender=false;
       if(dx>0){ if(isEnv(l) && xpf(l)<0){ render(); return quickSpend(l); }
+        if(isVar(l)){ render(); if(l.done){ unsetReal(l); touch(); render(); toast(`« ${l.label} » décochée`); } else askReal(l); return; }
         l.done=!l.done; if(!l.done && l.mode==="prelevement") l.noAuto=true; l.updatedAt=Date.now(); touch(); render(); toast(l.done?`« ${l.label} » cochée`:`« ${l.label} » décochée`); }
       else removeWithUndo(l, "« "+(l.label||"Ligne")+" » supprimée"); };
     r.addEventListener("touchmove", move, {passive:false}); r.addEventListener("touchend", end); r.addEventListener("touchcancel", end);
