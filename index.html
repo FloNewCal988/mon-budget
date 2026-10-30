@@ -3088,6 +3088,9 @@ function openCalendar(m0){
       const isCur = t>=st && t<=en, pay=I.find(x=>x.pay), np=Math.round((pay.d-t)/864e5);
       const todo=I.filter(x=>!x.pay && !x.proj && !x.done && x.v<0), todoSum=todo.reduce((s,x)=>s-x.v,0);
       const next=todo.find(x=>x.d>=t);
+      const nodate=monthLines(m).filter(l=>!isEnv(l) && !l.day && !l.done && (l.cat==="vir" || Math.round(xpf(l))<0));
+      const ndSum=nodate.reduce((s_,l)=>s_+Math.abs(xpf(l)),0);
+      const envLeft=monthLines(m).filter(l=>isEnv(l) && xpf(l)<0).reduce((s_,l)=>s_+Math.max(0,-xpf(l)+spentOf(l.id)),0);
       // solde BNC estimé jour après jour (si un solde de banque est connu)
       const A=bankAccDefault(m), N=isCur&&A?bankNow(A,m):null;
       const days=[]; for(let d=new Date(st); d<=en; d.setDate(d.getDate()+1)) days.push(new Date(d));
@@ -3106,11 +3109,14 @@ function openCalendar(m0){
         <div class="sub" style="text-transform:none">${esc(fmtD(st))} → ${esc(fmtD(en))}</div>
         ${isCur?`<div class="calkpi"><div><small>Paie</small><b>${inDays(np)}</b><small>${esc(fmtD(pay.d,{weekday:"short", day:"numeric", month:"short"}))}</small></div>
           <div><small>Prochaine facture</small><b>${next?inDays(Math.round((next.d-t)/864e5)):"—"}</b><small>${next?esc(next.lab)+" · "+fmtF(-next.v):"plus rien d'ici la paie"}</small></div>
-          <div><small>Reste à payer</small><b class="num">${fmtF(todoSum)}</b><small>${todo.length} ligne${todo.length>1?"s":""}</small></div></div>`:""}
+          <div><small>Reste à payer</small><b class="num">${fmtF(todoSum+ndSum)}</b><small>${todo.length+nodate.length} ligne${todo.length+nodate.length>1?"s":""}${envLeft?` + ${kF(envLeft)} enveloppes`:""}</small></div></div>`:""}
         <div class="calgrid">${["L","M","M","J","V","S","D"].map(x=>`<span class="cw">${x}</span>`).join("")}${cells}</div>
         <div class="callg"><span><i style="background:var(--c-fix)"></i>charges</span><span><i style="background:var(--c-vir)"></i>virements</span><span><i style="background:var(--pos)"></i>paie</span><span><i style="background:var(--c-fix);opacity:.35"></i>déjà passé</span></div>
         <div class="calsub"><b>${sel?esc(capF(fmtD(new Date(sel+"T12:00"),{weekday:"long", day:"numeric", month:"long"}))):isCur?"À venir d'ici la paie":"À payer ce mois-ci"}</b>${sel?`<button class="linkbtn" id="calAll">Tout voir</button>`:""}</div>
         <div class="callist">${list.length?list.map(row).join(""):`<div class="hint" style="padding:10px 2px">${sel?"Rien ce jour-là.":"Tout est passé."}</div>`}</div>
+        ${!sel && nodate.length?`<div class="calsub"><b>Sans date</b><span class="hint" style="margin:0">${fmtF(ndSum)}</span></div>
+          <div class="callist">${nodate.map(l=>`<div class="calr" data-calline="${l.id}"><i style="background:${cc(l.cat)}"></i><div class="main"><div>${esc(l.label||"Ligne")}</div><div class="hint" style="margin:0">pas de jour prévu${l.acc?" · "+esc(l.acc):""} · touche pour en donner un</div></div><span class="num">${fmtF(-Math.abs(xpf(l)))}</span></div>`).join("")}</div>`:""}
+        ${!sel && envLeft && isCur?`<div class="hint" style="margin-top:10px">Tes enveloppes (repas, courses, essence…) n'ont pas de date : il y reste ${fmtF(envLeft)} à dépenser d'ici la paie, en plus des échéances ci-dessus.</div>`:""}
         ${N?`<div class="hint">« ${esc(A)} après » : ton solde estimé après chaque échéance, d'après ta dernière comparaison avec la banque.</div>`:""}`;
       q("#calPrev").onclick=()=>{ m=mShift(m,-1); sel=null; draw(); }; q("#calNext").onclick=()=>{ m=mShift(m,1); sel=null; draw(); };
       if(q("#calAll")) q("#calAll").onclick=()=>{ sel=null; draw(); };
@@ -3272,7 +3278,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 49;
+const APP_VERSION = 50;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
