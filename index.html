@@ -60,7 +60,7 @@ header.top .row{max-width:720px;margin:0 auto;display:flex;align-items:center;ga
 .dot.ok{background:var(--pos)}.dot.busy{background:var(--warn)}.dot.err{background:var(--neg)}
 .iconbtn{border:0;background:transparent;padding:7px;border-radius:10px;cursor:pointer;color:var(--muted);display:flex}
 .iconbtn.on{color:var(--link)}
-@media (max-width:430px){.iconbtn{padding:6px 5px}header.top{padding-left:10px;padding-right:10px}}
+@media (max-width:430px){.iconbtn{padding:5px 3px}.iconbtn svg{width:21px;height:21px}header.top{padding-left:8px;padding-right:8px}.ptitle h1{font-size:clamp(17px,5.2vw,22px)}.ptitle .arr{padding-left:4px;padding-right:4px}}
 .iconbtn:active{background:var(--accent-soft)}
 
 /* ---------- reste à vivre (élément central) ---------- */
@@ -617,6 +617,42 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 .bkl{display:grid;grid-template-columns:1fr 1.2fr 1.2fr 1fr;gap:6px;padding:6px 0;border-top:1px solid var(--rule);font-size:13.5px}
 .bkl.h{border-top:0;color:var(--muted);font-size:12px} .bkl span:not(:first-child){text-align:right}
 .bkl .pos{color:var(--pos)} .bkl .neg{color:var(--neg)}
+.upcard{display:block;width:100%;border:0;text-align:left;cursor:pointer;background:var(--surface);color:var(--ink);border-radius:16px;padding:12px 14px;margin:0 0 16px;box-shadow:var(--lift);font:inherit}
+.uph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.upt{font-weight:700} .uppay{font-size:13px;font-weight:700;color:var(--pos)}
+.upr{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--rule);font-size:14.5px}
+.uph + .upr{border-top:0}
+.upd{flex:none;min-width:52px;font-size:12.5px;font-weight:700;color:var(--muted);background:var(--paper);border-radius:8px;padding:2px 6px;text-align:center}
+.upd.soon{color:var(--warn)}
+.upl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .upl small{color:var(--muted)}
+.upf{font-size:13px;font-weight:600;color:var(--link);margin-top:4px}
+.calhead{display:flex;align-items:center;justify-content:space-between}
+.calhead .arr{border:0;background:var(--paper);color:var(--ink);width:36px;height:36px;border-radius:12px;font-size:22px;cursor:pointer}
+.calkpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.calkpi > div{background:var(--paper);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;min-width:0}
+.calkpi small{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .calkpi b{font-size:15.5px}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:14px}
+.cw{text-align:center;font-size:11.5px;font-weight:700;color:var(--muted);padding-bottom:2px}
+.cd{border:0;background:var(--paper);color:var(--ink);border-radius:10px;min-height:56px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;cursor:pointer;min-width:0}
+.cd.empty{background:transparent;cursor:default}
+.cd .cn{font-size:13.5px;font-weight:600}
+.cd.past{opacity:.5}
+.cd.today{box-shadow:inset 0 0 0 2px var(--accent)} .cd.today .cn{color:var(--link)}
+.cd.pay{background:color-mix(in srgb,var(--pos) 18%,var(--paper))}
+.cd.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent);opacity:1}
+.cdots{display:flex;gap:2px} .cdots i{width:6px;height:6px;border-radius:50%}
+.camt{font-size:10.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.camt.done{text-decoration:line-through;opacity:.6} .camt.pos{color:var(--pos)}
+.callg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.callg i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.calsub{display:flex;justify-content:space-between;align-items:center;margin:14px 2px 4px}
+.callist{background:var(--paper);border-radius:14px;padding:0 12px}
+.calr{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);cursor:pointer}
+.calr:first-child{border-top:0}
+.calr > i{flex:none;width:9px;height:9px;border-radius:3px}
+.calr .main{flex:1;min-width:0} .calr .main small{color:var(--muted)}
+.calr .num{flex:none;font-weight:600}
+.calr.done{opacity:.55}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -764,6 +800,7 @@ nav.tabs button{font-size:10.5px}
         <button class="arr" id="nextP" aria-label="Mois suivant">›</button>
       </div>
       <div class="sync" id="syncBox" title=""><span class="dot" id="syncDot"></span><span id="syncTxt" class="hidden"></span></div>
+      <button class="iconbtn" id="calBtn" title="Calendrier" aria-label="Calendrier"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
       <button class="iconbtn" id="searchBtn" title="Rechercher" aria-label="Rechercher"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
       <button class="iconbtn" id="gearBtn" title="Réglages" aria-label="Réglages">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -1623,7 +1660,7 @@ function renderMonth(){
   const C = calc(m);
   $("monthBody").innerHTML = (()=>{ const L=[tokenWarnHTML(), varPendingHTML(), pendingBanner(), closeBannerHTML(), bilanCardHTML()].filter(Boolean); return L.length>1 ? `<div class="todo"><div class="todoh">À faire</div>${L.join("")}</div>` : L.join(""); })() + `
     <div class="topgrid">
-      <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
+      <div>${accSelHTML(m)}${(()=>{ const A=viewAcc(m), CA=A?calc(m,A):C; return heroHTML(m, CA, A)+progressHTML(CA); })()}${bankCardHTML(m)}${upcomingHTML(m)}${envCardsHTML(m)}${filterHTML()}</div>
       <div class="desk">${accountsPanel(C)}${movesPanel(m)}</div>
     </div>
     <div class="mgrid">
@@ -1631,7 +1668,7 @@ function renderMonth(){
       <div>${CATS.filter(c=>c.col==="R").map(c=>groupHTML(c,C)).join("")}<div class="desk">${themesPanel(m)}${catsPanel(C)}</div></div>
     </div>
     ${(()=>{ const E=CATS.filter(c=>!C.L.some(l=>l.cat===c.k)); return E.length ? `<div class="emptycats"><span>Catégories vides :</span>${E.map(c=>`<button class="chip" data-add="${c.k}" style="--cc:${cc(c.k)}"><i style="background:${cc(c.k)}"></i>+ ${esc(c.name)}</button>`).join("")}</div>` : ""; })()}
-    <div class="mfoot"><button class="linkbtn" id="monthAlerts">Alertes Calendrier</button><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
+    <div class="mfoot"><button class="linkbtn" data-cal="${m}">Calendrier du mois</button><button class="linkbtn" id="monthAlerts">Alertes Calendrier</button><button class="linkbtn" id="monthOpts">Options du mois</button></div>`;
   $("monthAlerts").onclick = ()=>openAlerts(m);
   $("monthOpts").onclick = ()=>monthOptions(m);
 }
@@ -3020,6 +3057,69 @@ function openHistory(){
   });
 }
 
+/* ================= CALENDRIER DU MOIS ================= */
+/* échéances datées d'une période : lignes (hors enveloppes), paie suivante, échéances de projets */
+function calItems(m){
+  const out=[], st=monthStart(m), en=monthEnd(m);
+  for(const l of monthLines(m)){ if(isEnv(l) || !l.day) continue; const d=lineDate(l); if(!d) continue;
+    const v = l.cat==="vir" ? -Math.abs(xpf(l)) : xpf(l); if(!Math.round(v)) continue;
+    out.push({d:dayStart(d), l, v, lab:l.label||"Ligne", cat:l.cat, done:l.done, vir:l.cat==="vir", var:isVar(l)}); }
+  const nx=monthStart(mShift(m,1)); out.push({d:dayStart(nx), pay:true, lab:"Paie suivante", cat:"sal", v:0});
+  for(const p of projectsList().filter(x=>!x.paid && !isRes(x) && x.due)){ const [y,mo,dd]=p.due.split("-").map(Number), d=new Date(y,mo-1,dd); if(d>=st && d<=en) out.push({d, proj:p, lab:"Échéance : "+p.name, cat:"epa", v:0}); }
+  return out.sort((a,b)=>a.d-b.d || (a.done-b.done));
+}
+const inDays = n => n===0 ? "aujourd'hui" : n===1 ? "demain" : n<0 ? `il y a ${-n} j` : `dans ${n} jours`;
+function upcomingHTML(m){
+  if(m!==thisMonth()) return "";
+  const t=dayStart(new Date()), I=calItems(m), next=I.filter(x=>!x.pay && !x.proj && !x.done && x.v<0 && x.d>=t).slice(0,3), pay=I.find(x=>x.pay), np=Math.round((pay.d-t)/864e5);
+  return `<button class="upcard" data-cal="${m}"><div class="uph"><span class="upt">Prochaines échéances</span><span class="uppay">Paie ${inDays(np)}</span></div>
+    ${next.length?next.map(x=>{ const n=Math.round((x.d-t)/864e5); return `<div class="upr"><span class="upd${n<=2?" soon":""}">${n===0?"auj.":n===1?"demain":"J−"+n}</span><span class="upl">${esc(x.lab)}${x.var?" <small>(estimé)</small>":""}</span><span class="num">${fmtF(-x.v)}</span></div>`; }).join("")
+      :`<div class="upr"><span class="upl" style="color:var(--muted)">Plus rien à payer d'ici la paie.</span></div>`}
+    <div class="upf">Voir le calendrier ›</div></button>`;
+}
+function openCalendar(m0){
+  let m=m0||thisMonth();
+  modal(`<div id="calBody"></div><div class="actions sticky"><span class="spacer"></span><button class="btn" id="calClose">Fermer</button></div>`,
+  (bd, close)=>{ const q=x=>bd.querySelector(x); let sel=null;
+    q("#calClose").onclick=close;
+    function draw(){
+      const st=monthStart(m), en=monthEnd(m), t=dayStart(new Date()), I=calItems(m), byDay=new Map();
+      for(const x of I){ const k=isoDate(x.d); if(!byDay.has(k)) byDay.set(k,[]); byDay.get(k).push(x); }
+      const isCur = t>=st && t<=en, pay=I.find(x=>x.pay), np=Math.round((pay.d-t)/864e5);
+      const todo=I.filter(x=>!x.pay && !x.proj && !x.done && x.v<0), todoSum=todo.reduce((s,x)=>s-x.v,0);
+      const next=todo.find(x=>x.d>=t);
+      // solde BNC estimé jour après jour (si un solde de banque est connu)
+      const A=bankAccDefault(m), N=isCur&&A?bankNow(A,m):null;
+      const days=[]; for(let d=new Date(st); d<=en; d.setDate(d.getDate()+1)) days.push(new Date(d));
+      const lead=(days[0].getDay()+6)%7;
+      let run=N?N.now:null; const bal={};
+      if(N) for(const d of days){ if(d<t) continue; for(const x of (byDay.get(isoDate(d))||[])) if(!x.done && !x.pay && !x.proj){ const l=x.l; let v=0;
+          if(l.cat==="vir"){ if(l.acc===A) v=-Math.abs(xpf(l)); else if(l.to===A) v=Math.abs(xpf(l)); } else if((l.acc||A)===A) v=xpf(l); run+=v; }
+        bal[isoDate(d)]=run; }
+      const cells=[...Array(lead).fill(null), ...days].map(d=>{ if(!d) return `<span class="cd empty"></span>`;
+        const k=isoDate(d), L=(byDay.get(k)||[]), out=L.filter(x=>x.v<0).reduce((s,x)=>s-x.v,0), inc=L.filter(x=>x.v>0).reduce((s,x)=>s+x.v,0), allDone=L.filter(x=>x.v).every(x=>x.done);
+        const cls=[+d===+t?"today":"", d<t?"past":"", sel===k?"sel":"", L.some(x=>x.pay)?"pay":""].join(" ");
+        return `<button class="cd ${cls}" data-cd="${k}"><span class="cn">${d.getDate()}</span>${L.length?`<span class="cdots">${L.slice(0,4).map(x=>`<i style="background:${x.pay?"var(--pos)":cc(x.cat)}${x.done?";opacity:.35":""}"></i>`).join("")}</span>`:""}${out?`<span class="camt${allDone?" done":""}">${kF(out)}</span>`:inc?`<span class="camt pos">+${kF(inc)}</span>`:""}</button>`; }).join("");
+      const list = sel ? (byDay.get(sel)||[]) : todo.filter(x=>x.d>=t || !isCur);
+      const row=x=>{ const n=Math.round((x.d-t)/864e5); return `<div class="calr${x.done?" done":""}"${x.l?` data-calline="${x.l.id}"`:""}><i style="background:${x.pay?"var(--pos)":cc(x.cat)}"></i><div class="main"><div>${esc(x.lab)}${x.var&&!x.done?" <small>(estimé)</small>":""}</div><div class="hint" style="margin:0">${esc(fmtD(x.d,{weekday:"short", day:"numeric", month:"short"}))}${isCur&&!x.done?" · "+inDays(n):""}${x.done?" · passé":""}${x.l&&x.l.acc?" · "+esc(x.vir?`${x.l.acc} → ${x.l.to||"?"}`:x.l.acc):""}${N&&bal[isoDate(x.d)]!=null&&!x.done&&!x.pay&&!x.proj?` · ${esc(A)} après : ${fmtF(bal[isoDate(x.d)])}`:""}</div></div><span class="num${x.v>0?" pos":""}">${x.v?fmtF(x.v,true):""}</span></div>`; };
+      q("#calBody").innerHTML = `<div class="calhead"><button class="arr" id="calPrev" aria-label="Mois précédent">‹</button><h2 style="margin:0">${esc(capF(mLabel(m)))}</h2><button class="arr" id="calNext" aria-label="Mois suivant">›</button></div>
+        <div class="sub" style="text-transform:none">${esc(fmtD(st))} → ${esc(fmtD(en))}</div>
+        ${isCur?`<div class="calkpi"><div><small>Paie</small><b>${inDays(np)}</b><small>${esc(fmtD(pay.d,{weekday:"short", day:"numeric", month:"short"}))}</small></div>
+          <div><small>Prochaine facture</small><b>${next?inDays(Math.round((next.d-t)/864e5)):"—"}</b><small>${next?esc(next.lab)+" · "+fmtF(-next.v):"plus rien d'ici la paie"}</small></div>
+          <div><small>Reste à payer</small><b class="num">${fmtF(todoSum)}</b><small>${todo.length} ligne${todo.length>1?"s":""}</small></div></div>`:""}
+        <div class="calgrid">${["L","M","M","J","V","S","D"].map(x=>`<span class="cw">${x}</span>`).join("")}${cells}</div>
+        <div class="callg"><span><i style="background:var(--c-fix)"></i>charges</span><span><i style="background:var(--c-vir)"></i>virements</span><span><i style="background:var(--pos)"></i>paie</span><span><i style="background:var(--c-fix);opacity:.35"></i>déjà passé</span></div>
+        <div class="calsub"><b>${sel?esc(capF(fmtD(new Date(sel+"T12:00"),{weekday:"long", day:"numeric", month:"long"}))):isCur?"À venir d'ici la paie":"À payer ce mois-ci"}</b>${sel?`<button class="linkbtn" id="calAll">Tout voir</button>`:""}</div>
+        <div class="callist">${list.length?list.map(row).join(""):`<div class="hint" style="padding:10px 2px">${sel?"Rien ce jour-là.":"Tout est passé."}</div>`}</div>
+        ${N?`<div class="hint">« ${esc(A)} après » : ton solde estimé après chaque échéance, d'après ta dernière comparaison avec la banque.</div>`:""}`;
+      q("#calPrev").onclick=()=>{ m=mShift(m,-1); sel=null; draw(); }; q("#calNext").onclick=()=>{ m=mShift(m,1); sel=null; draw(); };
+      if(q("#calAll")) q("#calAll").onclick=()=>{ sel=null; draw(); };
+    }
+    q("#calBody").addEventListener("click", e=>{ const c=e.target.closest("[data-cd]"); if(c){ sel = sel===c.dataset.cd ? null : c.dataset.cd; draw(); return; }
+      const r=e.target.closest("[data-calline]"); if(r){ const l=S.data.lines.find(x=>x.id===r.dataset.calline); close(); if(l) setTimeout(()=>openLine(l),60); } });
+    draw(); });
+}
+
 /* ================= BILANS (semaine, mois) =================
    Calculés sur l'appareil à l'ouverture ; rien n'est envoyé. L'alerte du Calendrier sert de rappel. */
 const deM = m => (/^[aeiou]/.test(norm(monthName(m))) ? "d'" : "de ")+monthName(m);
@@ -3172,7 +3272,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 48;
+const APP_VERSION = 49;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
@@ -3452,6 +3552,9 @@ const GUIDE = [
   <p>Un montant en <b>€</b> est converti en francs avec le taux des Réglages.</p>`],
  ["Factures variables", `<p>Pour une facture dont le montant change chaque mois (électricité, eau…), active <b>Montant variable</b> dans « Plus d'options » de la ligne. Elle garde un <b>montant estimé</b> ; quand tu la coches (ou quand sa date est passée, via la carte « À faire »), l'app te demande le <b>montant réel</b>, qui remplace l'estimation dans ton reste à vivre. L'écart s'affiche sur la ligne.</p>
   <p>En créant le mois suivant, l'estimation devient la moyenne de tes 3 derniers montants réels. Indicateurs → Tendances montre l'évolution de chaque facture.</p>`],
+ ["Calendrier", `<p>L'icône <b>calendrier</b> en haut (ou « Calendrier du mois » en bas de la page) affiche la période de paie jour par jour : chaque échéance (prélèvements, virements, factures, paie, échéances de projets) avec son montant. Les jours passés sont estompés, aujourd'hui est encadré, le jour de paie est en vert.</p>
+  <p>En haut : dans combien de jours arrive la paie, la prochaine facture et ce qu'il reste à payer. Touche un jour pour voir son détail. Si tu as comparé avec ta banque, chaque échéance indique aussi ton solde estimé juste après.</p>
+  <p>Sur la page du mois, la carte « Prochaines échéances » montre les trois prochaines factures (J−3, demain…).</p>`],
  ["Comptes et virements", `<p>Ton salaire arrive sur la BNC, puis tu fais des virements vers tes autres comptes. Un <b>virement entre comptes</b> ne change pas ton reste à vivre total : l'argent change seulement de compte.</p>
   <p>Le sélecteur au-dessus du reste à vivre montre ce qui reste <b>sur un compte</b> (BNC par défaut), en tenant compte des virements qui en sortent ou qui y arrivent. « Tous les comptes » donne le total.</p>`],
  ["Les enveloppes", `<p>Une enveloppe est une ligne où tu dépenses <b>au fil du mois</b> : repas du midi, courses, essence… Tu prévois un montant, et la <b>jauge</b> montre ce que tu as déjà dépensé.</p>
@@ -3754,6 +3857,7 @@ $("lPw").addEventListener("keydown", e=>{ if(e.key==="Enter") doUnlock(); });
 $("forgetBtn").onclick=forget; $("forgetBtn2").onclick=forget;
 $("lockNow").onclick=()=>lock(true);
 $("searchBtn").onclick=()=>openSearch();
+$("calBtn").onclick=()=>openCalendar(["month","synth"].includes(ui.tab)?ui.month:thisMonth());
 $("gearBtn").onclick=()=>setTab(ui.tab==="settings"?"month":"settings");
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 $("fab").onclick=()=>{ if(ui.tab==="savings") openSaving(null); else quickSpend(null); };
@@ -3812,6 +3916,7 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
   if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
     if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
+  if(el=t.closest("[data-cal]")) return openCalendar(el.dataset.cal);
   if(el=t.closest("[data-tokhelp]")) return openTokenHelp(el.dataset.tokhelp);
   if(el=t.closest("[data-bilan]")){ const k=el.dataset.bilan, r=el.dataset.bref||""; ui.seenB=ui.seenB||{};
     if(el.classList.contains("bilcard")){ ui.seenB[k==="mois"?"m"+r:"w"+isoDate(weekStart(new Date()))]=true; saveUI(); render(); }
