@@ -3172,6 +3172,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
+const APP_VERSION = 46;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
@@ -3185,7 +3186,8 @@ function bankNow(A, m){
   // dépenses (Apple Pay, raccourci, saisies) faites ou notées après le solde
   for(const s of live(S.data.spends)){ if(s.m!==m) continue; const when=Math.max(s.at?+new Date(s.at):0, createdAt(s)); if(when<=t0) continue;
     const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(!l || passed.has(l.id)) continue;
-    if((s.acc||l.acc)===A){ moved+=xpf(s); n++; } }
+    const acc=s.acc||l.acc||(A===bankAccDefault(m)?A:"");      // sans compte : compté sur le compte principal
+    if(acc===A){ moved+=xpf(s); n++; } }
   return {b, now:b.v+moved, moved, n};
 }
 const bankEnd = (A, m, now) => now + bankItems(A, m).reduce((t,x)=>t+x.v,0);
@@ -3196,7 +3198,7 @@ function bankCardHTML(m){
   if(N){ const b=N.b, end=bankEnd(A, m, N.now);
     const old = (Date.now()-new Date(b.at))/86400000 > 4;
     return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
-      <span class="bk-t"><span class="bk-two"><span><small>${esc(A)} aujourd'hui</small><b class="num${N.now<0?" neg":""}">≈ ${fmtF(N.now)}</b></span><span><small>le ${esc(fmtD(en))}</small><b class="num${end<0?" neg":""}">${fmtF(end)}</b></span></span><span>D'après ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))}${Math.round(N.moved)?` et ${fmtF(N.moved,true)} passés depuis`:""}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
+      <span class="bk-t"><span class="bk-two"><span><small>${esc(A)} aujourd'hui</small><b class="num${N.now<0?" neg":""}">≈ ${fmtF(N.now)}</b></span><span><small>le ${esc(fmtD(en))}</small><b class="num${end<0?" neg":""}">${fmtF(end)}</b></span></span><span>D'après ton solde de ${fmtF(b.v)} du ${esc(fmtD(new Date(b.at)))} à ${esc(new Date(b.at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}))}${N.n?`, puis ${N.n} mouvement${N.n>1?"s":""} (${fmtF(N.moved,true)})`:", aucun mouvement depuis"}${old?" · à mettre à jour":""}</span></span><span class="bk-go">${old?"Mettre à jour":"Modifier"}</span></button>`;
   }
   return `<button class="bankcard" data-bank="${esc(A)}"><span class="bk-ic">${BANK_ICON}</span>
     <span class="bk-t"><b>Comparer avec ma banque</b><span>Tape ton solde ${esc(A)} : l'app te dit ce qu'il restera le ${esc(fmtD(en))} et ce qui n'est pas encore coché.</span></span><span class="bk-go">Vérifier</span></button>`;
@@ -3496,7 +3498,7 @@ function renderSettings(){
   $("accChips").innerHTML = accounts().map(a=>`<button class="chip" data-accedit="${a.id}"><i style="background:${esc(a.color)}"></i>${esc(a.name)}</button>`).join("");
   $("remToggle").checked = isRemembered();
   $("autoToggle").checked = autoOn();
-  $("setInfo").textContent = (S.lastSync?`Synchronisé à ${S.lastSync.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} · `:"")+`${allMonths().length} mois · ${live(S.data.lines).length} lignes · dépôt ${S.cfg.owner}/${S.cfg.repo}`;
+  $("setInfo").textContent = (S.lastSync?`Synchronisé à ${S.lastSync.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} · `:"")+`${allMonths().length} mois · ${live(S.data.lines).length} lignes · dépôt ${S.cfg.owner}/${S.cfg.repo} · version ${APP_VERSION}`;
 }
 function openAccount(a){
   const isNew=!a; a = a || {name:"", color:PALETTE[live(S.data.accounts).length%PALETTE.length]};
