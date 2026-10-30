@@ -610,7 +610,7 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 .bk-two b{font-size:17px}
 .bkcmp{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
 .bkcmp > div{background:var(--paper);border-radius:12px;padding:9px 10px;display:flex;flex-direction:column}
-.bkcmp small{font-size:12px;color:var(--muted)} .bkcmp b{font-size:16px}
+.bkcmp small{font-size:12px;color:var(--muted)} .bkcmp b + small{font-size:11px;margin-top:2px} .bkcmp b{font-size:16px}
 .bkcmp b.pos{color:var(--pos)} .bkcmp b.neg{color:var(--neg)} .bkcmp b.warn{color:var(--warn)}
 #bkLogBox summary{list-style:none;cursor:pointer} #bkLogBox summary::-webkit-details-marker{display:none}
 .bklog{margin-top:8px}
@@ -1552,7 +1552,7 @@ const recentMerchants = l => [...new Set(live(S.data.spends).filter(s=>{ const l
 function quickSpend(l0){
   const m = l0 ? l0.m : ui.month;
   const envs = monthLines(m).filter(x=>x.cat!=="vir" && xpf(x)<0 && isEnv(x));
-  const others = monthLines(m).filter(x=>x.cat!=="vir" && xpf(x)<0 && !isEnv(x) && ["sor","exc"].includes(x.cat));
+  const others = [];
   let l = l0 || (envs.find(x=>x.id===ui.lastEnv) || envs[0] || null);
   const fromFab = !l0;
   modal(`<h2>${fromFab?"Nouvelle dépense":esc(l0.label)}</h2><div class="sub" style="text-transform:none" id="qSub"></div>
@@ -3172,7 +3172,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 47;
+const APP_VERSION = 48;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
@@ -3192,8 +3192,18 @@ function bankNow(A, m){
     const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(!l || passed.has(l.id)) continue;
     const acc=s.acc||l.acc||(A===bankAccDefault(m)?A:"");      // sans compte : compté sur le compte principal
     if(acc===A){ moved+=xpf(s); n++; } }
+  // paiements par carte pas encore visibles sur le relevé au moment du solde : ils vont passer ensuite
+  for(const [k,v] of Object.entries(b.pend||{})){ const [t,id]=k.split(":"), x=(t==="s"?S.data.spends:S.data.lines).find(y=>y.id===id);
+    if(!x || x.deleted || (t==="l" && (!x.done || passed.has(id)))) continue; moved+=v; n++; }
   return {b, now:b.v+moved, moved, n};
 }
+/* paiements récents par carte (Apple Pay, saisies, lignes carte cochées) : la banque met souvent 1 à 3 jours à les afficher */
+function bankPendCands(A, m){ const lim=addDays(dayStart(new Date()),-7), out=[];
+  for(const s of live(S.data.spends)){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(!l || (s.acc||l.acc||A)!==A) continue; const d=new Date(s.at||0); if(d<lim) continue;
+    out.push({k:"s:"+s.id, d, v:xpf(s), lab:s.merchant||"Dépense", sub:l.label}); }
+  for(const l of [mShift(m,-1),m].filter(monthExists).flatMap(monthLines)){ if(!l.done || isEnv(l) || l.cat==="vir" || (l.acc||A)!==A || xpf(l)>=0 || !(l.mode==="carte" || l.src)) continue;
+    const d=lineDate(l); if(!d || d<lim || d>new Date()) continue; out.push({k:"l:"+l.id, d, v:xpf(l), lab:l.label||"Paiement", sub:CAT[l.cat].name}); }
+  return out.sort((a,b)=>b.d-a.d); }
 const bankEnd = (A, m, now) => now + bankItems(A, m).reduce((t,x)=>t+x.v,0);
 function bankCardHTML(m){
   if(m!==thisMonth() || !monthLines(m).length) return "";
@@ -3222,18 +3232,27 @@ function openBank(A0){
       <div class="seg" id="bkSign" style="margin-top:8px"><button data-v="1" class="on">Positif</button><button data-v="-1">À découvert</button></div>
       <div class="hint" id="bkEst"></div>
     </section>
+    <section class="sec" id="bkPendSec"><div class="sh">Pas encore sur ton relevé ?</div>
+      <div class="hint" style="margin-top:0">Ta banque affiche souvent les paiements par carte avec 1 à 3 jours de retard. Coche ceux que tu ne vois pas encore sur ton relevé : la comparaison en tient compte.</div>
+      <div class="spends" id="bkPend" style="margin-top:8px"></div></section>
     <div id="bkCmp"></div>
     <div id="bkOut"></div>
     <details class="sec" id="bkLogBox"><summary><span class="sh" style="margin:0">Suivi de mes comparaisons</span></summary><div id="bkLog"></div></details>
     <div class="actions sticky"><span class="spacer"></span><button class="linkbtn" id="bkCancel">Fermer</button><button class="btn" id="bkOk">Enregistrer</button></div>`,
   (bd, close)=>{
     const q=x=>bd.querySelector(x), sign=segBind(bd,"bkSign");
-    let EST=null;
+    let EST=null, PC=[], PSEL=new Set();
+    const pendSum=()=>PC.filter(x=>PSEL.has(x.k)).reduce((t,x)=>t+x.v,0);
+    const pendDraw=()=>{ PC=bankPendCands(A,m); const b=prefVal("bal:"+A,null), t0=b&&b.at?new Date(b.at):null;
+      PSEL=new Set(PC.filter(x=>(Date.now()-x.d)/864e5<2 && !(b && b.pend && t0 && x.d<=t0 && !(x.k in b.pend))).map(x=>x.k));
+      q("#bkPendSec").style.display=PC.length?"":"none";
+      q("#bkPend").innerHTML=PC.map(x=>`<label class="sp" style="cursor:pointer"><input type="checkbox" data-pk="${x.k}" ${PSEL.has(x.k)?"checked":""} style="width:20px;height:20px;accent-color:var(--accent);flex:none;margin:0"><div class="main"><div>${esc(x.lab)}</div><div class="hint" style="margin:0">${esc(fmtD(x.d,{weekday:"short", day:"numeric", month:"short"}))} · ${esc(x.sub)}</div></div><span class="num">${fmtF(x.v)}</span></label>`).join(""); };
     const cmpDraw=()=>{ const n=val(); if(EST==null){ q("#bkCmp").innerHTML=""; return; }
-      const d=isNaN(n)?null:n-EST;
-      q("#bkCmp").innerHTML = `<div class="bkcmp"><div><small>L'app estime</small><b class="num">${fmtF(EST)}</b></div><div><small>Ta banque</small><b class="num">${isNaN(n)?"—":fmtF(n)}</b></div><div><small>Écart</small><b class="num ${d==null?"":Math.abs(d)<100?"pos":d<0?"neg":"warn"}">${d==null?"—":Math.abs(d)<100?"✓ OK":fmtF(d,true)}</b></div></div>
+      const ps=pendSum(), exp=EST-ps, d=isNaN(n)?null:n-exp;
+      q("#bkCmp").innerHTML = `<div class="bkcmp"><div><small>${ps?"Ta banque devrait afficher":"L'app estime"}</small><b class="num">${fmtF(exp)}</b>${ps?`<small>${fmtF(EST)} + ${fmtF(-ps)} pas encore passés</small>`:""}</div><div><small>Ta banque</small><b class="num">${isNaN(n)?"—":fmtF(n)}</b></div><div><small>Écart</small><b class="num ${d==null?"":Math.abs(d)<100?"pos":d<0?"neg":"warn"}">${d==null?"—":Math.abs(d)<100?"✓ OK":fmtF(d,true)}</b></div></div>
         ${d!=null && Math.abs(d)>=100 ? `<div class="hint">${d<0?`Ta banque a ${fmtF(-d)} de moins que prévu : une dépense pas notée dans l'app (carte sans Apple Pay, retrait…) ou un prélèvement passé plus tôt.`:`Ta banque a ${fmtF(d)} de plus que prévu : une ligne cochée qui n'est pas encore passée, ou une rentrée non notée.`}</div>` : ""}`; };
-    const fill=()=>{ const N=bankNow(A, m); EST=N?Math.round(N.now):null; q("#bkAmt").value=""; const s="1";
+    q("#bkPend").addEventListener("change", e=>{ const c=e.target.closest("[data-pk]"); if(!c) return; c.checked?PSEL.add(c.dataset.pk):PSEL.delete(c.dataset.pk); cmpDraw(); draw(); });
+    const fill=()=>{ pendDraw(); const N=bankNow(A, m); EST=N?Math.round(N.now):null; q("#bkAmt").value=""; const s="1";
       q("#bkEst").innerHTML = N ? `Estimation de l'app : ton solde du ${esc(fmtD(new Date(N.b.at)))} (${fmtF(N.b.v)})${Math.round(N.moved)?` et ce qui est passé depuis (${fmtF(N.moved,true)})`:""}. Tape le solde affiché par ta banque pour comparer.` : "";
       q("#bkSign").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===s)); q("#bkSign").dataset.v=s; };
     const val=()=>{ const n=parseNum(q("#bkAmt").value); return isNaN(n) ? NaN : Math.abs(n)*Number(sign()||1); };
@@ -3242,7 +3261,7 @@ function openBank(A0){
     function draw(){
       const it=bankItems(A, m), late=it.filter(x=>x.late), up=it.filter(x=>!x.late);
       const inc=up.filter(x=>x.v>0&&!x.env).reduce((t,x)=>t+x.v,0), out=up.filter(x=>x.v<0&&!x.env).reduce((t,x)=>t+x.v,0), env=it.filter(x=>x.env).reduce((t,x)=>t+x.v,0);
-      const lateNoEnv=late.filter(x=>!x.env), lateSum=lateNoEnv.reduce((t,x)=>t+x.v,0), n=val(), end = isNaN(n) ? null : n+inc+out+env+lateSum;
+      const lateNoEnv=late.filter(x=>!x.env), lateSum=lateNoEnv.reduce((t,x)=>t+x.v,0), n=val(), end = isNaN(n) ? null : n+inc+out+env+lateSum+pendSum();
       const det = x => { const d = x.l.cat==="sal" ? monthStart(m) : lineDate(x.l);
         const sub = x.env ? `${fmtF(-spentOf(x.l.id))} dépensés sur ${fmtF(-xpf(x.l))}` : x.l.cat==="vir" ? `${x.l.acc||"?"} → ${x.l.to||"?"}` : (x.l.mode?modeLabel(x.l.mode).toLowerCase():CAT[x.l.cat].name);
         return `<div class="bkd"><div class="main"><div>${esc(x.l.label||"Ligne")}</div><div class="hint" style="margin:0">${d?esc(fmtD(d))+" · ":""}${esc(sub)}</div></div><span class="num${x.v>0?" pos":""}">${fmtF(x.v,true)}</span></div>`; };
@@ -3273,8 +3292,8 @@ function openBank(A0){
     q("#bkAmt").oninput=()=>{ draw(); cmpDraw(); }; q("#bkSign").addEventListener("click", ()=>setTimeout(()=>{ draw(); cmpDraw(); }));
     q("#bkCancel").onclick=close;
     q("#bkOk").onclick=()=>{ const n=val(); if(isNaN(n)){ q("#bkAmt").focus(); return toast("Tape le solde de ta banque"); }
-      const log=(prefVal("ballog:"+A, null)||[]).concat([{at:new Date().toISOString(), bank:n, app:EST}]).slice(-30); setPref("ballog:"+A, log);
-      const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end, snap:Object.fromEntries(bankItems(A,m).map(x=>[x.l.id, x.v]))}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
+      const log=(prefVal("ballog:"+A, null)||[]).concat([{at:new Date().toISOString(), bank:n, app:EST==null?null:EST-pendSum()}]).slice(-30); setPref("ballog:"+A, log);
+      const end=draw(); setPref("bal:"+A, {v:n, at:new Date().toISOString(), end, pend:Object.fromEntries(PC.filter(x=>PSEL.has(x.k)).map(x=>[x.k,x.v])), snap:Object.fromEntries(bankItems(A,m).map(x=>[x.l.id, x.v]))}); touch(); close(); render(); toast(`Il restera environ ${fmtF(end)} sur ${A}`); };
     fill(); draw(); cmpDraw(); logDraw(); setTimeout(()=>q("#bkAmt").focus(), 80);
   });
 }
