@@ -3171,13 +3171,22 @@ function bankItems(A, m){
   return out;
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
+/* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
+const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
-  if(!b.snap) return {b, now:b.v, moved:0};
-  const t0=new Date(b.at), cur=new Set(bankItems(A,m).map(x=>x.l.id)); let moved=0;
-  const passed=new Set(); for(const [id,v] of Object.entries(b.snap)) if(!cur.has(id)){ const l=S.data.lines.find(x=>x.id===id); if(l && !l.deleted && l.done){ moved+=v; passed.add(id); } }
-  for(const s of live(S.data.spends)) if(s.m===m && s.at && new Date(s.at)>t0){ const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(l && l.acc===A && !passed.has(l.id)) moved+=xpf(s); }
-  return {b, now:b.v+moved, moved};
+  const t0=+new Date(b.at); let moved=0, n=0; const passed=new Set();
+  if(b.snap){ const cur=new Set(bankItems(A,m).map(x=>x.l.id));
+    for(const [id,v] of Object.entries(b.snap)) if(!cur.has(id)){ const l=S.data.lines.find(x=>x.id===id); if(l && !l.deleted && l.done){ moved+=v; passed.add(id); n++; } } }
+  else {  // ancien solde enregistré sans photo des lignes : lignes cochées depuis
+    for(const l of monthLines(m)){ if(!l.done || isEnv(l) || (l.updatedAt||0)<=t0) continue;
+      let v=0; if(l.cat==="vir"){ if(l.acc===A) v=-Math.abs(xpf(l)); else if(l.to===A) v=Math.abs(xpf(l)); } else if(l.acc===A) v=xpf(l);
+      if(v){ moved+=v; passed.add(l.id); n++; } } }
+  // dépenses (Apple Pay, raccourci, saisies) faites ou notées après le solde
+  for(const s of live(S.data.spends)){ if(s.m!==m) continue; const when=Math.max(s.at?+new Date(s.at):0, createdAt(s)); if(when<=t0) continue;
+    const l=S.data.lines.find(x=>x.id===s.lineId && !x.deleted); if(!l || passed.has(l.id)) continue;
+    if((s.acc||l.acc)===A){ moved+=xpf(s); n++; } }
+  return {b, now:b.v+moved, moved, n};
 }
 const bankEnd = (A, m, now) => now + bankItems(A, m).reduce((t,x)=>t+x.v,0);
 function bankCardHTML(m){
