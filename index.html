@@ -3172,13 +3172,17 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 46;
+const APP_VERSION = 47;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
   const t0=+new Date(b.at); let moved=0, n=0; const passed=new Set();
   if(b.snap){ const cur=new Set(bankItems(A,m).map(x=>x.l.id));
-    for(const [id,v] of Object.entries(b.snap)) if(!cur.has(id)){ const l=S.data.lines.find(x=>x.id===id); if(l && !l.deleted && l.done){ moved+=v; passed.add(id); n++; } } }
+    for(const [id,v] of Object.entries(b.snap)) if(!cur.has(id)){ const l=S.data.lines.find(x=>x.id===id); if(l && !l.deleted && l.done){ moved+=v; passed.add(id); n++; } }
+    // lignes créées après le solde et déjà cochées (une sortie ajoutée à la main, un paiement classé en nouvelle ligne…)
+    for(const l of monthLines(m)){ if(!l.done || isEnv(l) || passed.has(l.id) || (l.id in b.snap) || createdAt(l)<=t0) continue;
+      let v=0; if(l.cat==="vir"){ if(l.acc===A) v=-Math.abs(xpf(l)); else if(l.to===A) v=Math.abs(xpf(l)); } else if((l.acc||A)===A) v=xpf(l);
+      if(v){ moved+=v; passed.add(l.id); n++; } } }
   else {  // ancien solde enregistré sans photo des lignes : lignes cochées depuis
     for(const l of monthLines(m)){ if(!l.done || isEnv(l) || (l.updatedAt||0)<=t0) continue;
       let v=0; if(l.cat==="vir"){ if(l.acc===A) v=-Math.abs(xpf(l)); else if(l.to===A) v=Math.abs(xpf(l)); } else if(l.acc===A) v=xpf(l);
