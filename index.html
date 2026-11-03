@@ -653,6 +653,17 @@ main.slide-l{animation:slideL .26s ease-out} main.slide-r{animation:slideR .26s 
 .calr .main{flex:1;min-width:0} .calr .main small{color:var(--muted)}
 .calr .num{flex:none;font-weight:600}
 .calr.done{opacity:.55}
+.stiles.st2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:640px){.stiles.st2{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.loanbar{height:10px;border-radius:99px;background:var(--rule);overflow:hidden;margin:12px 0 6px}
+.loanbar span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--c-epa),var(--accent))}
+.loanlg{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.loansplit{display:flex;gap:3px;margin:8px 0 2px;font-size:12.5px}
+.loansplit span{border-radius:8px;padding:6px 8px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loansplit span:first-child{background:color-mix(in srgb,var(--c-epa) 25%,transparent)} .loansplit span:last-child{background:color-mix(in srgb,var(--c-exc) 25%,transparent)}
+.taxbig{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:14px;padding:10px 12px;margin-bottom:6px}
+.taxbig small{flex-basis:100%;font-size:12.5px;color:var(--muted)} .taxbig b{font:800 26px/1.1 var(--display);flex:1}
+.srow .k small{color:var(--muted);font-size:12px}
 .envrh{display:flex;flex-direction:column;margin-top:8px}
 .envrh .erow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--rule)}
 .envrh .erow:first-child{border-top:0}
@@ -817,6 +828,7 @@ nav.tabs button{font-size:10.5px}
     <section id="tab-synth" class="hidden"><div id="synthTab"></div></section>
     <section id="tab-savings" class="hidden"><div id="savingsBody"></div></section>
     <section id="tab-year" class="hidden"><div id="yearBody"></div></section>
+    <section id="tab-loan" class="hidden"><div id="loanBody"></div></section>
     <section id="tab-indic" class="hidden"><div id="indicBody"></div></section>
 
     <section id="tab-settings" class="hidden">
@@ -948,6 +960,7 @@ nav.tabs button{font-size:10.5px}
     <button data-tab="synth" class="synthbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg>Synthèse</button>
     <button data-tab="savings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9c1.5 0 2 1 2 2v3h-2l-1.5 3H15v2h-3v-2H9v2H6v-2.5C4.2 15.5 3 13.8 3 12c0-3.3 3.6-6 8-6 1.6 0 3.1.3 4.3.9L18 5v4h1z"/><circle cx="15.5" cy="11" r=".8" fill="currentColor"/></svg>Épargne</button>
     <button data-tab="year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></svg>Année</button>
+    <button data-tab="loan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>Prêt</button>
     <button data-tab="indic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Indicateurs</button>
   </div></nav>
 </div>
@@ -1360,7 +1373,7 @@ const accPill = name => name ? `<span class="acc"><i style="background:${esc(acc
 /* ================= INTERFACE ================= */
 const ui = Object.assign({tab:"month", month:null, year:null, filter:"all", closed:{}, accView:"BNC", showZero:{}}, ls.get(LS_UI)||{});
 ui.month = null; ui.year = null;
-const TITLES = {savings:"Épargne", settings:"Réglages", indic:"Indicateurs"};
+const TITLES = {savings:"Épargne", settings:"Réglages", indic:"Indicateurs", loan:"Mon prêt"};
 const saveUI = () => ls.set(LS_UI, {tab:ui.tab, filter:ui.filter, closed:ui.closed, accView:ui.accView||"", indN:ui.indN||6, showZero:ui.showZero||{}, indTab:ui.indTab||"mois", seenB:ui.seenB||{}});
 /* comptes utilisés dans un mois (pour le sélecteur au-dessus du reste à vivre) */
 function monthAccounts(m){ const set=new Set(); for(const l of monthLines(m)){ if(l.acc && !isSavAcc(l.acc)) set.add(l.acc); if(l.cat==="vir" && l.to && !isSavAcc(l.to)) set.add(l.to); }
@@ -1391,7 +1404,7 @@ function setTab(t){
   ui.tab=t; saveUI();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on", b.dataset.tab===t));
   $("gearBtn").classList.toggle("on", t==="settings");
-  for(const k of ["month","synth","savings","year","indic","settings"]) $("tab-"+k).classList.toggle("hidden", k!==t);
+  for(const k of ["month","synth","savings","year","loan","indic","settings"]) $("tab-"+k).classList.toggle("hidden", k!==t);
   if(typeof hideTip==="function") hideTip();
   render(); scrollTo(0,0);
 }
@@ -1425,6 +1438,7 @@ function render(){
   else if(t==="savings") renderSavings();
   else if(t==="year") renderYear();
   else if(t==="indic") renderIndic();
+  else if(t==="loan") renderLoan();
   else if(t==="settings") renderSettings();
   $("labelsDL").innerHTML = [...new Set(live(S.data.lines).map(l=>l.label).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"fr")).map(x=>`<option value="${esc(x)}">`).join("");
 }
@@ -3057,6 +3071,171 @@ function openHistory(){
   });
 }
 
+/* ================= PRÊT IMMOBILIER =================
+   Les paramètres du prêt sont dans les données chiffrées (prefs « loan:… ») ; le tableau d'amortissement est recalculé sur l'appareil. */
+const loans = () => (S.data ? S.data.prefs : []).filter(p=>p.id.startsWith("loan:") && !p.deleted && p.value).map(p=>({id:p.id.slice(5), ...p.value})).sort((a,b)=>(a.ord||0)-(b.ord||0));
+const loanById = id => loans().find(x=>x.id===id);
+const parseISO = s => { const [y,m,d]=String(s||"").split("-").map(Number); return y ? new Date(y,m-1,d||1) : null; };
+/* date d'échéance : le jour prévu du mois, reporté au lundi si samedi ou dimanche */
+function dueDate(first, k){ const y=first.getFullYear(), m=first.getMonth()+k, last=new Date(y,m+1,0).getDate(); const d=new Date(y,m,Math.min(first.getDate(),last));
+  if(d.getDay()===6) d.setDate(d.getDate()+2); else if(d.getDay()===0) d.setDate(d.getDate()+1); return d; }
+function loanPay(L){ const P=L.amount, r=L.rate/100/12, n=L.months; return L.pay>0 ? L.pay : Math.round(r ? P*r/(1-Math.pow(1+r,-n)) : P/n); }
+/* tableau d'amortissement ; extra = {k, amt, mode:"duree"|"mensualite"} pour simuler un remboursement anticipé après l'échéance k */
+function loanSchedule(L, extra){
+  const first=parseISO(L.first), r=L.rate/100/12; let pay=loanPay(L), rest=L.amount; const rows=[];
+  for(let k=1; k<=L.months+600 && rest>0; k++){
+    let it = k===1 && L.firstInterest>0 ? L.firstInterest : Math.round(rest*r);
+    let am = k===1 && L.firstInterest>0 ? pay-Math.round(rest*r) : pay-it;
+    if(am>=rest || k>=L.months && !extra){ am=rest; if(!(k===1 && L.firstInterest>0)) it = Math.max(0, Math.min(it, pay-am)) || it; }
+    rest-=am; const ins=L.ins||0;
+    rows.push({k, d:dueDate(first,k-1), it, am, pay:am+it, ins, rest});
+    if(extra && k===extra.k && rest>0){ const x=Math.min(rest, extra.amt); rest-=x; rows[rows.length-1].extra=x; rows[rows.length-1].rest=rest;
+      if(extra.mode==="mensualite" && rest>0){ const nLeft=L.months-k; pay=Math.round(r ? rest*r/(1-Math.pow(1+r,-nLeft)) : rest/nLeft); } }
+  }
+  return rows;
+}
+function loanState(L){
+  const R=loanSchedule(L), t=dayStart(new Date()), paid=R.filter(x=>x.d<=t), left=R.filter(x=>x.d>t), last=paid[paid.length-1];
+  const sum=(A,f)=>A.reduce((s,x)=>s+f(x),0);
+  return {R, paid, left, next:left[0], rest:last?last.rest:L.amount, capPaid:sum(paid,x=>x.am), itPaid:sum(paid,x=>x.it), itLeft:sum(left,x=>x.it),
+    itTotal:sum(R,x=>x.it), end:R[R.length-1].d, pay:loanPay(L)};
+}
+const yearsMonths = n => { const y=Math.floor(n/12), m=n%12; return [y?`${y} an${y>1?"s":""}`:"", m?`${m} mois`:""].filter(Boolean).join(" ")||"0 mois"; };
+/* intérêts (et assurance) payés pendant une année civile, pour la déclaration de revenus */
+function loanYear(L, y){ const R=loanSchedule(L).filter(x=>x.d.getFullYear()===y);
+  const it=R.reduce((s,x)=>s+x.it,0), am=R.reduce((s,x)=>s+x.am,0);
+  let ins=R.length*(L.ins||0), insSrc=L.ins?"montant mensuel saisi":"";
+  if(L.insLine){ const lines=live(S.data.lines).filter(l=>norm(l.label)===norm(L.insLine) && l.done && (lineDate(l)||monthStart(l.m)).getFullYear()===y); if(lines.length){ ins=lines.reduce((s,l)=>s+Math.abs(xpf(l)),0); insSrc=`${lines.length} ligne${lines.length>1?"s":""} « ${L.insLine} » cochée${lines.length>1?"s":""}`; } }
+  const first=parseISO(L.first), annuity=Math.floor((y-first.getFullYear()))+1;
+  const ded=it+(L.insDed===false?0:ins), cap=L.cap>0?L.cap:0, inYears=!L.capYears || annuity<=L.capYears;
+  return {y, R, it, am, ins, insSrc, ded, cap, inYears, toDeclare: !inYears && cap ? 0 : cap ? Math.min(cap, ded) : ded};
+}
+function renderLoan(){
+  const body=$("loanBody"), L0=loans();
+  if(!L0.length){ body.innerHTML=`<div class="panel newmonth"><h2>Mon prêt</h2><div class="hint" style="margin-top:0">Renseigne les informations de ton tableau d'amortissement : l'app recalcule chaque échéance, suit ce qui est remboursé et prépare le montant à déclarer aux impôts.</div>
+    <div class="actions" style="justify-content:center;margin-top:16px"><button class="btn block" data-loanedit="">Ajouter mon prêt</button></div>
+    <div class="hint">Les chiffres restent chiffrés avec ton mot de passe, comme le reste de ton budget.</div></div>`; return; }
+  const L = L0.find(x=>x.id===ui.loanId) || L0[0]; ui.loanId=L.id;
+  const S_=loanState(L), t=dayStart(new Date()), pct=(L.amount-S_.rest)/L.amount*100, nLeft=S_.left.length;
+  const ty = ui.loanYear || (t.getMonth()<6 ? t.getFullYear()-1 : t.getFullYear());
+  const Y=loanYear(L, ty), firstY=parseISO(L.first).getFullYear(), lastY=S_.end.getFullYear();
+  const budgetLine = L.line ? monthLines(thisMonth()).find(l=>norm(l.label)===norm(L.line)) : null;
+  const tile=(k,v,s,c="")=>`<div class="stile"><span>${k}</span><b class="num${c}">${v}</b>${s?`<small>${s}</small>`:""}</div>`;
+  body.innerHTML = `${L0.length>1?`<div class="chips" style="margin-bottom:12px">${L0.map(x=>`<button class="chip${x.id===L.id?" on":""}" data-loanpick="${x.id}">${esc(x.name)}</button>`).join("")}</div>`:""}
+  <div class="ydesk"><div>
+    <div class="hero">
+      <div class="lead" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(L.name)} · capital restant dû</span><button class="linkbtn" data-loanedit="${L.id}" style="padding:0">Modifier</button></div>
+      <div class="big">${fmtF(S_.rest).replace(/\s*F$/,"")}<small>F</small></div>
+      <div class="pace">sur ${fmtF(L.amount)} empruntés · <b>${NF0.format(pct)} %</b> remboursé</div>
+      <div class="loanbar"><span style="width:${Math.max(.5,pct).toFixed(1)}%"></span></div>
+      <div class="loanlg"><span>${S_.paid.length} échéance${S_.paid.length>1?"s":""} payée${S_.paid.length>1?"s":""} sur ${S_.R.length}</span><span>fin ${esc(fmtD(S_.end,{month:"long", year:"numeric"}))} · encore ${yearsMonths(nLeft)}</span></div>
+      <div class="stiles st2" style="margin-top:12px">${tile("Mensualité", fmtF(S_.pay), L.ins?`+ ${fmtF(L.ins)} assurance`:"hors assurance")}${tile("Intérêts payés", fmtF(S_.itPaid), "depuis le début")}${tile("Intérêts restants", fmtF(S_.itLeft), "jusqu'à la fin")}${tile("Coût total", fmtF(S_.itTotal), "intérêts sur la durée")}${tile("Capital remboursé", fmtF(S_.capPaid), "")}${tile("Taux", NF2.format(L.rate)+" %", L.months+" mois")}</div>
+    </div>
+    ${S_.next?`<div class="panel"><h3>Prochaine échéance</h3><div class="srow"><span class="k">${esc(capF(fmtD(S_.next.d,{weekday:"long", day:"numeric", month:"long"})))} · ${inDays(Math.round((S_.next.d-t)/864e5))}</span><span class="v num">${fmtF(S_.next.pay)}</span></div>
+      <div class="loansplit"><span style="flex:${S_.next.am}"><b>${fmtF(S_.next.am)}</b> capital</span><span style="flex:${S_.next.it}"><b>${fmtF(S_.next.it)}</b> intérêts</span></div>
+      <div class="hint">Aujourd'hui, ${NF0.format(S_.next.it/S_.next.pay*100)} % de ta mensualité part en intérêts. Cette part baisse chaque mois.</div>
+      ${budgetLine?`<div class="hint">Ta ligne « ${esc(budgetLine.label)} » prévoit ${fmtF(Math.abs(xpf(budgetLine)))}${Math.round(Math.abs(xpf(budgetLine))-S_.next.pay-(L.ins||0))?`, soit ${fmtF(Math.abs(xpf(budgetLine))-S_.next.pay-(L.ins||0),true)} par rapport à l'échéance${L.ins?" + assurance":""}`:", pile l'échéance"}.</div>`:""}</div>`:""}
+    <div class="panel"><h3>Capital restant dû</h3><div class="ich" id="chLoan"></div></div>
+    <div class="panel"><h3>Capital et intérêts par année</h3><div class="ilegend"><span><i style="background:var(--c-epa)"></i>Capital</span><span><i style="background:var(--c-exc)"></i>Intérêts</span></div><div class="ich" id="chLoanY"></div></div>
+  </div><div>
+    <div class="panel taxp"><h3>Pour ma déclaration d'impôts</h3>
+      <div class="chips" style="margin:2px 0 10px">${[ty-1,ty,ty+1].filter(y=>y>=firstY && y<=lastY).map(y=>`<button class="chip${y===ty?" on":""}" data-loanyear="${y}">Revenus ${y}</button>`).join("")}</div>
+      <div class="taxbig"><small>Montant à déclarer (revenus ${ty})</small><b class="num">${fmtF(Y.toDeclare)}</b><button class="btn ghost small" id="taxCopy">Copier</button></div>
+      <div class="srow"><span class="k">Intérêts payés en ${ty} (${Y.R.length} échéance${Y.R.length>1?"s":""})</span><span class="v num">${fmtF(Y.it)}</span></div>
+      <div class="srow"><span class="k">Assurance emprunteur${Y.insSrc?` <small>(${esc(Y.insSrc)})</small>`:""}</span><span class="v num">${L.insDed===false?"non comptée":fmtF(Y.ins)}</span></div>
+      ${Y.cap?`<div class="srow"><span class="k">Plafond annuel</span><span class="v num">${fmtF(Y.cap)}${L.capYears?` · ${L.capYears} ans`:""}</span></div>`:""}
+      ${Y.cap && Y.ded>Y.cap?`<div class="balert">Tes intérêts et ton assurance (${fmtF(Y.ded)}) dépassent le plafond : seuls ${fmtF(Y.cap)} sont déductibles.</div>`:""}
+      ${!Y.inYears?`<div class="balert">Au-delà des ${L.capYears} premières annuités, ces intérêts ne sont plus déductibles avec le plafond saisi.</div>`:""}
+      <div class="hint">En Nouvelle-Calédonie, les intérêts et l'assurance obligatoire du prêt de ton habitation principale se déduisent du revenu global : cadre « Charges déductibles », sur la ligne qui correspond à ta commune et à la date du prêt (XI, XO, XP ou XV selon la notice). Vérifie la ligne dans la notice de l'année et garde l'attestation annuelle d'intérêts de la banque, qui fait foi.</div>
+      ${Y.cap?`<div class="hint">Le plafond se compte par annuité de 12 mois depuis le premier déblocage ; l'app l'applique par année civile, ce qui revient au même tant que tu restes en dessous.</div>`:""}
+    </div>
+    <div class="panel"><h3>Simuler un remboursement anticipé</h3>
+      <div class="amtbox" style="margin-top:0"><input id="raAmt" inputmode="decimal" placeholder="Montant" autocomplete="off" aria-label="Montant remboursé"><span class="unit">F</span></div>
+      <label for="raDate">Après l'échéance de</label><select class="field" id="raDate">${S_.left.slice(0,120).map(x=>`<option value="${x.k}">${esc(capF(fmtD(x.d,{month:"long", year:"numeric"})))}</option>`).join("")}</select>
+      <div class="seg" id="raMode" style="margin-top:10px"><button data-v="duree" class="on">Réduire la durée</button><button data-v="mensualite">Baisser la mensualité</button></div>
+      <div id="raOut"></div>
+      <div class="hint">Simulation hors indemnités de remboursement anticipé : demande leur montant à ta banque.</div>
+    </div>
+    <details class="panel"><summary>Tableau par année</summary><div style="overflow-x:auto;margin-top:10px"><table class="acct itab"><thead><tr><th>Année</th><th>Capital</th><th>Intérêts</th><th>Restant dû fin</th></tr></thead><tbody>
+      ${(()=>{ const by={}; for(const x of S_.R){ const y=x.d.getFullYear(), o=by[y] ||= {am:0,it:0,rest:0}; o.am+=x.am; o.it+=x.it; o.rest=x.rest; } return Object.entries(by).map(([y,o])=>`<tr${+y===t.getFullYear()?' style="font-weight:700"':""}><td>${y}</td><td class="num">${fmtF(o.am)}</td><td class="num">${fmtF(o.it)}</td><td class="num">${fmtF(o.rest)}</td></tr>`).join(""); })()}
+      <tr style="font-weight:700"><td>Total</td><td class="num">${fmtF(L.amount)}</td><td class="num">${fmtF(S_.itTotal)}</td><td></td></tr></tbody></table></div></details>
+  </div></div>`;
+  drawLoan(L, S_); drawLoanYears(S_);
+  $("taxCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(String(Math.round(Y.toDeclare))); toast("Montant copié"); }catch(e){} };
+  const raMode=segBindEl($("raMode"));
+  const sim=()=>{ const x=parseNum($("raAmt").value), k=Number($("raDate").value); if(!(x>0)){ $("raOut").innerHTML=""; return; }
+    const R2=loanSchedule(L,{k, amt:x, mode:raMode()}), it2=R2.reduce((s,r)=>s+r.it,0), save=S_.itTotal-it2;
+    const end2=R2[R2.length-1].d, nShort=S_.R.length-R2.length, row=R2.find(r=>r.k===k+1);
+    $("raOut").innerHTML=`<div class="stiles" style="margin-top:10px">${tile("Intérêts économisés", fmtF(save), "", " pos")}${raMode()==="duree"?tile("Nouvelle fin", capF(fmtD(end2,{month:"short", year:"numeric"})), `${yearsMonths(nShort)} plus tôt`):tile("Nouvelle mensualité", row?fmtF(row.pay):"—", row?`${fmtF(row.pay-S_.pay,true)} par mois`:"")}${tile("Restant dû ensuite", fmtF((R2.find(r=>r.k===k)||{}).rest||0), `au lieu de ${fmtF((S_.R.find(r=>r.k===k)||{}).rest||0)}`)}</div>`; };
+  $("raAmt").oninput=sim; $("raDate").onchange=sim; $("raMode").addEventListener("click", ()=>setTimeout(sim));
+}
+function segBindEl(el){ el.addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; el.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b)); el.dataset.v=b.dataset.v; }); el.dataset.v=(el.querySelector("button.on")||{}).dataset?.v; return ()=>el.dataset.v; }
+function drawLoan(L, S_){
+  const el=$("chLoan"), R=S_.R, W=W_(el), H=180, Lp=44, Rp=10, T=12, B=24, n=R.length, t=dayStart(new Date());
+  const x=i=>Lp+(W-Lp-Rp)*i/(n-1), y=v=>T+(H-T-B)*(1-v/L.amount);
+  const pts=[[0,L.amount],...R.map((r,i)=>[i,r.rest])].map(([i,v])=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  const iNow=Math.max(0,S_.paid.length-1);
+  const yrs=[...new Set(R.map(r=>r.d.getFullYear()))].filter(yy=>yy%5===0);
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Capital restant dû">
+    ${[0,.5,1].map(f=>`<line x1="${Lp}" x2="${W-Rp}" y1="${y(L.amount*f)}" y2="${y(L.amount*f)}" stroke="var(--rule)"/><text x="${Lp-6}" y="${y(L.amount*f)+4}" text-anchor="end" class="ilab">${esc(kF(L.amount*f))}</text>`).join("")}
+    ${yrs.map(yy=>{ const i=R.findIndex(r=>r.d.getFullYear()===yy); return `<text x="${x(i)}" y="${H-6}" text-anchor="middle" class="ilab">${yy}</text>`; }).join("")}
+    <path d="M${pts.join("L")}L${x(n-1)},${y(0)}L${x(0)},${y(0)}Z" fill="color-mix(in srgb, var(--accent) 12%, transparent)"/>
+    <path d="M${pts.join("L")}" fill="none" stroke="var(--accent)" stroke-width="2.4"/>
+    ${S_.paid.length?`<line x1="${x(iNow)}" x2="${x(iNow)}" y1="${T}" y2="${H-B}" stroke="var(--ink)" stroke-opacity=".35" stroke-dasharray="3 3"/><circle cx="${x(iNow)}" cy="${y(S_.rest)}" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/><text x="${x(iNow)+6}" y="${y(S_.rest)-8}" class="ival">aujourd'hui</text>`:""}
+    ${R.map((r,i)=>`<g class="ibar" data-i="${i}"><rect x="${x(i)-(W-Lp-Rp)/n/2}" y="${T}" width="${(W-Lp-Rp)/n}" height="${H-T-B}" fill="transparent"/></g>`).join("")}</svg>`;
+  bindBars(el, i=>{ const r=R[i]; return [`Échéance ${r.k} · ${fmtD(r.d,{day:"numeric", month:"short", year:"numeric"})}`, [["Restant dû", fmtF(r.rest), "var(--accent)", true],["Capital", fmtF(r.am)],["Intérêts", fmtF(r.it)]]]; });
+}
+function drawLoanYears(S_){
+  const el=$("chLoanY"), by={}; for(const r of S_.R){ const y=r.d.getFullYear(), o=by[y] ||= {am:0,it:0}; o.am+=r.am; o.it+=r.it; }
+  const Y=Object.entries(by), W=W_(el), H=170, Lp=8, Rp=8, T=8, B=22, n=Y.length, max=Math.max(...Y.map(([,o])=>o.am+o.it)), cy=new Date().getFullYear();
+  const bw=Math.max(2,(W-Lp-Rp)/n*0.7), gx=i=>Lp+(W-Lp-Rp)/n*(i+.5), h=v=>(H-T-B)*v/max;
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Capital et intérêts par année">
+    ${Y.map(([y,o],i)=>`<g class="ibar" data-i="${i}"><rect x="${gx(i)-bw/2-1}" y="${T}" width="${bw+2}" height="${H-T-B}" fill="transparent"/>
+      <rect class="m" x="${gx(i)-bw/2}" y="${H-B-h(o.am)}" width="${bw}" height="${h(o.am)}" fill="var(--c-epa)"${+y<cy?' opacity=".45"':""}/>
+      <rect class="m" x="${gx(i)-bw/2}" y="${H-B-h(o.am)-h(o.it)}" width="${bw}" height="${h(o.it)}" fill="var(--c-exc)"${+y<cy?' opacity=".45"':""}/>
+      ${(+y%5===0)?`<text x="${gx(i)}" y="${H-6}" text-anchor="middle" class="ilab">${y}</text>`:""}</g>`).join("")}</svg>`;
+  bindBars(el, i=>{ const [y,o]=Y[i]; return [String(y), [["Total payé", fmtF(o.am+o.it), null, true],["Capital", fmtF(o.am), "var(--c-epa)"],["Intérêts", fmtF(o.it), "var(--c-exc)"]]]; });
+}
+function openLoanEdit(L){
+  const isNew=!L; L = L || {id:uid(), name:"Prêt maison", amount:"", months:"", rate:"", first:"", firstInterest:"", ins:"", insDed:true, insLine:"", line:"", cap:2000000, capYears:20, ord:loans().length};
+  const labs=[...new Set(live(S.data.lines).filter(l=>l.label && xpf(l)<0).map(l=>l.label))].sort((a,b)=>a.localeCompare(b,"fr"));
+  const opt=(cur)=>`<option value="">— Aucune —</option>`+labs.map(x=>`<option${norm(x)===norm(cur||"")?" selected":""}>${esc(x)}</option>`).join("");
+  modal(`<h2>${isNew?"Ajouter mon prêt":"Modifier le prêt"}</h2><div class="sub" style="text-transform:none">D'après ton tableau d'amortissement</div>
+    <section class="sec"><div class="sh">Le prêt</div>
+      <label for="lnName" style="margin-top:0">Nom</label><input class="field" id="lnName" value="${esc(L.name)}">
+      <div class="row2"><div><label for="lnAmt">Montant emprunté (F)</label><input class="field" id="lnAmt" inputmode="numeric" value="${esc(fmtInput(L.amount))}"></div>
+        <div><label for="lnMonths">Durée (mois)</label><input class="field" id="lnMonths" inputmode="numeric" value="${L.months||""}"></div></div>
+      <div class="row2"><div><label for="lnRate">Taux nominal (%)</label><input class="field" id="lnRate" inputmode="decimal" value="${L.rate!==""?esc(String(L.rate).replace(".",",")):""}"></div>
+        <div><label for="lnFirst">1re échéance</label><input class="field" type="date" id="lnFirst" value="${esc(L.first)}"></div></div>
+      <label for="lnFI">Intérêts de la 1re échéance (facultatif)</label><input class="field" id="lnFI" inputmode="numeric" value="${esc(fmtInput(L.firstInterest))}" placeholder="si elle diffère des suivantes">
+      <div class="hint" id="lnCheck"></div>
+    </section>
+    <section class="sec"><div class="sh">Assurance emprunteur</div>
+      <label for="lnIns" style="margin-top:0">Montant mensuel (F, si elle n'est pas dans la mensualité)</label><input class="field" id="lnIns" inputmode="numeric" value="${esc(fmtInput(L.ins))}">
+      <label for="lnInsLine">Ou la ligne de ton budget qui la paie</label><select class="field" id="lnInsLine">${opt(L.insLine)}</select>
+      <label class="switch"><span>La compter dans la déduction d'impôts<br><span class="hint" style="margin:0">si elle est obligatoire pour le prêt</span></span><input type="checkbox" id="lnInsDed" ${L.insDed!==false?"checked":""}></label>
+    </section>
+    <section class="sec"><div class="sh">Budget et impôts</div>
+      <label for="lnLine" style="margin-top:0">Ligne du budget qui paie l'échéance</label><select class="field" id="lnLine">${opt(L.line)}</select>
+      <div class="row2"><div><label for="lnCap">Plafond déductible par an (F)</label><input class="field" id="lnCap" inputmode="numeric" value="${esc(fmtInput(L.cap))}" placeholder="aucun"></div>
+        <div><label for="lnCapY">Pendant (années)</label><input class="field" id="lnCapY" inputmode="numeric" value="${L.capYears||""}" placeholder="—"></div></div>
+      <div class="hint">Le plafond dépend de la commune, de la date d'acceptation de l'offre et de l'objet du prêt. Vérifie-le sur dsf.gouv.nc (dépliant « J'emprunte pour mon habitation principale »).</div>
+    </section>
+    <div class="actions sticky">${isNew?"":`<button class="linkbtn danger" id="lnDel">Supprimer</button>`}<span class="spacer"></span><button class="linkbtn" id="lnCancel">Annuler</button><button class="btn" id="lnOk">${isNew?"Ajouter":"Enregistrer"}</button></div>`,
+  (bd, close)=>{ const q=x=>bd.querySelector(x);
+    const read=()=>({...L, name:q("#lnName").value.trim()||"Prêt", amount:parseNum(q("#lnAmt").value), months:parseInt(q("#lnMonths").value,10), rate:parseNum(q("#lnRate").value), first:q("#lnFirst").value,
+      firstInterest:parseNum(q("#lnFI").value)||0, ins:parseNum(q("#lnIns").value)||0, insLine:q("#lnInsLine").value, insDed:q("#lnInsDed").checked, line:q("#lnLine").value,
+      cap:parseNum(q("#lnCap").value)||0, capYears:parseInt(q("#lnCapY").value,10)||0});
+    const check=()=>{ const x=read(); if(!(x.amount>0 && x.months>0 && x.rate>=0 && x.first)){ q("#lnCheck").textContent="Montant, durée, taux et date de la 1re échéance suffisent pour recalculer tout le tableau."; return; }
+      const R=loanSchedule(x); q("#lnCheck").innerHTML=`Mensualité calculée : <b>${fmtF(loanPay(x))}</b> · 1re échéance ${fmtF(R[0].pay)} · coût total ${fmtF(R.reduce((s,r)=>s+r.it,0))}. Compare avec ton tableau.`; };
+    bd.addEventListener("input", check); check();
+    q("#lnCancel").onclick=close;
+    if(q("#lnDel")) q("#lnDel").onclick=()=>{ if(!confirm("Supprimer ce prêt de l'app ?")) return; const p=S.data.prefs.find(x=>x.id==="loan:"+L.id); if(p){ p.deleted=true; p.updatedAt=Date.now(); } touch(); close(); render(); };
+    q("#lnOk").onclick=()=>{ const x=read(); if(!(x.amount>0 && x.months>0 && x.rate>=0 && x.first)) return toast("Indique le montant, la durée, le taux et la 1re échéance");
+      const {id, ...v}=x; setPref("loan:"+L.id, v); ui.loanId=L.id; touch(); close(); render(); toast(isNew?"Prêt ajouté":"Prêt enregistré"); };
+  });
+}
+
 /* ================= CALENDRIER DU MOIS ================= */
 /* échéances datées d'une période : lignes (hors enveloppes), paie suivante, échéances de projets */
 function calItems(m){
@@ -3278,7 +3457,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 50;
+const APP_VERSION = 51;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
@@ -3561,6 +3740,9 @@ const GUIDE = [
  ["Calendrier", `<p>L'icône <b>calendrier</b> en haut (ou « Calendrier du mois » en bas de la page) affiche la période de paie jour par jour : chaque échéance (prélèvements, virements, factures, paie, échéances de projets) avec son montant. Les jours passés sont estompés, aujourd'hui est encadré, le jour de paie est en vert.</p>
   <p>En haut : dans combien de jours arrive la paie, la prochaine facture et ce qu'il reste à payer. Touche un jour pour voir son détail. Si tu as comparé avec ta banque, chaque échéance indique aussi ton solde estimé juste après.</p>
   <p>Sur la page du mois, la carte « Prochaines échéances » montre les trois prochaines factures (J−3, demain…).</p>`],
+ ["Mon prêt", `<p>L'onglet <b>Prêt</b> suit ton crédit immobilier. Saisis une fois le montant, la durée, le taux et la date de la 1re échéance (et ses intérêts si elle est différente) : l'app recalcule tout le tableau d'amortissement et compare avec ta ligne de budget.</p>
+  <p>Tu y vois le capital restant dû, la part déjà remboursée, les intérêts payés et restants, la prochaine échéance (capital / intérêts), l'évolution par année, et un simulateur de remboursement anticipé.</p>
+  <p><b>Impôts</b> : le cadre « Pour ma déclaration » donne les intérêts payés pendant l'année, plus l'assurance obligatoire, dans la limite du plafond saisi. C'est une aide : l'attestation annuelle de la banque et la notice de la DSF font foi.</p>`],
  ["Comptes et virements", `<p>Ton salaire arrive sur la BNC, puis tu fais des virements vers tes autres comptes. Un <b>virement entre comptes</b> ne change pas ton reste à vivre total : l'argent change seulement de compte.</p>
   <p>Le sélecteur au-dessus du reste à vivre montre ce qui reste <b>sur un compte</b> (BNC par défaut), en tenant compte des virements qui en sortent ou qui y arrivent. « Tous les comptes » donne le total.</p>`],
  ["Les enveloppes", `<p>Une enveloppe est une ligne où tu dépenses <b>au fil du mois</b> : repas du midi, courses, essence… Tu prévois un montant, et la <b>jauge</b> montre ce que tu as déjà dépensé.</p>
@@ -3922,6 +4104,9 @@ document.addEventListener("click", e=>{
   if(el=t.closest("[data-indacc]")){ ui.accView=el.dataset.indacc; saveUI(); render(); return; }
   if(el=t.closest("[data-wd]")){ const d=Number(el.dataset.wd), W=workDays(); const nw = W.includes(d) ? W.filter(x=>x!==d) : [...W,d].sort();
     if(!nw.length) return toast("Garde au moins un jour de travail"); setPref("workdays", nw); touch(); render(); return; }
+  if(el=t.closest("[data-loanedit]")){ const L=el.dataset.loanedit?loanById(el.dataset.loanedit):null; return openLoanEdit(L||null); }
+  if(el=t.closest("[data-loanpick]")){ ui.loanId=el.dataset.loanpick; render(); return; }
+  if(el=t.closest("[data-loanyear]")){ ui.loanYear=Number(el.dataset.loanyear); render(); return; }
   if(el=t.closest("[data-cal]")) return openCalendar(el.dataset.cal);
   if(el=t.closest("[data-tokhelp]")) return openTokenHelp(el.dataset.tokhelp);
   if(el=t.closest("[data-bilan]")){ const k=el.dataset.bilan, r=el.dataset.bref||""; ui.seenB=ui.seenB||{};
