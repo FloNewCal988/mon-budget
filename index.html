@@ -791,6 +791,7 @@ nav.tabs button{font-size:10.5px}
     <div class="hint" id="lockWho"></div>
     <label>Mot de passe</label>
     <input class="field" id="lPw" type="password" autocomplete="current-password">
+    <div class="hint">Une fois connecté, tes autres apps s'ouvrent sans redemander le mot de passe.</div>
     <div id="lockErr" class="err"></div>
     <label class="chkline"><input type="checkbox" id="lRemember" checked> Rester connecté sur cet appareil</label>
     <div class="actions"><button class="btn block" id="unlockBtn">Déverrouiller</button></div>
@@ -816,7 +817,7 @@ nav.tabs button{font-size:10.5px}
       <button class="iconbtn" id="gearBtn" title="Réglages" aria-label="Réglages">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
-      <button class="iconbtn" id="lockNow" title="Verrouiller" aria-label="Verrouiller">
+      <button class="iconbtn" id="lockNow" title="Se déconnecter de toutes les apps" aria-label="Se déconnecter de toutes les apps">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       </button>
     </div>
@@ -921,7 +922,7 @@ nav.tabs button{font-size:10.5px}
             <div class="card">
           <strong>Sécurité</strong>
           <div class="hint">Tes données sont chiffrées sur l'appareil avant d'être envoyées sur GitHub.</div>
-          <label class="switch"><span>Rester connecté sur cet appareil</span><input type="checkbox" id="remToggle"></label>
+          <label class="switch"><span>Rester connecté sur cet appareil<br><span class="hint" style="margin:0">Vaut pour toutes tes apps (connexion commune).</span></span><input type="checkbox" id="remToggle"></label>
           <div class="hint">Désactivé : l'app se verrouille après 10 minutes sans utilisation.</div>
           <button class="btn ghost" id="chgPw" style="margin-top:12px">Changer le mot de passe</button>
         </div>
@@ -1009,8 +1010,40 @@ const idb = (()=>{
   return { get:k=>run("readonly",s=>s.get(k)), set:(k,v)=>run("readwrite",s=>s.put(v,k)), clear:()=>run("readwrite",s=>s.clear()) };
 })();
 
+/* ================= CONNEXION COMMUNE (même bloc dans toutes mes apps flonewcal988.github.io) =================
+   Un seul jeton GitHub + un seul mot de passe pour toutes les apps de cet appareil.
+   hub_cfg (localStorage)   : {owner, salt, tok} — le jeton, chiffré avec le mot de passe commun
+   hub_rem (localStorage)   : le mot de passe, chiffré avec une clé propre à l'appareil (« rester connecté »)
+   hub_ses (sessionStorage) : idem le temps de l'onglet, pour passer d'une app à l'autre sans retaper
+   Le bouton 🔒 déconnecte toutes les apps de l'appareil. */
+const HUB = (()=>{
+  const CFG="hub_cfg", REM="hub_rem", SES="hub_ses";
+  let p=null;
+  const db = () => p ||= new Promise((res,rej)=>{ const r=indexedDB.open("mes-apps",1); r.onupgradeneeded=()=>r.result.createObjectStore("k"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  const run = (mode, fn) => db().then(d=>new Promise(res=>{ const tx=d.transaction("k",mode); const rq=fn(tx.objectStore("k")); tx.oncomplete=()=>res(rq?.result); tx.onerror=()=>res(undefined); })).catch(()=>undefined);
+  async function devKey(create){
+    let k = await run("readonly", s=>s.get("dev"));
+    if(!k && create){ k = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]); await run("readwrite", s=>s.put(k,"dev")); }
+    return k || null;
+  }
+  const ss = { get(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } }, set(k,v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} }, del(k){ try{ sessionStorage.removeItem(k); }catch(e){} } };
+  async function seal(pw){ const k=await devKey(true); if(!k) return null; const iv=rnd(12); return {iv:b64(iv), ct:b64(await crypto.subtle.encrypt({name:"AES-GCM", iv}, k, te.encode(pw)))}; }
+  async function unseal(r){ if(!r) return null; try{ const k=await devKey(false); if(!k) return null; return td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(r.iv)}, k, unb64(r.ct))); }catch(e){ return null; } }
+  return {
+    cfg: () => ls.get(CFG),
+    async save(pw, token, owner){ const old=ls.get(CFG)||{}, salt=b64(rnd(16)); ls.set(CFG, {v:1, owner:owner||old.owner||"FloNewCal988", salt, tok:await encryptStr(pw, token, salt)}); },
+    token(pw){ const c=ls.get(CFG); return c ? decryptStr(pw, c.tok) : Promise.reject(new Error("aucune connexion")); },   // échoue si mauvais mot de passe
+    async savedPw(){ return (await unseal(ss.get(SES))) || (await unseal(ls.get(REM))); },
+    async keep(pw, remember){ try{ const s=await seal(pw); if(!s) return; ss.set(SES, s); if(remember===true) ls.set(REM, s); else if(remember===false) ls.del(REM); }catch(e){} },
+    remembered: () => !!ls.get(REM),
+    endSession(){ ss.del(SES); },
+    logout(){ ss.del(SES); ls.del(REM); },
+    reset(){ ss.del(SES); ls.del(REM); ls.del(CFG); run("readwrite", s=>s.clear()); }
+  };
+})();
+
 /* ================= GITHUB ================= */
-const DATA_PATH = "budget.enc.json";
+const DATA_PATH = "budget.enc.json", DEFAULT_REPO = "mon-budget-donnees";
 const ghBase = c => `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}`;
 const ghHeaders = t => ({"Authorization":"Bearer "+t, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"});
 function ghErr(r){
@@ -1166,19 +1199,24 @@ async function sync(){
     if(S.checkInbox){ S.checkInbox=false; try{ inbox = await fetchInbox(); }catch(e){ S.checkInbox=true; } }
     for(let attempt=0; attempt<3; attempt++){
       const remote = await ghGetFile(S.cfg, S.token, DATA_PATH);
-      let remoteData=null, salt=S.cfg.salt;
+      let remoteData=null, salt=S.cfg.salt, reenc=false;
       if(remote){
         const blob = JSON.parse(remote.text); salt = blob.salt;
         try{ remoteData = JSON.parse(await decryptStr(S.pw, blob)); }
-        catch(e){ throw new Error("Impossible de déchiffrer les données GitHub : mot de passe différent sur un autre appareil ?"); }
+        catch(e){
+          // données encore chiffrées avec l'ancien mot de passe de Mon Budget : on le demande une seule fois, puis on rechiffre
+          if(!S.oldPw){ askOldPw(); const er=new Error("old"); er.quiet=true; throw er; }
+          try{ remoteData = JSON.parse(await decryptStr(S.oldPw, blob)); reenc=true; }
+          catch(e2){ S.oldPw=null; askOldPw(true); const er=new Error("old"); er.quiet=true; throw er; }
+        }
       }
       S.data = merge(remoteData, S.data); seedDefaults();
-      const changed = !remote || JSON.stringify(S.data) !== JSON.stringify(merge(remoteData, null));
+      const changed = reenc || !remote || JSON.stringify(S.data) !== JSON.stringify(merge(remoteData, null));
       if(!changed){ S.dirty=false; break; }
       try{
         const blob = await encryptStr(S.pw, JSON.stringify(S.data), salt);
-        await ghPutFile(S.cfg, S.token, DATA_PATH, JSON.stringify(blob), remote?.sha);
-        S.dirty=false; break;
+        await ghPutFile(S.cfg, S.token, DATA_PATH, JSON.stringify(blob), remote?.sha, reenc ? "Passage au mot de passe commun" : undefined);
+        S.dirty=false; if(reenc){ S.oldPw=null; toast("Mon Budget utilise maintenant le mot de passe commun ✓"); } break;
       }catch(e){ if(!e.conflict || attempt===2) throw e; }
     }
     if(S.tokenBad){ S.tokenBad=false; }
@@ -1186,6 +1224,7 @@ async function sync(){
     setSync("ok","À jour"); S.lastSync=new Date();
     if(inbox.length){ clearInbox(inbox); const n=pendingList().length; if(n && ui.tab!=="month") toast(`${n} paiement${n>1?"s":""} Apple Pay à classer`, {label:"Classer", fn:openInbox}); }
   }catch(e){
+    if(e.quiet){ setSync("err","Mot de passe"); return; }
     setSync("err", navigator.onLine===false ? "Hors ligne" : "Erreur");
     if(/Jeton GitHub refusé/.test(e.message||"") && !S.tokenBad){ S.tokenBad=true; render(); }
     if(navigator.onLine!==false) toast(e.message);
@@ -1211,40 +1250,34 @@ async function doSetup(){
       try{ data = JSON.parse(await decryptStr(pw, JSON.parse(remote.text))); }
       catch(e){ throw new Error("Données trouvées sur GitHub, mais ce mot de passe ne les ouvre pas."); }
     }
-    cfg.tok = await encryptStr(pw, token, cfg.salt);
     ls.set(LS_CFG, cfg);
-    if($("sRemember").checked) await rememberDevice(pw); else forgetDevice();
+    await HUB.save(pw, token, owner); await HUB.keep(pw, $("sRemember").checked);
     S = {pw, token, cfg, data};
     startApp(); sync();
   }catch(e){ err.textContent = /fetch|network/i.test(e.message) ? "Connexion à GitHub impossible." : e.message; }
   finally{ $("setupBtn").disabled=false; $("setupBtn").textContent="Connecter"; }
 }
-async function deviceKey(create){
-  let k = await idb.get("__devkey");
-  if(!k && create){ k = await crypto.subtle.generateKey({name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]); await idb.set("__devkey", k); }
-  return k || null;
-}
-async function rememberDevice(pw){
-  try{ const k=await deviceKey(true); if(!k) return; const iv=rnd(12);
-    const ct=await crypto.subtle.encrypt({name:"AES-GCM", iv}, k, te.encode(pw));
-    ls.set(LS_REM, {iv:b64(iv), ct:b64(ct)}); }catch(e){}
-}
-function forgetDevice(){ ls.del(LS_REM); }
-const isRemembered = () => !!ls.get(LS_REM);
-async function rememberedPassword(){
+/* Ancienne connexion propre à Mon Budget (avant la connexion commune) : lue une dernière fois puis remplacée */
+async function legacyPassword(){
   const r=ls.get(LS_REM); if(!r) return null;
-  try{ const k=await deviceKey(false); if(!k) return null;
+  try{ const k=await idb.get("__devkey"); if(!k) return null;
     return td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(r.iv)}, k, unb64(r.ct))); }catch(e){ return null; }
 }
+const isRemembered = () => HUB.remembered();
 async function doUnlock(pwArg){
   const auto = typeof pwArg==="string";
   const pw = auto ? pwArg : $("lPw").value, err=$("lockErr"); err.textContent="";
-  const cfg = ls.get(LS_CFG);
+  const hub = HUB.cfg(); let cfg = ls.get(LS_CFG);
+  const remember = auto ? (hub ? undefined : true) : $("lRemember").checked;
   $("unlockBtn").disabled=true;
   try{
     let token;
-    try{ token = await decryptStr(pw, cfg.tok); }catch(e){ if(auto){ forgetDevice(); throw new Error("Reconnecte-toi avec ton mot de passe."); } throw new Error("Mot de passe incorrect."); }
-    if(!auto){ if($("lRemember").checked) await rememberDevice(pw); else forgetDevice(); }
+    try{ token = hub ? await HUB.token(pw) : await decryptStr(pw, cfg.tok); }
+    catch(e){ if(auto){ HUB.endSession(); if(hub) HUB.logout(); ls.del(LS_REM); throw new Error("Reconnecte-toi avec ton mot de passe."); } throw new Error("Mot de passe incorrect."); }
+    if(!hub){ await HUB.save(pw, token, cfg.owner); }        // 1re ouverture : Mon Budget crée la connexion commune avec son mot de passe et son jeton
+    await HUB.keep(pw, remember);
+    if(cfg && (cfg.tok || ls.get(LS_REM))){ delete cfg.tok; ls.set(LS_CFG, cfg); ls.del(LS_REM); }
+    if(!cfg){ cfg = {owner:HUB.cfg().owner, repo:DEFAULT_REPO, salt:b64(rnd(16))}; ls.set(LS_CFG, cfg); }   // nouvel appareil déjà connecté ailleurs
     let data = emptyData();
     const cache = ls.get(LS_CACHE);
     if(cache){ try{ data = JSON.parse(await decryptStr(pw, cache)); }catch(e){} }
@@ -1254,24 +1287,39 @@ async function doUnlock(pwArg){
   }catch(e){ err.textContent=e.message; }
   finally{ $("unlockBtn").disabled=false; }
 }
+/* Le budget est encore chiffré avec son ancien mot de passe : on le demande une fois */
+function askOldPw(wrong){
+  if(S.askingOld) return; S.askingOld=true;
+  modal(`<h2>Ancien mot de passe de Mon Budget</h2>
+    <div class="hint">Tes apps utilisent maintenant un mot de passe commun, mais ton budget sur GitHub est encore protégé par l'ancien mot de passe de Mon Budget. Entre-le une dernière fois : le budget sera rechiffré avec le mot de passe commun.</div>
+    <label>Ancien mot de passe</label><input class="field" id="oPw" type="password" autocomplete="off">
+    <div class="err" id="oErr">${wrong?"Ce mot de passe n'ouvre pas le budget.":""}</div>
+    <div class="actions"><span class="spacer"></span><button class="btn ghost" id="oCancel">Plus tard</button><button class="btn" id="oOk">Valider</button></div>`,
+  (bd, close)=>{
+    const done=()=>{ S.askingOld=false; close(); };
+    bd.querySelector("#oCancel").onclick=done;
+    const ok=()=>{ const v=bd.querySelector("#oPw").value; if(!v) return; S.oldPw=v; done(); sync(); };
+    bd.querySelector("#oOk").onclick=ok;
+    bd.querySelector("#oPw").addEventListener("keydown", e=>{ if(e.key==="Enter") ok(); });
+    setTimeout(()=>bd.querySelector("#oPw").focus(), 50);
+  });
+}
 function lock(manual){
-  if(manual===true) forgetDevice();
+  if(manual===true) HUB.logout(); else HUB.endSession();      // 🔒 = déconnecte toutes les apps de l'appareil
   if(S.dirty && S.pw) sync();
   setTimeout(()=>{ S = {pw:null, token:null, cfg:ls.get(LS_CFG), data:null}; keyCache.clear(); $("modalRoot").innerHTML=""; boot(); }, S.dirty?1500:0);
 }
 function forget(){
-  if(!confirm("Effacer la configuration de cet appareil ? Tes données sur GitHub restent intactes.")) return;
-  ls.del(LS_CFG); ls.del(LS_CACHE); forgetDevice(); idb.clear(); keyCache.clear(); S={}; $("modalRoot").innerHTML=""; boot();
+  if(!confirm("Effacer la configuration de cet appareil ? Toutes tes apps devront être reconnectées (jeton + mot de passe). Tes données sur GitHub restent intactes.")) return;
+  ls.del(LS_CFG); ls.del(LS_CACHE); ls.del(LS_REM); HUB.reset(); idb.clear(); keyCache.clear(); S={}; $("modalRoot").innerHTML=""; boot();
 }
 function boot(){
-  const cfg = ls.get(LS_CFG);
-  if(!cfg){ show("setupView"); return; }
-  $("lockWho").textContent = "Données : "+cfg.owner+"/"+cfg.repo;
-  show("lockView");
-  if(isRemembered()){
-    $("lockErr").textContent=""; $("unlockBtn").textContent="Ouverture…";
-    rememberedPassword().then(pw=>{ $("unlockBtn").textContent="Déverrouiller"; if(pw) doUnlock(pw); else { forgetDevice(); $("lPw").focus(); } });
-  } else setTimeout(()=>$("lPw").focus(), 50);
+  const hub = HUB.cfg(), cfg = ls.get(LS_CFG);
+  if(!hub && !cfg){ show("setupView"); return; }
+  $("lockWho").textContent = hub ? "Mot de passe commun à toutes tes apps" : "Données : "+cfg.owner+"/"+cfg.repo;
+  $("lRemember").checked = hub ? HUB.remembered() : true;
+  show("lockView"); $("lockErr").textContent=""; $("unlockBtn").textContent="Ouverture…";
+  (hub ? HUB.savedPw() : legacyPassword()).then(pw=>{ $("unlockBtn").textContent="Déverrouiller"; if(pw) doUnlock(pw); else setTimeout(()=>$("lPw").focus(), 50); });
 }
 let lastAct = Date.now(), busyLong=false;
 ["pointerdown","keydown","touchstart"].forEach(ev=>addEventListener(ev, ()=>lastAct=Date.now(), {passive:true}));
@@ -3006,7 +3054,7 @@ function openTokenHelp(k){
       if(isApp){ const tok=q("#tkNew").value.trim(), err=q("#tkErr"); err.textContent="";
         if(!/^(github_pat_|ghp_)/.test(tok)){ err.textContent="Colle le code complet, il commence par github_pat_."; return; }
         q("#tkOk").disabled=true; bd.dataset.busy="1";
-        try{ await ghGetFile(S.cfg, tok, DATA_PATH); S.token=tok; S.cfg.tok=await encryptStr(S.pw, tok, S.cfg.salt); ls.set(LS_CFG, S.cfg); S.tokenBad=false; }
+        try{ await ghGetFile(S.cfg, tok, DATA_PATH); S.token=tok; await HUB.save(S.pw, tok); S.tokenBad=false; }
         catch(e){ err.textContent = /refusé/.test(e.message) ? "GitHub refuse ce jeton : vérifie que tu l'as copié en entier et qu'il a accès au dépôt mon-budget-donnees." : e.message; q("#tkOk").disabled=false; delete bd.dataset.busy; return; }
         delete bd.dataset.busy; }
       if(/^\d{4}-\d{2}-\d{2}$/.test(dv)) setPref("tokexp:"+(isApp?"app":"sc"), dv);
@@ -3457,7 +3505,7 @@ function bankItems(A, m){
 }
 /* solde estimé aujourd'hui : dernier solde tapé, plus ce qui est passé depuis (lignes cochées, dépenses) */
 /* moment où un élément a été créé (les identifiants commencent par l'heure de création) */
-const APP_VERSION = 51;
+const APP_VERSION = 52;
 const createdAt = x => { const t=parseInt(String(x.id||"").slice(0,8),36); return t>1.5e12 && t<4e12 ? t : 0; };
 function bankNow(A, m){
   const b=prefVal("bal:"+A, null); if(!b || !b.at || new Date(b.at)<monthStart(m)) return null;
@@ -3846,7 +3894,7 @@ function openAccount(a){
 }
 function changePassword(){
   modal(`<h2>Changer le mot de passe</h2>
-    <div class="hint">Tes autres appareils devront ensuite être reconnectés avec le nouveau mot de passe (« Oublier cet appareil » puis reconnexion).</div>
+    <div class="hint">C'est le mot de passe commun à toutes tes apps sur cet appareil. Tes autres appareils devront être reconnectés avec le nouveau mot de passe, et chaque autre app te demandera une seule fois l'ancien.</div>
     <label>Mot de passe actuel</label><input class="field" id="cOld" type="password">
     <label>Nouveau mot de passe</label><input class="field" id="cNew" type="password" autocomplete="new-password">
     <label>Confirmer</label><input class="field" id="cNew2" type="password" autocomplete="new-password">
@@ -3865,8 +3913,8 @@ function changePassword(){
         const salt=b64(rnd(16));
         const remote = await ghGetFile(S.cfg, S.token, DATA_PATH);
         await ghPutFile(S.cfg, S.token, DATA_PATH, JSON.stringify(await encryptStr(n, JSON.stringify(S.data), salt)), remote?.sha, "Changement de mot de passe");
-        S.cfg.salt=salt; S.cfg.tok=await encryptStr(n, S.token, salt); ls.set(LS_CFG, S.cfg);
-        S.pw=n; await cacheLocal(); if(isRemembered()) await rememberDevice(n);
+        S.cfg.salt=salt; ls.set(LS_CFG, S.cfg);
+        await HUB.save(n, S.token); S.pw=n; await cacheLocal(); await HUB.keep(n, HUB.remembered() ? true : undefined);
         close(); toast("Mot de passe changé ✓");
       }catch(e){ err.textContent=e.message; bd.querySelector("#cOk").disabled=false; }
       finally{ delete bd.dataset.busy; busyLong=false; }
@@ -4081,7 +4129,7 @@ $("xlsFile").onchange=e=>{ if(e.target.files[0]) importExcel(e.target.files[0]);
 $("copyUrl").onclick=async()=>{ try{ await navigator.clipboard.writeText($("inboxUrl").value); toast("Adresse copiée"); }catch(e){ $("inboxUrl").select(); toast("Sélectionne l'adresse et copie-la"); } };
 $("checkInbox").onclick=()=>{ S.checkInbox=true; sync(); toast("Recherche des nouveaux paiements…"); };
 $("syncNow").onclick=()=>{ S.checkInbox=true; sync(); };
-$("remToggle").onchange=async e=>{ if(e.target.checked){ await rememberDevice(S.pw); toast("Cet appareil restera connecté"); } else { forgetDevice(); toast("Le mot de passe sera demandé à chaque ouverture"); } };
+$("remToggle").onchange=async e=>{ if(e.target.checked){ await HUB.keep(S.pw, true); toast("Cet appareil restera connecté"); } else { await HUB.keep(S.pw, false); toast("Le mot de passe sera demandé à chaque ouverture"); } };
 $("chgPw").onclick=changePassword;
 $("guideBtn").onclick=openGuide;
 $("addTheme").onclick=()=>openTheme(null);

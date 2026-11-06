@@ -19,8 +19,16 @@ Petite application personnelle (iPhone + ordinateur) qui reprend le fonctionneme
 
 - L'**application** (le code) est publique sur GitHub Pages : elle ne contient **aucune donnée**.
 - Tes **données** sont dans un **dépôt privé** séparé, dans un fichier `budget.enc.json`, **chiffré avec ton mot de passe** (AES-256-GCM, PBKDF2-SHA256 310 000 itérations) **sur le téléphone, avant l'envoi**.
-- Ton mot de passe n'est jamais envoyé ni stocké en clair. « Rester connecté » fonctionne comme dans Ma Maison (clé propre à l'appareil, le bouton 🔒 déconnecte).
-- Les réglages de Mon Budget sont séparés de ceux de Ma Maison (même adresse `github.io`, mais stockage distinct).
+- Ton mot de passe n'est jamais envoyé ni stocké en clair.
+
+## 🔑 Connexion commune à toutes mes apps
+
+Mon Budget utilise la **connexion commune** partagée par toutes les apps `flonewcal988.github.io` : **un seul jeton GitHub et un seul mot de passe**.
+- Connecté dans une app = connecté dans les autres (même navigateur ; sur iPhone, ouvrir les apps depuis la page d'accueil commune).
+- « Rester connecté » vaut pour toutes les apps ; le bouton 🔒 **déconnecte toutes les apps** de l'appareil.
+- À la première ouverture de cette version, Mon Budget crée la connexion commune avec son mot de passe et son jeton actuels : rien à refaire.
+- Si la connexion commune a été créée par une autre app avec un autre mot de passe, Mon Budget demande **une seule fois** son ancien mot de passe puis rechiffre le budget avec le mot de passe commun.
+- Le jeton commun doit avoir accès (Contents : Read and write) à **tous** les dépôts de données (`mon-budget-donnees`, `ma-maison-donnees`…). Pour le changer : Réglages → Remplacer le jeton de l'app.
 - ⚠️ **Mot de passe oublié = données perdues.** Fais de temps en temps Réglages → Exporter, et garde le fichier en lieu sûr.
 
 ---
